@@ -1,5 +1,5 @@
 {
-  "name": "gerrit",
+	"name": "gerrit",
 	"displayName": "gerrit",
 	"description": "VSCode gerrit integration",
 	"version": "0.0.1",
@@ -10,7 +10,7 @@
 		"Other"
 	],
 	"activationEvents": [
-        "onCommand:gerrit.helloWorld"
+		"onCommand:gerrit.helloWorld"
 	],
 	"main": "./out/extension.js",
 	"contributes": {
@@ -30,16 +30,19 @@
 		"test": "node ./out/test/runTest.js"
 	},
 	"devDependencies": {
-		"@types/vscode": "^1.62.0",
 		"@types/glob": "^7.1.4",
 		"@types/mocha": "^9.0.0",
 		"@types/node": "14.x",
+		"@types/vscode": "^1.62.0",
 		"@typescript-eslint/eslint-plugin": "^5.1.0",
-		"@typescript-eslint/parser": "^5.1.0",
+		"@typescript-eslint/parser": "^5.4.0",
+		"@vscode/test-electron": "^1.6.2",
 		"eslint": "^8.1.0",
 		"glob": "^7.1.7",
+		"gts": "^3.1.0",
 		"mocha": "^9.1.3",
-		"typescript": "^4.4.4",
-		"@vscode/test-electron": "^1.6.2"
+		"prettier": "^2.4.1",
+		"prettier-plugin-sort-imports": "^1.0.1",
+		"typescript": "^4.4.4"
 	}
 }

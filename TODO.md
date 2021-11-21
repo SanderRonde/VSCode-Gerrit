@@ -1,6 +1,7 @@
-[ ] "Backend"
-	[ ] Implement gerrit API
-	[ ] Caching?
+[x] "Backend"
+	[x] "gerrit credentials" command
+	[x] Implement gerrit API
+	[x] Caching?
 [ ] Visual
 	[ ] Patches pane
 		[ ] ... buttons
@@ -70,8 +71,8 @@
 	[ ] Add "review" button in source control
 		[ ] If first patchset, automatically open reply pane
 			 [ ] Allow disabling this in settings
-	[ ] Add bottom bar showing currently checked-out patch
-		[ ] Rightclicking:
-			[ ] Uncheckout
-			[ ] Uncheckout & unstash previous
-			[ ] Cancel review (if just reviewing)
+	[x] Add bottom bar showing currently checked-out patch
+		[-] Rightclicking:
+			[-] Uncheckout
+			[-] Uncheckout & unstash previous
+			[-] Cancel review (if just reviewing)

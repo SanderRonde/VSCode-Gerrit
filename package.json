@@ -10,16 +10,61 @@
 		"Other"
 	],
 	"activationEvents": [
-		"onCommand:gerrit.helloWorld"
+		"onStartupFinished"
 	],
 	"main": "./out/extension.js",
 	"contributes": {
 		"commands": [
 			{
-				"command": "gerrit.helloWorld",
-				"title": "Hello World"
+				"command": "gerrit.checkoutPatch",
+				"title": "Check out gerrit patch TODO:"
 			}
-		]
+		],
+		"viewsContainers": {
+			"activitybar": [
+				{
+					"id": "gerrit",
+					"title": "Gerrit",
+					"icon": "src/images/gerrit.svg"
+				}
+			]
+		},
+		"views": {
+			"gerrit": [
+				{
+					"id": "patchExplorer",
+					"name": "Patches",
+					"type": "tree",
+					"visibility": "visible",
+					"when": "gerrit.isUsingGerrit"
+				},
+				{
+					"id": "reply",
+					"name": "Review",
+					"type": "tree",
+					"visibility": "visible",
+					"when": "gerrit.isUsingGerrit && (gerrit.patches.checkedOut || gerrit.patches.reviewing)"
+				}
+			]
+		},
+		"configuration": {
+			"type": "object",
+			"title": "Gerrit configuration",
+			"properties": {
+				"gerrit.username": {
+					"type": "string",
+					"title": "Gerrit username"
+				},
+				"gerrit.password": {
+					"type": "string",
+					"title": "Gerrit password (see https://{your_gerit_host}/settings/#HTTPCredentials)"
+				},
+				"gerrit.url": {
+					"type": "string",
+					"title": "URL of the gerrit server to use"
+				}
+			}
+		}
 	},
 	"scripts": {
 		"vscode:prepublish": "yarn run compile",
@@ -27,7 +72,8 @@
 		"watch": "tsc -watch -p ./",
 		"pretest": "yarn run compile && yarn run lint",
 		"lint": "eslint src --ext ts",
-		"test": "node ./out/test/runTest.js"
+		"test": "node ./out/test/runTest.js",
+		"format": "prettier --write src/"
 	},
 	"devDependencies": {
 		"@types/glob": "^7.1.4",
@@ -44,5 +90,8 @@
 		"prettier": "^2.4.1",
 		"prettier-plugin-sort-imports": "^1.0.1",
 		"typescript": "^4.4.4"
+	},
+	"dependencies": {
+		"got": "^11.8.3"
 	}
 }

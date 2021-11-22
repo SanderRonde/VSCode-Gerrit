@@ -39,7 +39,7 @@
 					"when": "gerrit.isUsingGerrit"
 				},
 				{
-					"id": "reply",
+					"id": "review",
 					"name": "Review",
 					"type": "tree",
 					"visibility": "visible",
@@ -62,6 +62,18 @@
 				"gerrit.url": {
 					"type": "string",
 					"title": "URL of the gerrit server to use"
+				},
+				"gerrit.patchesView": {
+					"type": "string",
+					"enum": [
+						"dashboard",
+						"my changes",
+						"draft",
+						"watched",
+						"starred"
+					],
+					"title": "Active patches view",
+					"default": "dashboard"
 				}
 			}
 		}

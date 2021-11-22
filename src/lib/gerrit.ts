@@ -1,4 +1,11 @@
-import { GerritAPI, GerritAPIWith, GerritChange, getAPI } from './gerritAPI';
+import {
+	DefaultChangeFilter,
+	GerritAPI,
+	GerritAPIWith,
+	GerritChange,
+	GerritChangeFilter,
+	getAPI,
+} from './gerritAPI';
 import { Commit } from '../types/vscode-extension-git';
 import { getGitAPI, getLastCommit } from './git';
 import { getChangeCache } from './gerritCache';
@@ -39,6 +46,22 @@ export const getChange: GerritAPI['getChange'] = ((
 	}
 
 	return api.getChange(changeId, ...withValues);
+}) as any;
+
+/**
+ * Note that the first level of filters is OR, while the second
+ * level of filters is AND
+ */
+export const getChanges: GerritAPI['getChanges'] = ((
+	filters: (DefaultChangeFilter | GerritChangeFilter)[][],
+	...withValues: GerritAPIWith[]
+) => {
+	const api = getAPI();
+	if (!api) {
+		return null;
+	}
+
+	return api.getChanges(filters, ...withValues);
 }) as any;
 
 export const getChangeCached: GerritAPI['getChange'] = ((

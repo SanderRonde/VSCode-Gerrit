@@ -149,6 +149,45 @@ type WithValue<
 	};
 };
 
+export enum DefaultChangeFilter {
+	IS_OPEN = 'is:open',
+	IS_STARRED = 'is:starred',
+	IS_CLOSED = 'is:closed',
+	IS_WATCHED = 'is:watched',
+	IS_WIP = 'is:wip',
+	NOT_IS_WIP = '-is:wip',
+	NOT_IS_IGNORED = '-is:ignored',
+	HAS_DRAFT = 'has:draft',
+	OWNER_SELF = 'owner:self',
+	NOT_OWNER_SELF = '-owner:self',
+	REVIEWER_SELF = 'reviewer:self',
+	ASSIGNEE_SELF = 'assignee:self',
+	ATTENTION_SELF = 'attention:self',
+	CC_SELF = 'cc:self',
+}
+
+export type GerritChangeFilter = string & {
+	__isFilter: true;
+};
+
+export function filterOr(
+	...changes: DefaultChangeFilter[]
+): GerritChangeFilter {
+	return `(${changes.join('+OR+')})` as GerritChangeFilter;
+}
+
+export function ownerIs(owner: string): GerritChangeFilter {
+	return `owner:${owner}` as GerritChangeFilter;
+}
+
+export function reviewerIs(reviewer: string): GerritChangeFilter {
+	return `reviewer:${reviewer}` as GerritChangeFilter;
+}
+
+export function limit(limitNum: number): GerritChangeFilter {
+	return `limit:${limitNum}` as GerritChangeFilter;
+}
+
 export class GerritAPI {
 	private readonly _MAGIC_PREFIX = ")]}'";
 
@@ -267,6 +306,57 @@ export class GerritAPI {
 		const change = new GerritChange(json);
 		getChangeCache().set(changeId, withValues, change);
 		return change;
+	}
+
+	async getChanges(
+		filters: (DefaultChangeFilter | GerritChangeFilter)[][],
+		...withValues: never[]
+	): Promise<GerritChange[]>;
+	async getChanges(
+		filters: (DefaultChangeFilter | GerritChangeFilter)[][],
+		...withValues: GerritAPIWith.LABELS[]
+	): Promise<InstanceType<WithValue<typeof GerritChange, 'labels'>>[]>;
+	async getChanges(
+		filters: (DefaultChangeFilter | GerritChangeFilter)[][],
+		...withValues: GerritAPIWith.DETAILED_LABELS[]
+	): Promise<
+		InstanceType<WithValue<typeof GerritChange, 'detailedLabels'>>[]
+	>;
+	async getChanges(
+		filters: (DefaultChangeFilter | GerritChangeFilter)[][],
+		...withValues: GerritAPIWith[]
+	): Promise<GerritChange[]>;
+	async getChanges(
+		filters: (DefaultChangeFilter | GerritChangeFilter)[][],
+		...withValues: GerritAPIWith[]
+	): Promise<GerritChange[] | any> {
+		const response = await this._tryRequest(this._getURL(`changes/`), {
+			...this._get,
+			searchParams: new URLSearchParams([
+				...filters.map((filter) => {
+					return ['q', filter.join('+')] as [string, string];
+				}),
+				...withValues.map((v) => ['o', v] as [string, string]),
+			]),
+		});
+
+		if (!response || response.statusCode !== 200) {
+			return [];
+		}
+
+		const json = this._tryParseJSON<GerritChangeResponse[]>(
+			response.strippedBody
+		);
+		if (!json) {
+			return [];
+		}
+
+		const changes = json.map((p) => new GerritChange(p));
+		const cache = getChangeCache();
+		changes.forEach((change) =>
+			cache.set(change.change_id, withValues, change)
+		);
+		return changes;
 	}
 }
 

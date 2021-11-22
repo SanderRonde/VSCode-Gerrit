@@ -5,6 +5,7 @@
 [ ] Visual
 	[ ] Patches pane
 		[ ] ... buttons
+		[ ] Search bar at the top
 			[ ] Allow changing view. Options:
 				[ ] Dashboard
 				[ ] Draft comments
@@ -12,11 +13,11 @@
 				[ ] Open
 				[ ] Merged
 		[ ] Show patches under headers with following info:
-			[ ] #ID
-			[ ] Subject
-			[ ] Owner
+			[x] #ID
+			[x] Subject
+			[x] Owner
 			[ ] V
-			[ ] Maybe multiline?
+			[x] Maybe multiline?
 		[ ] Rightclick on patches:
 			[ ] Checkout
 			[ ] Checkout & stash current

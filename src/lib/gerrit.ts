@@ -1,14 +1,10 @@
-import {
-	DefaultChangeFilter,
-	GerritAPI,
-	GerritAPIWith,
-	GerritChange,
-	GerritChangeFilter,
-	getAPI,
-} from './gerritAPI';
+import { DefaultChangeFilter, GerritChangeFilter } from './gerritAPI/filters';
+import { GerritAPI, GerritAPIWith } from './gerritAPI/api';
+import { GerritChange } from './gerritAPI/gerritChange';
 import { Commit } from '../types/vscode-extension-git';
 import { getGitAPI, getLastCommit } from './git';
 import { getChangeCache } from './gerritCache';
+import { getAPI } from './gerritAPI';
 import { log } from './log';
 
 const gerritChangeIdRegex = /Change-Id: (([a-zA-Z0-9])?([a-z0-9]{40}))/;

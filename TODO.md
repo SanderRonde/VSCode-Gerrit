@@ -6,12 +6,12 @@
 	[ ] Patches pane
 		[ ] ... buttons
 		[ ] Search bar at the top
-			[ ] Allow changing view. Options:
-				[ ] Dashboard
-				[ ] Draft comments
-				[ ] Starred changes
-				[ ] Open
-				[ ] Merged
+		[ ] Allow changing view. Options:
+			[ ] Dashboard
+			[ ] Draft comments
+			[ ] Starred changes
+			[ ] Open
+			[ ] Merged
 		[ ] Show patches under headers with following info:
 			[x] #ID
 			[x] Subject
@@ -26,11 +26,15 @@
 			[ ] Stop review
 			[ ] Open on gerrit
 			[ ] +2 ?
+			[ ] Notify when verified by administrator?
+		[ ] Add "refresh" button
+		[ ] Add "fetch more" button
+		[ ] Mark other owner than self
 		[ ] Patch expands to:
-			[ ] Description
+			[x] Description
 				[ ] Clicking opens inline gerrit webview
 					[ ] Possible future TODO, create custom UI
-			[ ] All changed files by path
+			[x] All changed files by path
 				[ ] Badges:
 					[ ] A (added)
 					[ ] M (modified)

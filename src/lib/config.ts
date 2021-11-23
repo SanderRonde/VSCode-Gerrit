@@ -5,7 +5,7 @@ import {
 	WorkspaceConfiguration,
 } from 'vscode';
 
-export enum GerritPatchesView {
+export enum GerritChangesView {
 	DASHBOARD = 'dashboard',
 	MY_CHANGES = 'my changes',
 	DRAFT = 'draft',
@@ -17,7 +17,7 @@ interface ConfigSettings {
 	'gerrit.url': string;
 	'gerrit.username': string;
 	'gerrit.password': string;
-	'gerrit.patchesView': GerritPatchesView;
+	'gerrit.changesView': GerritChangesView;
 }
 
 interface TypedWorkspaceConfiguration<T> extends WorkspaceConfiguration {

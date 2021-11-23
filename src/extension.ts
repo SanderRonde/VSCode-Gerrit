@@ -1,4 +1,4 @@
-import { PatchesTreeProvider } from './views/activityBar/patches';
+import { ChangesTreeProvider } from './views/activityBar/changes';
 import { commands, ExtensionContext, window } from 'vscode';
 import { registerCommands } from './commands/commands';
 import { showStatusBarIcon } from './views/statusBar';
@@ -34,8 +34,8 @@ export async function activate(context: ExtensionContext) {
 
 	// Register tree views
 	window.registerTreeDataProvider(
-		'patchExplorer',
-		new PatchesTreeProvider(context)
+		'changeExplorer',
+		new ChangesTreeProvider(context)
 	);
 }
 

@@ -1,4 +1,5 @@
-import { GerritAPI, GerritAPIWith, GerritChange } from './gerritAPI';
+import { GerritChange } from './gerritAPI/gerritChange';
+import { GerritAPIWith } from './gerritAPI/api';
 
 export class GerritChangeCache {
 	private _cache: Map<string, Map<string, GerritChange>> = new Map();

@@ -16,8 +16,8 @@ import {
 } from 'vscode';
 import { getGitAPI, onChangeLastCommit } from '../lib/git';
 import { Commit } from '../types/vscode-extension-git';
+import { GerritAPIWith } from '../lib/gerritAPI/api';
 import { getConfiguration } from '../lib/config';
-import { GerritAPIWith } from '../lib/gerritAPI';
 
 async function onStatusBarClick() {
 	const changeId = await getCurrentChangeId();
@@ -65,7 +65,7 @@ async function updateStatusBarState(
 }
 
 export async function showStatusBarIcon(context: ExtensionContext) {
-	const statusBarCommand = 'gerrit.patchStatus';
+	const statusBarCommand = 'gerrit.changeStatus';
 	context.subscriptions.push(
 		commands.registerCommand(statusBarCommand, onStatusBarClick)
 	);

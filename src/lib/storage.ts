@@ -6,12 +6,12 @@ export enum StorageScope {
 }
 
 interface StorageObj {
-	'activityBar.patches.yourTurn.collapsed': boolean;
-	'activityBar.patches.wip.collapsed': boolean;
-	'activityBar.patches.outgoing.collapsed': boolean;
-	'activityBar.patches.incoming.collapsed': boolean;
-	'activityBar.patches.cced.collapsed': boolean;
-	'activityBar.patches.recentlyClosed.collapsed': boolean;
+	'activityBar.changes.yourTurn.collapsed': boolean;
+	'activityBar.changes.wip.collapsed': boolean;
+	'activityBar.changes.outgoing.collapsed': boolean;
+	'activityBar.changes.incoming.collapsed': boolean;
+	'activityBar.changes.cced.collapsed': boolean;
+	'activityBar.changes.recentlyClosed.collapsed': boolean;
 }
 
 const SYNC_KEYS: (keyof StorageObj)[] = [] as (keyof StorageObj)[];

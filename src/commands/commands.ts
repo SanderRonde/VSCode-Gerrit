@@ -7,7 +7,7 @@ import {
 import { MultiStepEntry, MultiStepper } from '../lib/multiStep';
 import { showInvalidSettingsMessage } from '../lib/messages';
 import { getConfiguration } from '../lib/config';
-import { GerritAPI } from '../lib/gerritAPI';
+import { GerritAPI } from '../lib/gerritAPI/api';
 import got from 'got';
 
 export enum GerritExtensionCommands {

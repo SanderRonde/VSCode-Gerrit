@@ -16,8 +16,8 @@
 	"contributes": {
 		"commands": [
 			{
-				"command": "gerrit.checkoutPatch",
-				"title": "Check out gerrit patch TODO:"
+				"command": "gerrit.checkoutChange",
+				"title": "Check out gerrit change TODO:"
 			}
 		],
 		"viewsContainers": {
@@ -32,8 +32,8 @@
 		"views": {
 			"gerrit": [
 				{
-					"id": "patchExplorer",
-					"name": "Patches",
+					"id": "changeExplorer",
+					"name": "Changes",
 					"type": "tree",
 					"visibility": "visible",
 					"when": "gerrit.isUsingGerrit"
@@ -43,7 +43,7 @@
 					"name": "Review",
 					"type": "tree",
 					"visibility": "visible",
-					"when": "gerrit.isUsingGerrit && (gerrit.patches.checkedOut || gerrit.patches.reviewing)"
+					"when": "gerrit.isUsingGerrit && (gerrit.changes.checkedOut || gerrit.changes.reviewing)"
 				}
 			]
 		},
@@ -63,7 +63,7 @@
 					"type": "string",
 					"title": "URL of the gerrit server to use"
 				},
-				"gerrit.patchesView": {
+				"gerrit.changesView": {
 					"type": "string",
 					"enum": [
 						"dashboard",
@@ -72,7 +72,7 @@
 						"watched",
 						"starred"
 					],
-					"title": "Active patches view",
+					"title": "Active changes view",
 					"default": "dashboard"
 				}
 			}

@@ -171,7 +171,6 @@ export class GerritAPI {
 			}),
 			...withValues.map((v) => ['o', v] as [string, string]),
 		]);
-		console.log([...params.entries()]);
 		const response = await this._tryRequest(this._getURL(`changes/`), {
 			...this._get,
 			searchParams: new URLSearchParams([

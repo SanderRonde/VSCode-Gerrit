@@ -7,7 +7,7 @@ export class DescriptionTreeView implements TreeItemWithoutChildren {
 
 	async getItem(): Promise<TreeItem> {
 		return {
-			label: 'View online',
+			label: 'See in webview',
 			tooltip: `View change #${this.change._number} in webview`,
 			contextValue: 'view-online',
 			iconPath: new ThemeIcon('comment-discussion'),

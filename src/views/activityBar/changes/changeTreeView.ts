@@ -5,6 +5,7 @@ import { TreeItemWithChildren, TreeViewItem } from '../treeTypes';
 import { FolderTreeView } from './changeTreeView/folderTreeView';
 import { GerritFile } from '../../../lib/gerritAPI/gerritFile';
 import { FileTreeView } from './changeTreeView/fileTreeView';
+import { GerritAPIWith } from '../../../lib/gerritAPI/api';
 
 export type FileMap = Map<
 	string,
@@ -25,7 +26,7 @@ export class ChangeTreeView implements TreeItemWithChildren {
 	async getItem(): Promise<TreeItem> {
 		const changeNumber = `#${this.change._number}`;
 
-		const owner = await this.change.detailedOwner;
+		const owner = await this.change.detailedOwner();
 
 		return {
 			label: `${changeNumber}: ${this.change.subject}`,
@@ -34,7 +35,7 @@ export class ChangeTreeView implements TreeItemWithChildren {
 			contextValue: 'change',
 			iconPath: new ThemeIcon('git-pull-request'),
 			description: owner
-				? `by ${owner.display_name || owner.name}`
+				? `by ${owner.getName()}`
 				: undefined,
 		};
 	}
@@ -72,15 +73,13 @@ export class ChangeTreeView implements TreeItemWithChildren {
 	}
 
 	private async _getFiles(): Promise<GerritFile[]> {
-		const currentRevision = await this.change.currentRevision;
+		const currentRevision = await this.change.getCurrentRevision(
+			GerritAPIWith.CURRENT_FILES
+		);
 		if (!currentRevision) {
 			return [];
 		}
-		const revisions = await this.change.revisions;
-		if (!revisions) {
-			return [];
-		}
-		const files = await revisions[currentRevision].files;
+		const files = await currentRevision.files();
 		if (!files) {
 			return [];
 		}

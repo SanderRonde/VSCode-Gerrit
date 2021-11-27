@@ -1,8 +1,26 @@
+import {
+	GerritChangeResponse,
+	GerritCommentRange,
+	GerritCommentResponse,
+	GerritCommentSide,
+	GerritCommentsResponse,
+	GerritCommitResponse,
+	GerritDetailedUserResponse,
+} from './types';
+import {
+	GerritComment,
+	GerritCommentBase,
+	GerritDraftComment,
+} from './gerritComment';
+import { FileCache } from '../../views/activityBar/changes/changeTreeView/file/fileCache';
 import got, { OptionsOfTextResponseBody, Response } from 'got/dist/source';
 import { DefaultChangeFilter, GerritChangeFilter } from './filters';
-import { GerritChangeResponse } from '../../types/gerritAPI';
 import { getChangeCache } from '../gerritCache';
 import { GerritChange } from './gerritChange';
+import { READONLY_MODE } from '../constants';
+import { TextContent } from './gerritFile';
+import { GerritUser } from './gerritUser';
+import { decodeBase64 } from '../util';
 import { URLSearchParams } from 'url';
 import { window } from 'vscode';
 
@@ -11,6 +29,7 @@ export enum GerritAPIWith {
 	DETAILED_LABELS = 'DETAILED_LABELS',
 	DETAILED_ACCOUNTS = 'DETAILED_ACCOUNTS',
 	CURRENT_REVISION = 'CURRENT_REVISION',
+	CURRENT_COMMIT = 'CURRENT_COMMIT',
 	CURRENT_FILES = 'CURRENT_FILES',
 }
 
@@ -52,6 +71,13 @@ export class GerritAPI {
 		};
 	}
 
+	private get _put(): OptionsOfTextResponseBody {
+		return {
+			method: 'PUT',
+			headers: this._headers,
+		};
+	}
+
 	private _getURL(path: string) {
 		return `${this._url}/a/${path}`;
 	}
@@ -68,6 +94,9 @@ export class GerritAPI {
 		body?: OptionsOfTextResponseBody
 	): Promise<(Response<string> & { strippedBody: string }) | null> {
 		try {
+			if (READONLY_MODE && body?.method !== 'GET') {
+				throw new Error('Trying to modify data in readonly mode');
+			}
 			const response = (await got(url, body)) as any;
 			response.strippedBody = this._stripMagicPrefix(response.body);
 			return response;
@@ -165,12 +194,6 @@ export class GerritAPI {
 		filters: (DefaultChangeFilter | GerritChangeFilter)[][],
 		...withValues: GerritAPIWith[]
 	): Promise<GerritChange[] | any> {
-		const params = new URLSearchParams([
-			...filters.map((filter) => {
-				return ['q', filter.join(' ')] as [string, string];
-			}),
-			...withValues.map((v) => ['o', v] as [string, string]),
-		]);
 		const response = await this._tryRequest(this._getURL(`changes/`), {
 			...this._get,
 			searchParams: new URLSearchParams([
@@ -198,5 +221,178 @@ export class GerritAPI {
 			cache.set(change.change_id, withValues, change)
 		);
 		return changes;
+	}
+
+	private async _getCommentsShared(
+		changeId: string,
+		type: 'drafts' | 'comments'
+	): Promise<GerritCommentsResponse | null> {
+		const response = await this._tryRequest(
+			this._getURL(`changes/${changeId}/${type}/`),
+			this._get
+		);
+
+		if (!response || response.statusCode !== 200) {
+			return null;
+		}
+
+		const json = this._tryParseJSON<GerritCommentsResponse>(
+			response.strippedBody
+		);
+		if (!json) {
+			return null;
+		}
+
+		return json;
+	}
+
+	async getComments(changeId: string): Promise<Map<string, GerritComment[]>> {
+		const json = await this._getCommentsShared(changeId, 'comments');
+		if (!json) {
+			return new Map();
+		}
+
+		const map = new Map<string, GerritComment[]>();
+		for (const filePath in json) {
+			const comments = json[filePath];
+			map.set(
+				filePath,
+				await Promise.all(
+					comments.map((c) =>
+						GerritComment.from(changeId, filePath, c)
+					)
+				)
+			);
+		}
+		return map;
+	}
+
+	async getDraftComments(
+		changeId: string
+	): Promise<Map<string, GerritDraftComment[]>> {
+		const json = await this._getCommentsShared(changeId, 'drafts');
+		if (!json) {
+			return new Map();
+		}
+
+		const map = new Map<string, GerritDraftComment[]>();
+		for (const filePath in json) {
+			const comments = json[filePath];
+			map.set(
+				filePath,
+				await Promise.all(
+					comments.map((c) =>
+						GerritDraftComment.from(changeId, filePath, c)
+					)
+				)
+			);
+		}
+		return map;
+	}
+
+	async getFileContent(
+		project: string,
+		commit: string,
+		changeId: string,
+		filePath: string
+	): Promise<TextContent | null> {
+		if (FileCache.has(project, commit, filePath)) {
+			return FileCache.get(project, commit, filePath);
+		}
+
+		const response = await this._tryRequest(
+			this._getURL(
+				`projects/${project}/commits/${commit}/files/${encodeURIComponent(
+					filePath
+				)}/content`
+			),
+			this._get
+		);
+
+		if (!response || response.statusCode !== 200) {
+			return null;
+		}
+
+		const textContent = TextContent.from(
+			{ project, commit, filePath, changeId },
+			response.body,
+			'base64'
+		);
+		if (!textContent) {
+			return null;
+		}
+
+		FileCache.set(project, commit, filePath, textContent);
+		return textContent;
+	}
+
+	async createDraftComment(
+		content: string,
+		changeId: string,
+		revision: string,
+		filePath: string,
+		unresolved: boolean,
+		side: GerritCommentSide,
+		lineOrRange?: number | GerritCommentRange,
+		replyTo?: string
+	): Promise<GerritComment | null> {
+		const response = await this._tryRequest(
+			this._getURL(
+				`changes/${changeId}/revisions/${revision}/drafts/${encodeURIComponent(
+					filePath
+				)}/content`
+			),
+			{
+				...this._put,
+				body: JSON.stringify({
+					path: filePath,
+					line:
+						typeof lineOrRange === 'number'
+							? lineOrRange
+							: undefined,
+					range:
+						lineOrRange && typeof lineOrRange === 'object'
+							? lineOrRange
+							: undefined,
+					in_reply_to: replyTo,
+					message: content,
+					unresolved,
+					side,
+				}),
+			}
+		);
+
+		if (!response || response.statusCode !== 200) {
+			return null;
+		}
+
+		const json = this._tryParseJSON<GerritCommentResponse>(
+			response.strippedBody
+		);
+		if (!json) {
+			return null;
+		}
+
+		return GerritComment.from(changeId, filePath, json);
+	}
+
+	async getSelf(): Promise<GerritUser | null> {
+		const response = await this._tryRequest(
+			this._getURL(`accounts/self`),
+			this._get
+		);
+
+		if (!response || response.statusCode !== 200) {
+			return null;
+		}
+
+		const json = this._tryParseJSON<GerritDetailedUserResponse>(
+			response.strippedBody
+		);
+		if (!json) {
+			return null;
+		}
+
+		return new GerritUser(json);
 	}
 }

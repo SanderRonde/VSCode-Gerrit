@@ -3,15 +3,20 @@ import {
 	GerritChangeResponse,
 	GerritChangeStatus,
 	GerritDetailedChangeLabels,
-	GerritDetailedUser,
-	GerritUser,
-} from '../../types/gerritAPI';
+	GerritDetailedUserResponse,
+	GerritUserResponse,
+} from './types';
+import { DefaultChangeFilter, GerritChangeFilter } from './filters';
 import { GerritRevision } from './gerritRevision';
 import { DynamicallyFetchable } from './shared';
+import { getChangeCache } from '../gerritCache';
+import { GerritCommit } from './gerritCommit';
+import { GerritUser } from './gerritUser';
 import { GerritAPIWith } from './api';
+import { getAPI } from '../gerritAPI';
 
 export class GerritChange extends DynamicallyFetchable {
-	protected _id: string;
+	protected _patchID: string;
 	public id: string;
 	public project: string;
 	public branch: string;
@@ -25,65 +30,105 @@ export class GerritChange extends DynamicallyFetchable {
 	public deletions: number;
 	public _number: number;
 	public work_in_progress?: boolean;
-	public owner: GerritUser;
+	public owner: GerritUserResponse;
 
 	// Ideally this would be private but in order to make the typing
 	// below work we use public
 	public _labels: GerritChangeLabels | null = null;
 	public _detailedLabels: GerritDetailedChangeLabels | null = null;
-	public _detailedOwner: GerritDetailedUser | null = null;
+	public _detailedOwner: GerritUser | null = null;
 	public _revisions: Record<string, GerritRevision> | null = null;
 	public _currentRevision: string | null = null;
 
-	public get labels(): Promise<GerritChangeLabels | null> {
+	public labels(
+		...additionalWith: GerritAPIWith[]
+	): Promise<GerritChangeLabels | null> {
 		return this._fieldFallbackGetter(
 			'_labels',
-			GerritAPIWith.LABELS,
-			(c) => c.labels
+			[GerritAPIWith.LABELS, ...additionalWith],
+			(c) => c.labels()
 		);
 	}
 
-	public get detailedLabels(): Promise<GerritDetailedChangeLabels | null> {
+	public detailedLabels(
+		...additionalWith: GerritAPIWith[]
+	): Promise<GerritDetailedChangeLabels | null> {
 		return this._fieldFallbackGetter(
 			'_detailedLabels',
-			GerritAPIWith.DETAILED_LABELS,
-			(c) => c.detailedLabels
+			[GerritAPIWith.DETAILED_LABELS, ...additionalWith],
+			(c) => c.detailedLabels()
 		);
 	}
 
-	public get detailedOwner(): Promise<GerritDetailedUser | null> {
+	public detailedOwner(
+		...additionalWith: GerritAPIWith[]
+	): Promise<GerritUser | null> {
 		return this._fieldFallbackGetter(
 			'_detailedOwner',
-			GerritAPIWith.DETAILED_ACCOUNTS,
-			(c) => c.detailedOwner
+			[GerritAPIWith.DETAILED_ACCOUNTS, ...additionalWith],
+			(c) => c.detailedOwner()
 		);
 	}
 
-	public get revisions(): Promise<Record<string, GerritRevision> | null> {
+	public revisions(
+		...additionalWith: GerritAPIWith[]
+	): Promise<Record<string, GerritRevision> | null> {
 		return this._fieldFallbackGetter(
 			'_revisions',
-			GerritAPIWith.CURRENT_REVISION,
-			(c) => c.revisions,
+			[GerritAPIWith.CURRENT_REVISION, ...additionalWith],
+			(c) => c.revisions(),
 			async (c) => {
-				this._currentRevision = await c.currentRevision;
+				this._currentRevision = await c.currentRevision();
 			}
 		);
 	}
 
-	public get currentRevision(): Promise<string | null> {
+	public currentRevision(
+		...additionalWith: GerritAPIWith[]
+	): Promise<string | null> {
 		return this._fieldFallbackGetter(
 			'_currentRevision',
-			GerritAPIWith.CURRENT_REVISION,
-			(c) => c.currentRevision,
+			[GerritAPIWith.CURRENT_REVISION, ...additionalWith],
+			(c) => c.currentRevision(),
 			async (c) => {
-				this._revisions = await c.revisions;
+				this._revisions = await c.revisions();
 			}
 		);
+	}
+
+	public async getCurrentRevision(
+		...additionalWith: GerritAPIWith[]
+	): Promise<GerritRevision | null> {
+		const currentRevision = await this.currentRevision(...additionalWith);
+		if (!currentRevision) {
+			return null;
+		}
+		const revisions = await this.revisions(...additionalWith);
+		if (!revisions) {
+			return null;
+		}
+		return revisions[currentRevision];
+	}
+
+	public async getCurrentCommit(
+		...additionalWith: GerritAPIWith[]
+	): Promise<GerritCommit | null> {
+		const currentRevision = await this.getCurrentRevision(
+			GerritAPIWith.CURRENT_REVISION,
+			GerritAPIWith.CURRENT_COMMIT,
+			...additionalWith
+		);
+
+		if (!currentRevision) {
+			return null;
+		}
+
+		return await currentRevision.commit();
 	}
 
 	constructor(response: GerritChangeResponse) {
 		super();
-		this._id = response.id;
+		this._patchID = response.id;
 		this.id = response.id;
 		this.project = response.project;
 		this.branch = response.branch;
@@ -113,19 +158,53 @@ export class GerritChange extends DynamicallyFetchable {
 			'username' in response.owner ||
 			'name' in response.owner
 		) {
-			this._detailedOwner = response.owner;
+			this._detailedOwner = new GerritUser(response.owner);
 		}
 
 		if (response.revisions) {
 			this._revisions = Object.fromEntries(
 				Object.entries(response.revisions).map(
 					([k, v]) =>
-						[k, new GerritRevision(this._id, k, v)] as [
+						[k, new GerritRevision(this._patchID, this, k, v)] as [
 							string,
 							GerritRevision
 						]
 				)
 			);
 		}
+	}
+
+	/**
+	 * Note that the first level of filters is OR, while the second
+	 * level of filters is AND
+	 */
+	static getChanges(
+		filters: (DefaultChangeFilter | GerritChangeFilter)[][],
+		...withValues: GerritAPIWith[]
+	) {
+		const api = getAPI();
+		if (!api) {
+			return [];
+		}
+
+		return api.getChanges(filters, ...withValues);
+	}
+
+	static getChange(changeId: string, ...withValues: GerritAPIWith[]) {
+		const api = getAPI();
+		if (!api) {
+			return null;
+		}
+
+		return api.getChange(changeId, ...withValues);
+	}
+
+	static getChangeCached(changeId: string, ...withValues: GerritAPIWith[]) {
+		const cache = getChangeCache();
+		if (cache.has(changeId, withValues)) {
+			return cache.get(changeId, withValues)!;
+		}
+
+		return this.getChange(changeId, ...withValues);
 	}
 }

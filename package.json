@@ -18,8 +18,147 @@
 			{
 				"command": "gerrit.checkoutChange",
 				"title": "Check out gerrit change TODO:"
+			},
+			{
+				"command": "gerrit.createComment",
+				"title": "Save",
+				"enablement": "!commentIsEmpty"
+			},
+			{
+				"command": "gerrit.replyComment",
+				"title": "Reply",
+				"enablement": "!commentIsEmpty"
+			},
+			{
+				"command": "gerrit.editComment",
+				"title": "Edit"
+			},
+			{
+				"command": "gerrit.toggleResolved",
+				"title": "Resolved TODO:"
+			},
+			{
+				"command": "gerrit.cancelComment",
+				"title": "Cancel"
+			},
+			{
+				"command": "gerrit.replyCommentThread",
+				"title": "REPLY"
+			},
+			{
+				"command": "gerrit.quoteCommentThread",
+				"title": "QUOTE"
+			},
+			{
+				"command": "gerrit.ackCommentThread",
+				"title": "ACK"
+			},
+			{
+				"command": "gerrit.doneCommentThread",
+				"title": "DONE"
+			},
+			{
+				"command": "gerrit.deleteComment",
+				"title": "Delete comment",
+				"icon": "$(trash)"
+			},
+			{
+				"command": "gerrit.editComment",
+				"title": "Edit comment",
+				"icon": "$(edit)"
 			}
 		],
+		"menus": {
+			"commandPalette": [
+				{
+					"command": "gerrit.createComment",
+					"when": "false"
+				},
+				{
+					"command": "gerrit.replyComment",
+					"when": "false"
+				},
+				{
+					"command": "gerrit.toggleResolved",
+					"when": "false"
+				},
+				{
+					"command": "gerrit.editComment",
+					"when": "false"
+				},
+				{
+					"command": "gerrit.cancelComment",
+					"when": "false"
+				},
+				{
+					"command": "gerrit.replyCommentThread",
+					"when": "false"
+				},
+				{
+					"command": "gerrit.quoteCommentThread",
+					"when": "false"
+				},
+				{
+					"command": "gerrit.ackCommentThread",
+					"when": "false"
+				},
+				{
+					"command": "gerrit.doneCommentThread",
+					"when": "false"
+				}
+			],
+			"comments/commentThread/context": [
+				{
+					"command": "gerrit.createComment",
+					"when": "commentController == gerrit && commentThreadIsEmpty",
+					"group": "newCommentButtons@1"
+				},
+				{
+					"command": "gerrit.cancelComment",
+					"when": "commentController == gerrit && commentThreadIsEmpty",
+					"group": "newCommentButtons@2"
+				},
+				{
+					"command": "gerrit.replyCommentThread",
+					"when": "commentController == gerrit && !commentThreadIsEmpty && commentThread == comment",
+					"group": "replyButtons@4"
+				},
+				{
+					"command": "gerrit.quoteCommentThread",
+					"when": "commentController == gerrit && !commentThreadIsEmpty && commentThread == comment",
+					"group": "replyButtons@3"
+				},
+				{
+					"command": "gerrit.ackCommentThread",
+					"when": "commentController == gerrit && !commentThreadIsEmpty && commentThread == comment",
+					"group": "replyButtons@2"
+				},
+				{
+					"command": "gerrit.doneCommentThread",
+					"when": "commentController == gerrit && !commentThreadIsEmpty && commentThread == comment",
+					"group": "replyButtons@1"
+				}
+			],
+			"comments/comment/context": [
+				{
+					"command": "gerrit.replyCommentThread",
+					"when": "commentController == gerrit",
+					"group": "replyButtons@1"
+				}
+			],
+			"comments/comment/title": [
+				{
+					"command": "gerrit.editComment",
+					"group": "inline@1",
+					"when": "commentController == gerrit && comment =~ /editable/"
+				},
+				{
+					"command": "gerrit.deleteComment",
+					"group": "inline@2",
+					"when": "commentController == gerrit && comment =~ /deletable/"
+				}
+			]
+		},
 		"viewsContainers": {
 			"activitybar": [
 				{
@@ -95,15 +234,18 @@
 		"@typescript-eslint/eslint-plugin": "^5.1.0",
 		"@typescript-eslint/parser": "^5.4.0",
 		"@vscode/test-electron": "^1.6.2",
-		"eslint": "^8.1.0",
+		"eslint": "^8.3.0",
+		"eslint-config-prettier": "^8.3.0",
+		"eslint-plugin-node": "^11.1.0",
 		"glob": "^7.1.7",
 		"gts": "^3.1.0",
 		"mocha": "^9.1.3",
-		"prettier": "^2.4.1",
+		"prettier": "^2.5.0",
 		"prettier-plugin-sort-imports": "^1.0.1",
 		"typescript": "^4.4.4"
 	},
 	"dependencies": {
+		"eslint-plugin-prettier": "^4.0.0",
 		"got": "^11.8.3"
 	}
 }

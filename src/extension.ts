@@ -1,5 +1,9 @@
+import { FileCache } from './views/activityBar/changes/changeTreeView/file/fileCache';
+import { FileProvider, GERRIT_FILE_SCHEME } from './providers/fileProvider';
 import { ChangesTreeProvider } from './views/activityBar/changes';
-import { commands, ExtensionContext, window } from 'vscode';
+import { ExtensionContext, window, workspace } from 'vscode';
+import { CommentManager } from './providers/commentProvider';
+import { GerritUser } from './lib/gerritAPI/gerritUser';
 import { registerCommands } from './commands/commands';
 import { showStatusBarIcon } from './views/statusBar';
 import { createOutputChannel } from './lib/log';
@@ -33,10 +37,28 @@ export async function activate(context: ExtensionContext) {
 	await showStatusBarIcon(context);
 
 	// Register tree views
-	window.registerTreeDataProvider(
-		'changeExplorer',
-		new ChangesTreeProvider(context)
+	context.subscriptions.push(
+		window.createTreeView('changeExplorer', {
+			treeDataProvider: new ChangesTreeProvider(context),
+			showCollapseAll: true,
+		})
 	);
+
+	// Register file provider
+	context.subscriptions.push(
+		workspace.registerTextDocumentContentProvider(
+			GERRIT_FILE_SCHEME,
+			new FileProvider(context)
+		)
+	);
+
+	// Create comment controller
+	context.subscriptions.push(new CommentManager());
+
+	// Warm up cache for self
+	void GerritUser.getSelf();
 }
 
-export function deactivate() {}
+export function deactivate() {
+	FileCache.clear();
+}

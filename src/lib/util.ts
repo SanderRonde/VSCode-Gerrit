@@ -40,3 +40,40 @@ export async function runWith<R>(wither: Wither, fn: () => Promise<R> | R) {
 	wither.breakDown();
 	return value;
 }
+
+export function uniqueSimple<T>(arr: T[]) {
+	return [...new Set(arr)];
+}
+
+export function uniqueComplex<T>(arr: T[], key: (item: T) => string) {
+	const items: T[] = [];
+	for (const item of arr) {
+		const keyValue = key(item);
+		const alreadyPushed = items.find((i) => key(i) === keyValue);
+		if (!alreadyPushed) {
+			items.push(item);
+		}
+	}
+	return items;
+}
+
+export function decodeBase64(text: string): string {
+	return Buffer.from(text, 'base64').toString('utf8');
+}
+
+/**
+ * Equal to
+ * ```ts
+ * condition ? ifTrue ?? fallback : fallback
+ * ```
+ */
+export function tertiaryWithFallback<V>(
+	condition: boolean,
+	ifTrue: V | null,
+	fallback: V
+): V {
+	if (!condition) {
+		return fallback;
+	}
+	return ifTrue ?? fallback;
+}

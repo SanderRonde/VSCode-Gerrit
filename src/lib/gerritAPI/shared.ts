@@ -1,5 +1,5 @@
+import { runWith, uniqueSimple, Wither } from '../util';
 import { GerritChange } from './gerritChange';
-import { runWith, Wither } from '../util';
 import { GerritAPIWith } from './api';
 import { getAPI } from '../gerritAPI';
 
@@ -10,11 +10,11 @@ const disableRecursionWither: Wither = {
 };
 
 export abstract class DynamicallyFetchable {
-	protected abstract _id: string;
+	protected abstract _patchID: string;
 
 	protected _fieldFallbackGetter<K extends keyof this>(
 		fieldName: K,
-		flag: GerritAPIWith | GerritAPIWith[],
+		flags: GerritAPIWith[],
 		getRemoteValue: (remote: GerritChange) => Promise<any>,
 		extraCallback?: (remote: GerritChange) => Promise<any>
 	): Promise<this[K] | null> {
@@ -32,10 +32,7 @@ export abstract class DynamicallyFetchable {
 				return null;
 			}
 
-			const res = await api.getChange(
-				this._id,
-				...(Array.isArray(flag) ? flag : [flag])
-			);
+			const res = await api.getChange(this._patchID, ...uniqueSimple(flags));
 			if (!res) {
 				return null;
 			}

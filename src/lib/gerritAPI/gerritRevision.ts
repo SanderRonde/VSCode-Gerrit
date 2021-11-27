@@ -1,11 +1,13 @@
 import {
 	FetchInstructions,
-	GerritDetailedUser,
+	GerritDetailedUserResponse,
 	GerritRevisionResponse,
-	GerritUser,
+	GerritUserResponse,
 	RevisionType,
-} from '../../types/gerritAPI';
+} from './types';
 import { DynamicallyFetchable } from './shared';
+import { GerritCommit } from './gerritCommit';
+import { GerritChange } from './gerritChange';
 import { GerritFile } from './gerritFile';
 import { GerritAPIWith } from './api';
 
@@ -13,7 +15,7 @@ export class GerritRevision extends DynamicallyFetchable {
 	public kind: RevisionType;
 	public number: number;
 	public created: string;
-	public uploader: GerritUser;
+	public uploader: GerritUserResponse;
 	public ref: string;
 	public fetch: {
 		ssh: FetchInstructions;
@@ -21,31 +23,55 @@ export class GerritRevision extends DynamicallyFetchable {
 	};
 
 	public _files: Record<string, GerritFile> | null = null;
-	public _detailedUploader: GerritDetailedUser | null = null;
+	public _detailedUploader: GerritDetailedUserResponse | null = null;
+	public _commit: GerritCommit | null = null;
 
-	public get files(): Promise<Record<string, GerritFile> | null> {
+	public files(
+		...additionalWith: GerritAPIWith[]
+	): Promise<Record<string, GerritFile> | null> {
 		return this._fieldFallbackGetter(
 			'_files',
-			[GerritAPIWith.CURRENT_REVISION, GerritAPIWith.CURRENT_FILES],
-			async (c) =>
-				(await (await c.revisions)?.[this.currentRevision].files) ??
-				null
+			[
+				GerritAPIWith.CURRENT_REVISION,
+				GerritAPIWith.CURRENT_FILES,
+				...additionalWith,
+			],
+			async (c) => (await c.getCurrentRevision())?.files() ?? null
 		);
 	}
 
-	public get detailedUploader(): Promise<GerritDetailedUser | null> {
+	public detailedUploader(
+		...additionalWith: GerritAPIWith[]
+	): Promise<GerritDetailedUserResponse | null> {
 		return this._fieldFallbackGetter(
 			'_detailedUploader',
-			[GerritAPIWith.DETAILED_ACCOUNTS, GerritAPIWith.CURRENT_REVISION],
+			[
+				GerritAPIWith.DETAILED_ACCOUNTS,
+				GerritAPIWith.CURRENT_REVISION,
+				...additionalWith,
+			],
 			async (c) =>
-				(await (
-					await c.revisions
-				)?.[this.currentRevision].detailedUploader) ?? null
+				(await c.getCurrentRevision())?.detailedUploader() ?? null
+		);
+	}
+
+	public commit(
+		...additionalWith: GerritAPIWith[]
+	): Promise<GerritCommit | null> {
+		return this._fieldFallbackGetter(
+			'_commit',
+			[
+				GerritAPIWith.CURRENT_REVISION,
+				GerritAPIWith.CURRENT_COMMIT,
+				...additionalWith,
+			],
+			async (c) => (await c.getCurrentRevision())?.commit() ?? null
 		);
 	}
 
 	constructor(
-		protected _id: string,
+		protected _patchID: string,
+		public change: GerritChange,
 		public currentRevision: string,
 		response: GerritRevisionResponse
 	) {
@@ -66,6 +92,14 @@ export class GerritRevision extends DynamicallyFetchable {
 			this._detailedUploader = response.uploader;
 		}
 
+		if (response.commit) {
+			this._commit = new GerritCommit(
+				this._patchID,
+				this.currentRevision,
+				response.commit
+			);
+		}
+
 		if (response.files) {
 			this._files = Object.fromEntries(
 				Object.entries(response.files).map(
@@ -73,7 +107,8 @@ export class GerritRevision extends DynamicallyFetchable {
 						[
 							k,
 							new GerritFile(
-								this._id,
+								this._patchID,
+								this.change,
 								this.currentRevision,
 								k,
 								v

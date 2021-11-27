@@ -4,10 +4,10 @@ import {
 	offset,
 	limit,
 } from '../../../lib/gerritAPI/filters';
+import { GerritChange } from '../../../lib/gerritAPI/gerritChange';
 import { GerritAPIWith } from '../../../lib/gerritAPI/api';
 import { TreeItemWithChildren } from '../treeTypes';
 import { ChangeTreeView } from './changeTreeView';
-import { getChanges } from '../../../lib/gerrit';
 import { Event, EventEmitter } from 'vscode';
 
 export abstract class DashboardGroupContainerLike {
@@ -35,7 +35,7 @@ export abstract class DashboardGroupContainerLike {
 	async fetch() {
 		const changes = await Promise.all(
 			(
-				await getChanges(
+				await GerritChange.getChanges(
 					[
 						[
 							...this.getFilters(),

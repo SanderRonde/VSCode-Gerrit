@@ -1,11 +1,4 @@
 import {
-	getChange,
-	getChangeCached,
-	getChangeId,
-	getCurrentChangeId,
-	isGerritCommit,
-} from '../lib/gerrit';
-import {
 	ExtensionContext,
 	commands,
 	window,
@@ -14,6 +7,8 @@ import {
 	env,
 	Uri,
 } from 'vscode';
+import { isGerritCommit, getCurrentChangeId, getChangeId } from '../lib/commit';
+import { GerritChange } from '../lib/gerritAPI/gerritChange';
 import { getGitAPI, onChangeLastCommit } from '../lib/git';
 import { Commit } from '../types/vscode-extension-git';
 import { GerritAPIWith } from '../lib/gerritAPI/api';
@@ -26,7 +21,7 @@ async function onStatusBarClick() {
 		return;
 	}
 
-	const change = await getChangeCached(changeId);
+	const change = await GerritChange.getChangeCached(changeId);
 	if (!change) {
 		return;
 	}
@@ -47,7 +42,7 @@ async function updateStatusBarState(
 		return statusBar.hide();
 	}
 
-	const change = await getChangeCached(
+	const change = await GerritChange.getChangeCached(
 		changeId,
 		GerritAPIWith.DETAILED_ACCOUNTS
 	);
@@ -55,8 +50,8 @@ async function updateStatusBarState(
 		return statusBar.hide();
 	}
 
-	const owner = await change.detailedOwner;
-	const ownerName = owner?.display_name || owner?.name || owner?.username;
+	const owner = await change.detailedOwner();
+	const ownerName = owner?.getName() ?? null;
 	statusBar.text = `$(git-commit) #${change._number}`;
 	statusBar.tooltip = `#${change._number}: ${change.subject}\n${
 		ownerName ? `By ${ownerName} - ` : ''

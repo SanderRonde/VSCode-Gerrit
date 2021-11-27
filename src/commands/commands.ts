@@ -1,9 +1,11 @@
 import {
 	commands,
+	CommentReply,
 	ConfigurationTarget,
 	ExtensionContext,
 	window,
 } from 'vscode';
+import { cancelComment, createComment } from '../providers/commentProvider';
 import { MultiStepEntry, MultiStepper } from '../lib/multiStep';
 import { showInvalidSettingsMessage } from '../lib/messages';
 import { getConfiguration } from '../lib/config';
@@ -13,6 +15,8 @@ import got from 'got';
 export enum GerritExtensionCommands {
 	ENTER_CREDENTIALS = 'gerrit.enterCredentials',
 	CHECK_CONNECTION = 'gerrit.checkConnection',
+	CREATE_COMMENT = 'gerrit.createComment',
+	CANCEL_COMMENT = 'gerrit.cancelComment',
 }
 
 async function enterCredentials() {
@@ -124,6 +128,19 @@ export function registerCommands(context: ExtensionContext) {
 		commands.registerCommand(
 			GerritExtensionCommands.CHECK_CONNECTION,
 			checkConnection
+		)
+	);
+	context.subscriptions.push(
+		commands.registerCommand(
+			GerritExtensionCommands.CANCEL_COMMENT,
+			cancelComment
+		)
+	);
+
+	context.subscriptions.push(
+		commands.registerCommand(
+			GerritExtensionCommands.CREATE_COMMENT,
+			createComment
 		)
 	);
 }

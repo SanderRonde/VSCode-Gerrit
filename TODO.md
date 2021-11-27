@@ -34,6 +34,7 @@
 			[x] Description
 				[ ] Clicking opens inline gerrit webview
 					[ ] Possible future TODO, create custom UI
+			[ ] Do something with comments that aren't inside of a file
 			[x] All changed files by path
 				[ ] Badges:
 					[ ] A (added)
@@ -41,21 +42,21 @@
 					[ ] D (deleted)
 					[ ] Double-check standards here
 				[ ] Add "mark reviewed" checkmark as button
-				[ ] Add comment icon that shows whether you commented
+				[ ] Add comment icon that shows whether you (or someone else) commented
 				[ ] RMB:
 					[ ] Open unmodified
 					[ ] Open modified
 					[ ] Open on gerrit
 				[ ] What happens when you click:
-					[ ] Diff view
+					[x] Diff view
 						[ ] Highlighting text and pressing "c" creates comment
 							[ ] Or right-click "create comment"
 						[ ] Add line on the left that allows creating comments
 							[ ] If text highlighted when creating commnt, use that text
 					[ ] Show comments
-						[ ] Default-expand unresolved, collapse resolved
+						[x] Default-expand unresolved, collapse resolved
 						[ ] Add the magic buttons (done etc)
-						[ ] Inline text field etc
+						[x] Inline text field etc
 							[ ] Cancel, save, resolved
 	[ ] Reply pane
 		[ ] Contains everything under the "reply" button and some more:

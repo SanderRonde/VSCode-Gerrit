@@ -32,11 +32,11 @@ export type GerritDetailedChangeLabels = Record<
 
 export type GerritChangeLabels = Record<string, GerritChangeLabel>;
 
-export interface GerritUser {
+export interface GerritUserResponse {
 	_account_id: number;
 }
 
-export interface GerritDetailedUser extends GerritUser {
+export interface GerritDetailedUserResponse extends GerritUserResponse {
 	name: string;
 	display_name?: string;
 	email?: string;
@@ -47,7 +47,7 @@ export enum RevisionType {
 	REWORK = 'REWORK',
 }
 
-interface FetchInstructions {
+export interface FetchInstructions {
 	url: string;
 	ref: string;
 }
@@ -77,17 +77,33 @@ export type GerritRevisionFile =
 			old_path: string;
 	  });
 
+export interface GerritAuthor {
+	name: string;
+	email: string;
+	date: string;
+	tz: number;
+}
+
+export interface GerritCommitResponse {
+	parents: { commit: string; subject: string }[];
+	author: GerritAuthor;
+	committer: GerritAuthor;
+	subject: string;
+	message: string;
+}
+
 export interface GerritRevisionResponse {
 	kind: RevisionType;
 	_number: number;
 	created: string;
-	uploader: GerritUser | GerritDetailedUser;
+	uploader: GerritUserResponse | GerritDetailedUserResponse;
 	ref: string;
 	fetch: {
 		ssh: FetchInstructions;
 		http: FetchInstructions;
 	};
 	files?: Record<string, GerritRevisionFile>;
+	commit?: GerritCommitResponse;
 }
 
 export type GerritRevisions = Record<string, GerritRevisionResponse>;
@@ -109,5 +125,42 @@ export interface GerritChangeResponse {
 	labels?: GerritChangeLabels | GerritDetailedChangeLabels;
 	current_revision?: string;
 	revisions?: GerritRevisions;
-	owner: GerritUser | GerritDetailedUser;
+	owner: GerritUserResponse | GerritDetailedUserResponse;
 }
+
+export enum GerritCommentSide {
+	RIGHT = 'REVISION',
+	LEFT = 'PARENT',
+}
+
+export interface GerritCommentRange {
+	start_line: number;
+	start_character: number;
+	end_line: number;
+	end_character: number;
+}
+
+export type GerritCommentResponse = {
+	id: string;
+	author: GerritDetailedUserResponse;
+	patch_set?: string;
+	commit_id: string;
+	path?: string;
+	side?: GerritCommentSide;
+	parent?: number;
+	line?: number;
+	range?: GerritCommentRange;
+	in_reply_to?: string;
+	message?: string;
+	updated: string;
+	tag?: string;
+	unresolved?: boolean;
+	change_message_id: string;
+	context_lines?: {
+		line_number: number;
+		context_line: string;
+	}[];
+	source_content_type?: string;
+};
+
+export type GerritCommentsResponse = Record<string, GerritCommentResponse[]>;

@@ -1,10 +1,16 @@
 import {
+	cancelComment,
+	collapseAllComments,
+	createComment,
+	NewlyCreatedGerritCommentReply,
+	setCommentResolved,
+} from '../providers/commentProvider';
+import {
 	commands,
 	ConfigurationTarget,
 	ExtensionContext,
 	window,
 } from 'vscode';
-import { cancelComment, createComment } from '../providers/commentProvider';
 import { MultiStepEntry, MultiStepper } from '../lib/multiStep';
 import { showInvalidSettingsMessage } from '../lib/messages';
 import { getConfiguration } from '../lib/config';
@@ -14,8 +20,12 @@ import got from 'got';
 export enum GerritExtensionCommands {
 	ENTER_CREDENTIALS = 'gerrit.enterCredentials',
 	CHECK_CONNECTION = 'gerrit.checkConnection',
-	CREATE_COMMENT = 'gerrit.createComment',
+	CREATE_COMMENT_RESOLVED = 'gerrit.createCommentResolved',
+	CREATE_COMMENT_UNRESOLVED = 'gerrit.createCommentUnresolved',
 	CANCEL_COMMENT = 'gerrit.cancelComment',
+	RESOLVE_COMMENT = 'gerrit.toggleResolvedOn',
+	UNRESOLVE_COMMENT = 'gerrit.toggleResolvedOff',
+	COLLAPSE_ALL_COMMENTS = 'gerrit.collapseAllComments',
 }
 
 async function enterCredentials(): Promise<void> {
@@ -140,8 +150,36 @@ export function registerCommands(context: ExtensionContext): void {
 
 	context.subscriptions.push(
 		commands.registerCommand(
-			GerritExtensionCommands.CREATE_COMMENT,
-			createComment
+			GerritExtensionCommands.CREATE_COMMENT_RESOLVED,
+			(reply: NewlyCreatedGerritCommentReply) =>
+				createComment(reply, true)
+		)
+	);
+	context.subscriptions.push(
+		commands.registerCommand(
+			GerritExtensionCommands.CREATE_COMMENT_UNRESOLVED,
+			(reply: NewlyCreatedGerritCommentReply) =>
+				createComment(reply, false)
+		)
+	);
+	context.subscriptions.push(
+		commands.registerCommand(
+			GerritExtensionCommands.RESOLVE_COMMENT,
+			(reply: NewlyCreatedGerritCommentReply) =>
+				setCommentResolved(reply, true)
+		)
+	);
+	context.subscriptions.push(
+		commands.registerCommand(
+			GerritExtensionCommands.UNRESOLVE_COMMENT,
+			(reply: NewlyCreatedGerritCommentReply) =>
+				setCommentResolved(reply, false)
+		)
+	);
+	context.subscriptions.push(
+		commands.registerCommand(
+			GerritExtensionCommands.COLLAPSE_ALL_COMMENTS,
+			collapseAllComments
 		)
 	);
 }

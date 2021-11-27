@@ -53,7 +53,7 @@ export async function activate(context: ExtensionContext): Promise<void> {
 	);
 
 	// Create comment controller
-	context.subscriptions.push(new CommentManager());
+	context.subscriptions.push(CommentManager.init());
 
 	// Warm up cache for self
 	void GerritUser.getSelf();

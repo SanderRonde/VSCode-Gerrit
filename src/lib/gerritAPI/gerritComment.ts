@@ -1,16 +1,17 @@
 import {
-	GerritCommentRange,
-	GerritCommentResponse,
-	GerritCommentSide,
-	GerritDetailedUserResponse,
-} from './types';
-import {
 	Comment,
 	CommentAuthorInformation,
 	CommentMode,
 	Position,
 	Range,
 } from 'vscode';
+import {
+	GerritCommentRange,
+	GerritCommentResponse,
+	GerritCommentSide,
+} from './types';
+import { GerritCommentThread } from '../../providers/comments/thread';
+import { CommentManager } from '../../providers/commentProvider';
 import { FileMeta } from '../../providers/fileProvider';
 import { DynamicallyFetchable } from './shared';
 import { GerritUser } from './gerritUser';
@@ -22,7 +23,7 @@ export abstract class GerritCommentBase
 	implements Comment
 {
 	public id: string;
-	public gerritAuthor: GerritDetailedUserResponse;
+	public gerritAuthor?: GerritUser;
 	public patchSet?: string;
 	public commitId: string;
 	public path?: string;
@@ -45,14 +46,7 @@ export abstract class GerritCommentBase
 	// Why is this a getter? Because ESLint crashes if it's not...
 	public abstract get isDraft(): boolean;
 	public abstract get author(): CommentAuthorInformation;
-
-	public get body(): string {
-		return this.message ?? '';
-	}
-
-	public get mode(): CommentMode {
-		return CommentMode.Preview;
-	}
+	public abstract getContextValues(): string[];
 
 	protected constructor(
 		protected _patchID: string,
@@ -62,7 +56,9 @@ export abstract class GerritCommentBase
 		super();
 
 		this.id = response.id;
-		this.gerritAuthor = response.author;
+		this.gerritAuthor = response.author
+			? new GerritUser(response.author)
+			: undefined;
 		this.patchSet = response.patch_set;
 		this.commitId = response.commit_id;
 		this.path = response.path;
@@ -81,6 +77,26 @@ export abstract class GerritCommentBase
 			lineNumber: l.line_number,
 		}));
 		this.sourceContentType = response.source_content_type;
+	}
+
+	public get body(): string {
+		return this.message ?? '';
+	}
+
+	public get mode(): CommentMode {
+		return CommentMode.Preview;
+	}
+
+	public get thread(): GerritCommentThread | null {
+		return (
+			CommentManager.getFileManagersForPath(this.filePath)
+				.map((manager) => manager.getThread(this))
+				.find((m) => !!m) ?? null
+		);
+	}
+
+	public get contextValue(): string {
+		return this.getContextValues().join(',');
 	}
 
 	public init(): Promise<this> {
@@ -141,13 +157,21 @@ export class GerritComment extends GerritCommentBase {
 	public readonly isDraft = false as const;
 
 	public get author(): CommentAuthorInformation {
+		const authorName = this.gerritAuthor?.getName() ?? 'Unknown Author';
 		return {
-			name:
-				this.gerritAuthor.display_name ??
-				this.gerritAuthor.name ??
-				this.gerritAuthor.email ??
-				this.gerritAuthor.username,
+			name: `${authorName} @ ${this.updated.format({
+				dateStyle: 'short',
+			})}`,
 		};
+	}
+
+	public getContextValues(): string[] {
+		const values: string[] = [];
+		const thread = this.thread;
+		if (thread?.comments.every((c) => !c.isDraft)) {
+			values.push('allNonDraft');
+		}
+		return values;
 	}
 
 	public static async from(
@@ -175,8 +199,11 @@ export class GerritDraftComment extends GerritCommentBase implements Comment {
 	private _self: GerritUser | null = null;
 
 	public get author(): CommentAuthorInformation {
+		const authorName = this._self?.getName() ?? 'Unknown Author';
 		return {
-			name: this._self?.getName(true) ?? '',
+			name: `${authorName} @ ${this.updated.format({
+				dateStyle: 'short',
+			})}`,
 		};
 	}
 
@@ -184,8 +211,8 @@ export class GerritDraftComment extends GerritCommentBase implements Comment {
 		return 'Draft';
 	}
 
-	public get contextValue(): string {
-		return ['editable', 'deletable'].join(',');
+	public getContextValues(): string[] {
+		return ['editable', 'deletable'];
 	}
 
 	public static from(
@@ -194,11 +221,6 @@ export class GerritDraftComment extends GerritCommentBase implements Comment {
 		response: GerritCommentResponse
 	): Promise<GerritDraftComment> {
 		return new GerritDraftComment(patchID, filePath, response).init();
-	}
-
-	public async init(): Promise<this> {
-		this._self = await GerritUser.getSelf();
-		return this;
 	}
 
 	public static async getForMeta(
@@ -212,5 +234,17 @@ export class GerritDraftComment extends GerritCommentBase implements Comment {
 		}
 
 		return await api.getDraftComments(meta.changeId);
+	}
+
+	public async init(): Promise<this> {
+		this._self = await GerritUser.getSelf();
+		return this;
+	}
+
+	// TODO: remove ignore
+	// eslint-disable-next-line @typescript-eslint/require-await
+	public async setResolved(isResolved: boolean): Promise<void> {
+		this.unresolved = !isResolved;
+		// TODO: XHR to update it
 	}
 }

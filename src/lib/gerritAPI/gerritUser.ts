@@ -16,15 +16,12 @@ export class GerritUser {
 		this.username = response.username;
 	}
 
-	public getName(useFallback: true, fallback?: string): string;
+	public getName(useFallback: true): string;
 	public getName(useFallback?: false): string | null;
-	public getName(
-		useFallback: boolean = false,
-		fallback: string = ''
-	): string | null {
+	public getName(useFallback: boolean = false): string | null {
 		return (
 			(this.displayName || this.name || this.username || this.email) ??
-			(useFallback ? fallback : null)
+			(useFallback ? '' : null)
 		);
 	}
 

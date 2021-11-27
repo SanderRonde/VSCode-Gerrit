@@ -142,7 +142,7 @@ export interface GerritCommentRange {
 
 export type GerritCommentResponse = {
 	id: string;
-	author: GerritDetailedUserResponse;
+	author?: GerritDetailedUserResponse;
 	patch_set?: string;
 	commit_id: string;
 	path?: string;

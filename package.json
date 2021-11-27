@@ -21,8 +21,13 @@
 				"title": "Check out gerrit change TODO:"
 			},
 			{
-				"command": "gerrit.createComment",
-				"title": "Save",
+				"command": "gerrit.createCommentResolved",
+				"title": "Save (resolved)",
+				"enablement": "!commentIsEmpty"
+			},
+			{
+				"command": "gerrit.createCommentUnresolved",
+				"title": "Save (unresolved)",
 				"enablement": "!commentIsEmpty"
 			},
 			{
@@ -35,28 +40,23 @@
 				"title": "Edit"
 			},
 			{
-				"command": "gerrit.toggleResolved",
-				"title": "Resolved TODO:"
-			},
-			{
 				"command": "gerrit.cancelComment",
 				"title": "Cancel"
 			},
 			{
-				"command": "gerrit.replyCommentThread",
-				"title": "REPLY"
-			},
-			{
 				"command": "gerrit.quoteCommentThread",
-				"title": "QUOTE"
+				"title": "Quote",
+				"icon": "$(quote)"
 			},
 			{
 				"command": "gerrit.ackCommentThread",
-				"title": "ACK"
+				"title": "Ack",
+				"icon": "$(record)"
 			},
 			{
 				"command": "gerrit.doneCommentThread",
-				"title": "DONE"
+				"title": "Done",
+				"icon": "$(check)"
 			},
 			{
 				"command": "gerrit.deleteComment",
@@ -67,6 +67,14 @@
 				"command": "gerrit.editComment",
 				"title": "Edit comment",
 				"icon": "$(edit)"
+			},
+			{
+				"command": "gerrit.toggleResolvedOn",
+				"title": "Resolve thread"
+			},
+			{
+				"command": "gerrit.toggleResolvedOff",
+				"title": "Unresolve thread"
 			}
 		],
 		"menus": {
@@ -80,10 +88,6 @@
 					"when": "false"
 				},
 				{
-					"command": "gerrit.toggleResolved",
-					"when": "false"
-				},
-				{
 					"command": "gerrit.editComment",
 					"when": "false"
 				},
@@ -92,10 +96,6 @@
 					"when": "false"
 				},
 				{
-					"command": "gerrit.replyCommentThread",
-					"when": "false"
-				},
-				{
 					"command": "gerrit.quoteCommentThread",
 					"when": "false"
 				},
@@ -105,49 +105,66 @@
 				},
 				{
 					"command": "gerrit.doneCommentThread",
+					"when": "false"
+				},
+				{
+					"command": "gerrit.toggleResolvedOn",
+					"when": "false"
+				},
+				{
+					"command": "gerrit.toggleResolvedOff",
 					"when": "false"
 				}
 			],
 			"comments/commentThread/context": [
 				{
-					"command": "gerrit.createComment",
-					"when": "commentController == gerrit && commentThreadIsEmpty",
+					"command": "gerrit.createCommentResolved",
+					"when": "commentController == gerrit",
 					"group": "newCommentButtons@1"
 				},
 				{
-					"command": "gerrit.cancelComment",
-					"when": "commentController == gerrit && commentThreadIsEmpty",
+					"command": "gerrit.createCommentUnresolved",
+					"when": "commentController == gerrit",
 					"group": "newCommentButtons@2"
 				},
 				{
-					"command": "gerrit.replyCommentThread",
-					"when": "commentController == gerrit && !commentThreadIsEmpty && commentThread == comment",
-					"group": "replyButtons@4"
+					"command": "gerrit.cancelComment",
+					"when": "commentController == gerrit",
+					"group": "newCommentButtons@3"
 				},
 				{
-					"command": "gerrit.quoteCommentThread",
-					"when": "commentController == gerrit && !commentThreadIsEmpty && commentThread == comment",
-					"group": "replyButtons@3"
+					"command": "gerrit.toggleResolvedOn",
+					"when": "commentController == gerrit && commentIsEmpty && commentThread =~ /yesLastCommentDraft/ && commentThread =~ /noResolved/",
+					"group": "newCommentButtons@3"
 				},
 				{
-					"command": "gerrit.ackCommentThread",
-					"when": "commentController == gerrit && !commentThreadIsEmpty && commentThread == comment",
-					"group": "replyButtons@2"
-				},
-				{
-					"command": "gerrit.doneCommentThread",
-					"when": "commentController == gerrit && !commentThreadIsEmpty && commentThread == comment",
-					"group": "replyButtons@1"
+					"command": "gerrit.toggleResolvedOff",
+					"when": "commentController == gerrit && commentIsEmpty && commentThread =~ /yesLastCommentDraft/ && commentThread =~ /yesResolved/",
+					"group": "newCommentButtons@3"
 				}
 			],
-			"comments/comment/context": [
+			"comments/commentThread/title": [
 				{
-					"command": "gerrit.replyCommentThread",
-					"when": "commentController == gerrit",
-					"group": "replyButtons@1"
+					"command": "gerrit.collapseAllComments",
+					"group": "collapse@1"
 				}
 			],
 			"comments/comment/title": [
+				{
+					"command": "gerrit.quoteCommentThread",
+					"when": "commentController == gerrit && comment =~ /allNonDraft/",
+					"group": "inline@3"
+				},
+				{
+					"command": "gerrit.ackCommentThread",
+					"when": "commentController == gerrit && comment =~ /allNonDraft/",
+					"group": "inline@2"
+				},
+				{
+					"command": "gerrit.doneCommentThread",
+					"when": "commentController == gerrit && comment =~ /allNonDraft/",
+					"group": "inline@1"
+				},
 				{
 					"command": "gerrit.editComment",
 					"group": "inline@1",

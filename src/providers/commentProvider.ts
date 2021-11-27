@@ -2,7 +2,6 @@ import {
 	CommentController,
 	comments,
 	CommentThread,
-	CommentThreadCollapsibleState,
 	Disposable,
 	Position,
 	Range,
@@ -17,6 +16,7 @@ import {
 } from '../lib/gerritAPI/gerritComment';
 import { DateSortDirection, DateTime } from '../lib/dateTime';
 import { GerritCommentSide } from '../lib/gerritAPI/types';
+import { GerritCommentThread } from './comments/thread';
 import { FileProvider } from './fileProvider';
 import { uniqueComplex } from '../lib/util';
 
@@ -31,18 +31,13 @@ export interface NewlyCreatedGerritCommentReply {
 }
 
 interface GerritCommentThreadProps {
-	id: string;
 	resolved: boolean;
+	comments: GerritCommentBase[];
 }
-
-export interface GerritCommentThread
-	extends CommentThread,
-		GerritCommentThreadProps {}
 
 class DocumentCommentManager implements Disposable {
 	public static _lastThreadId = 0;
 
-	private _commentMap: Map<string, GerritCommentBase[]> = new Map();
 	private _threadMap: Map<string, GerritCommentThread> = new Map();
 
 	public constructor(
@@ -72,10 +67,11 @@ class DocumentCommentManager implements Disposable {
 				continue;
 			}
 			const commentThread = this.createCommentThread(thread);
-			if (commentThread) {
-				this._threadMap.set(thread[0].id, commentThread);
-			}
-			this._commentMap.set(thread[0].id, thread);
+			thread.forEach((comment) => {
+				if (commentThread) {
+					this._threadMap.set(comment.id, commentThread);
+				}
+			});
 		}
 		return this;
 	}
@@ -131,21 +127,22 @@ class DocumentCommentManager implements Disposable {
 			return null;
 		}
 
-		const thread = this.commentController.createCommentThread(
+		const vscodeThread = this.commentController.createCommentThread(
 			this.document,
 			range,
 			comments
 		) as CommentThread & Partial<GerritCommentThreadProps>;
-		const lastComment = comments[comments.length - 1];
-		thread.label = 'Comment';
-		thread.contextValue = lastComment.isDraft ? 'draft' : 'comment';
-		thread.id = comments[0].id;
+		const thread = GerritCommentThread.from(vscodeThread);
+		thread.setComments(comments);
+		return thread;
+	}
 
-		thread.resolved = !(lastComment.unresolved ?? false);
-		thread.collapsibleState = thread.resolved
-			? CommentThreadCollapsibleState.Collapsed
-			: CommentThreadCollapsibleState.Expanded;
-		return thread as GerritCommentThread;
+	public getThread(comment: GerritCommentBase): GerritCommentThread | null {
+		return this._threadMap.get(comment.id) ?? null;
+	}
+
+	public collapseAll(): void {
+		[...this._threadMap.values()].forEach((thread) => thread.collapse());
 	}
 
 	public dispose(): void {
@@ -153,18 +150,23 @@ class DocumentCommentManager implements Disposable {
 			thread.dispose();
 		}
 		this._threadMap.clear();
-		this._commentMap.clear();
 	}
 }
 
-export class CommentManager implements Disposable {
-	private readonly _commentController: CommentController =
+export class CommentManager {
+	private static readonly _commentController: CommentController =
 		comments.createCommentController('gerrit', 'Gerrit');
-	private _disposables: Set<Disposable> = new Set();
-	private readonly _commentManagers: Map<string, DocumentCommentManager> =
-		new Map();
+	private static _disposables: Set<Disposable> = new Set();
+	private static readonly _commentManagers: Map<
+		string,
+		DocumentCommentManager
+	> = new Map();
+	private static readonly _commentManagersByFilePath: Map<
+		string,
+		DocumentCommentManager[]
+	> = new Map();
 
-	public constructor() {
+	public static init(): typeof CommentManager {
 		this._disposables.add(
 			workspace.onDidCloseTextDocument((doc) => {
 				const meta = FileProvider.tryGetFileMeta(doc.uri);
@@ -193,55 +195,102 @@ export class CommentManager implements Disposable {
 							FileProvider.fileMetaToKey(meta),
 							manager
 						);
+						if (
+							!this._commentManagersByFilePath.has(meta.filePath)
+						) {
+							this._commentManagersByFilePath.set(
+								meta.filePath,
+								[]
+							);
+						}
+						this._commentManagersByFilePath
+							.get(meta.filePath)!
+							.push(manager);
 					})();
 					return [new Range(0, 0, lineCount - 1, 0)];
 				}
-				return [];
+				return null;
 			},
 		};
+		return this;
 	}
 
-	public dispose(): void {
+	public static getFileManagersForPath(
+		filePath: string
+	): DocumentCommentManager[] {
+		return this._commentManagersByFilePath.get(filePath) ?? [];
+	}
+
+	public static collapseAll(): void {
+		const editor = window.activeTextEditor;
+		if (!editor) {
+			return;
+		}
+
+		const meta = FileProvider.tryGetFileMeta(editor.document.uri);
+		if (!meta) {
+			return;
+		}
+
+		const managers = this.getFileManagersForPath(meta.filePath);
+		for (const manager of managers) {
+			manager.collapseAll();
+		}
+	}
+
+	public static dispose(): void {
 		this._commentController.dispose();
 		this._disposables.forEach((d) => void d.dispose());
 		this._commentManagers.forEach((m) => m.dispose());
+		this._commentManagersByFilePath.forEach(
+			(a) => void a.forEach((m) => void m.dispose())
+		);
 		this._disposables = new Set();
 	}
 }
 
 export async function createComment(
-	reply: NewlyCreatedGerritCommentReply
+	reply: NewlyCreatedGerritCommentReply,
+	isResolved: boolean
 ): Promise<void> {
-	const thread = reply.thread;
-	const meta = FileProvider.getFileMeta(thread.uri);
+	const gthread = GerritCommentThread.from(reply.thread);
+	const meta = FileProvider.getFileMeta(gthread.thread.uri);
 
-	const parentComment =
-		thread.comments.length > 0
-			? thread.comments[thread.comments.length - 1]
-			: undefined;
 	const newComment = await GerritComment.create({
 		changeId: meta.changeId,
 		content: reply.text,
 		filePath: meta.filePath,
 		revision: meta.commit,
-		unresolved: true, // TODO:
-		replyTo: parentComment
-			? GerritComment.getFromVSCodeComment(parentComment)?.id
+		unresolved: !isResolved,
+		replyTo: gthread.lastComment
+			? GerritComment.getFromVSCodeComment(gthread.lastComment)?.id
 			: undefined,
 		lineOrRange: GerritComment.vsCodeRangeToGerritRange(reply.thread.range),
 		side: meta.side,
 	});
 	if (!newComment) {
 		await window.showErrorMessage('Failed to create comment');
-		thread.comments = [...thread.comments];
 		return;
 	}
-	thread.label = 'Comment';
-	thread.comments = [...thread.comments, newComment];
-	thread.collapsibleState = CommentThreadCollapsibleState.Collapsed;
+
+	gthread.pushComment(newComment);
 }
 
 export function cancelComment(reply: NewlyCreatedGerritCommentReply): void {
 	const thread = reply.thread;
-	thread.dispose();
+	if (thread.comments.length === 0) {
+		thread.dispose();
+	}
+}
+
+export async function setCommentResolved(
+	reply: NewlyCreatedGerritCommentReply,
+	isResolved: boolean
+): Promise<void> {
+	const gthread = GerritCommentThread.from(reply.thread);
+	await gthread.setResolved(isResolved);
+}
+
+export function collapseAllComments(): void {
+	CommentManager.collapseAll();
 }

@@ -27,7 +27,7 @@ export const EMPTY_FILE_META: Omit<FileMeta, 'side'> = {
 };
 
 export class FileProvider implements TextDocumentContentProvider {
-	constructor(public context: ExtensionContext) {
+	public constructor(public context: ExtensionContext) {
 		context.subscriptions.push(
 			workspace.onDidCloseTextDocument((doc) => {
 				if (doc.uri.scheme === GERRIT_FILE_SCHEME) {
@@ -38,7 +38,7 @@ export class FileProvider implements TextDocumentContentProvider {
 		);
 	}
 
-	private _isEmptyFile(fileMeta: FileMeta) {
+	private _isEmptyFile(fileMeta: FileMeta): boolean {
 		return (
 			fileMeta.project === '' &&
 			fileMeta.commit === '' &&
@@ -47,7 +47,7 @@ export class FileProvider implements TextDocumentContentProvider {
 		);
 	}
 
-	async provideTextDocumentContent(
+	public async provideTextDocumentContent(
 		uri: Uri,
 		token: CancellationToken
 	): Promise<string | null> {
@@ -56,7 +56,7 @@ export class FileProvider implements TextDocumentContentProvider {
 			return '';
 		}
 
-		const api = getAPI();
+		const api = await getAPI();
 		if (!api) {
 			return null;
 		}
@@ -75,7 +75,7 @@ export class FileProvider implements TextDocumentContentProvider {
 		return content.getText();
 	}
 
-	static tryGetFileMeta(uri: Uri): FileMeta | null {
+	public static tryGetFileMeta(uri: Uri): FileMeta | null {
 		try {
 			return this.getFileMeta(uri);
 		} catch (e) {
@@ -83,17 +83,17 @@ export class FileProvider implements TextDocumentContentProvider {
 		}
 	}
 
-	static getFileMeta(uri: Uri): FileMeta {
+	public static getFileMeta(uri: Uri): FileMeta {
 		return JSON.parse(uri.query) as FileMeta;
 	}
 
 	// We put this in a function just so that when the signature
 	// of FileMeta changes, TS notices
-	static createMeta(meta: FileMeta): string {
+	public static createMeta(meta: FileMeta): string {
 		return JSON.stringify(meta);
 	}
 
-	static fileMetaToKey(meta: FileMeta) {
+	public static fileMetaToKey(meta: FileMeta): string {
 		return `${meta.project}/${meta.changeId}/${meta.commit}/${meta.filePath}/${meta.side}`;
 	}
 }

@@ -21,7 +21,7 @@ export async function storageSet<K extends keyof StorageObj>(
 	key: K,
 	value: StorageObj[K],
 	scope: StorageScope
-) {
+): Promise<void> {
 	if (scope === StorageScope.WORKSPACE) {
 		await ctx.workspaceState.update(key, value);
 	} else {
@@ -53,6 +53,6 @@ export function storageGet<K extends keyof StorageObj>(
 	}
 }
 
-export function storageInit(ctx: ExtensionContext) {
+export function storageInit(ctx: ExtensionContext): void {
 	ctx.globalState.setKeysForSync(SYNC_KEYS);
 }

@@ -40,17 +40,17 @@ export interface GerritCommentThread
 		GerritCommentThreadProps {}
 
 class DocumentCommentManager implements Disposable {
-	static _lastThreadId: number = 0;
+	public static _lastThreadId = 0;
 
 	private _commentMap: Map<string, GerritCommentBase[]> = new Map();
 	private _threadMap: Map<string, GerritCommentThread> = new Map();
 
-	constructor(
+	public constructor(
 		private readonly document: Uri,
 		private readonly commentController: CommentController
 	) {}
 
-	async init() {
+	public async init(): Promise<this> {
 		const fileMeta = FileProvider.tryGetFileMeta(this.document);
 		if (!fileMeta) {
 			return this;
@@ -110,7 +110,7 @@ class DocumentCommentManager implements Disposable {
 			);
 	}
 
-	createCommentThread(
+	public createCommentThread(
 		comments: GerritCommentBase[]
 	): GerritCommentThread | null {
 		const range = (() => {
@@ -148,7 +148,7 @@ class DocumentCommentManager implements Disposable {
 		return thread as GerritCommentThread;
 	}
 
-	dispose() {
+	public dispose(): void {
 		for (const thread of this._threadMap.values()) {
 			thread.dispose();
 		}
@@ -164,7 +164,7 @@ export class CommentManager implements Disposable {
 	private readonly _commentManagers: Map<string, DocumentCommentManager> =
 		new Map();
 
-	constructor() {
+	public constructor() {
 		this._disposables.add(
 			workspace.onDidCloseTextDocument((doc) => {
 				const meta = FileProvider.tryGetFileMeta(doc.uri);
@@ -201,15 +201,17 @@ export class CommentManager implements Disposable {
 		};
 	}
 
-	dispose() {
+	public dispose(): void {
 		this._commentController.dispose();
-		this._disposables.forEach((d) => d.dispose());
+		this._disposables.forEach((d) => void d.dispose());
 		this._commentManagers.forEach((m) => m.dispose());
 		this._disposables = new Set();
 	}
 }
 
-export async function createComment(reply: NewlyCreatedGerritCommentReply) {
+export async function createComment(
+	reply: NewlyCreatedGerritCommentReply
+): Promise<void> {
 	const thread = reply.thread;
 	const meta = FileProvider.getFileMeta(thread.uri);
 
@@ -230,7 +232,7 @@ export async function createComment(reply: NewlyCreatedGerritCommentReply) {
 		side: meta.side,
 	});
 	if (!newComment) {
-		window.showErrorMessage('Failed to create comment');
+		await window.showErrorMessage('Failed to create comment');
 		thread.comments = [...thread.comments];
 		return;
 	}
@@ -239,7 +241,7 @@ export async function createComment(reply: NewlyCreatedGerritCommentReply) {
 	thread.collapsibleState = CommentThreadCollapsibleState.Collapsed;
 }
 
-export function cancelComment(reply: NewlyCreatedGerritCommentReply) {
+export function cancelComment(reply: NewlyCreatedGerritCommentReply): void {
 	const thread = reply.thread;
 	thread.dispose();
 }

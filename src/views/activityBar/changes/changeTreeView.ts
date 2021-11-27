@@ -21,9 +21,9 @@ interface FileWithPath {
 }
 
 export class ChangeTreeView implements TreeItemWithChildren {
-	constructor(public change: GerritChange) {}
+	public constructor(public change: GerritChange) {}
 
-	async getItem(): Promise<TreeItem> {
+	public async getItem(): Promise<TreeItem> {
 		const changeNumber = `#${this.change._number}`;
 
 		const owner = await this.change.detailedOwner();
@@ -34,9 +34,7 @@ export class ChangeTreeView implements TreeItemWithChildren {
 			tooltip: this.change.subject,
 			contextValue: 'change',
 			iconPath: new ThemeIcon('git-pull-request'),
-			description: owner
-				? `by ${owner.getName()}`
-				: undefined,
+			description: owner ? `by ${owner.getName(true)!}` : undefined,
 		};
 	}
 
@@ -115,7 +113,8 @@ export class ChangeTreeView implements TreeItemWithChildren {
 				map: newMap,
 			});
 		}
-		const currentMap = currentPath.length === 0 ? collapsed : newMap;
+		const currentMap: FileMap =
+			currentPath.length === 0 ? collapsed : newMap;
 
 		for (const [key, value] of entries) {
 			currentMap.set(key, {
@@ -165,7 +164,7 @@ export class ChangeTreeView implements TreeItemWithChildren {
 		];
 	}
 
-	async getChildren(): Promise<any[]> {
+	public async getChildren(): Promise<TreeViewItem[]> {
 		const files = await this._getFiles();
 		const collapsed = this._collapseFilePathMap(
 			this._getFilePathMap(files)

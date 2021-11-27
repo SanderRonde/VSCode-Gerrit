@@ -8,7 +8,6 @@ import {
 	Comment,
 	CommentAuthorInformation,
 	CommentMode,
-	env,
 	Position,
 	Range,
 } from 'vscode';
@@ -43,13 +42,15 @@ export abstract class GerritCommentBase
 	}[];
 	public sourceContentType?: string;
 
+	// Why is this a getter? Because ESLint crashes if it's not...
+	public abstract get isDraft(): boolean;
 	public abstract get author(): CommentAuthorInformation;
 
-	public get body() {
+	public get body(): string {
 		return this.message ?? '';
 	}
 
-	public get mode() {
+	public get mode(): CommentMode {
 		return CommentMode.Preview;
 	}
 
@@ -82,17 +83,17 @@ export abstract class GerritCommentBase
 		this.sourceContentType = response.source_content_type;
 	}
 
-	async init() {
-		return this;
+	public init(): Promise<this> {
+		return Promise.resolve(this);
 	}
 
 	private static _vsCodeMap: Map<Comment, GerritComment> = new Map();
 
-	static getFromVSCodeComment(comment: Comment) {
-		return GerritComment._vsCodeMap.get(comment);
+	public static getFromVSCodeComment(comment: Comment): GerritComment | null {
+		return GerritComment._vsCodeMap.get(comment) ?? null;
 	}
 
-	static async create(options: {
+	public static async create(options: {
 		content: string;
 		changeId: string;
 		revision: string;
@@ -101,8 +102,8 @@ export abstract class GerritCommentBase
 		lineOrRange?: number | GerritCommentRange;
 		replyTo?: string;
 		side: GerritCommentSide;
-	}) {
-		const api = getAPI();
+	}): Promise<GerritComment | null> {
+		const api = await getAPI();
 		if (!api) {
 			return null;
 		}
@@ -119,7 +120,7 @@ export abstract class GerritCommentBase
 		);
 	}
 
-	static vsCodeRangeToGerritRange(range: Range): GerritCommentRange {
+	public static vsCodeRangeToGerritRange(range: Range): GerritCommentRange {
 		return {
 			start_line: range.start.line,
 			start_character: range.start.character,
@@ -128,7 +129,7 @@ export abstract class GerritCommentBase
 		};
 	}
 
-	static gerritRangeToVSCodeRange(range: GerritCommentRange): Range {
+	public static gerritRangeToVSCodeRange(range: GerritCommentRange): Range {
 		return new Range(
 			new Position(range.start_line, range.start_character),
 			new Position(range.end_line, range.end_character)
@@ -149,20 +150,20 @@ export class GerritComment extends GerritCommentBase {
 		};
 	}
 
-	static async from(
+	public static async from(
 		patchID: string,
 		filePath: string,
 		response: GerritCommentResponse
-	) {
+	): Promise<GerritComment> {
 		return new GerritComment(patchID, filePath, response).init();
 	}
 
-	static async getForMeta(
+	public static async getForMeta(
 		meta: FileMeta
 	): Promise<Map<string, GerritComment[]>> {
-		const api = getAPI();
+		const api = await getAPI();
 		if (!api) {
-			return Promise.resolve(new Map());
+			return Promise.resolve(new Map() as Map<string, GerritComment[]>);
 		}
 
 		return await api.getComments(meta.changeId);
@@ -175,37 +176,39 @@ export class GerritDraftComment extends GerritCommentBase implements Comment {
 
 	public get author(): CommentAuthorInformation {
 		return {
-			name: this._self?.getName() ?? '',
+			name: this._self?.getName(true) ?? '',
 		};
 	}
 
-	public get label() {
+	public get label(): string {
 		return 'Draft';
 	}
 
-	public get contextValue() {
+	public get contextValue(): string {
 		return ['editable', 'deletable'].join(',');
 	}
 
-	static async from(
+	public static from(
 		patchID: string,
 		filePath: string,
 		response: GerritCommentResponse
-	) {
+	): Promise<GerritDraftComment> {
 		return new GerritDraftComment(patchID, filePath, response).init();
 	}
 
-	async init() {
+	public async init(): Promise<this> {
 		this._self = await GerritUser.getSelf();
 		return this;
 	}
 
-	static async getForMeta(
+	public static async getForMeta(
 		meta: FileMeta
 	): Promise<Map<string, GerritDraftComment[]>> {
-		const api = getAPI();
+		const api = await getAPI();
 		if (!api) {
-			return Promise.resolve(new Map());
+			return Promise.resolve(
+				new Map() as Map<string, GerritDraftComment[]>
+			);
 		}
 
 		return await api.getDraftComments(meta.changeId);

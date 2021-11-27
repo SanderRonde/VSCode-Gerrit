@@ -69,7 +69,7 @@ export class GerritRevision extends DynamicallyFetchable {
 		);
 	}
 
-	constructor(
+	public constructor(
 		protected _patchID: string,
 		public change: GerritChange,
 		public currentRevision: string,

@@ -3,9 +3,9 @@ import { TreeItemWithoutChildren } from '../../treeTypes';
 import { ThemeIcon, TreeItem } from 'vscode';
 
 export class DescriptionTreeView implements TreeItemWithoutChildren {
-	constructor(public change: GerritChange) {}
+	public constructor(public change: GerritChange) {}
 
-	async getItem(): Promise<TreeItem> {
+	public getItem(): TreeItem {
 		return {
 			label: 'See in webview',
 			tooltip: `View change #${this.change._number} in webview`,

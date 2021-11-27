@@ -14,7 +14,7 @@ import { Commit } from '../types/vscode-extension-git';
 import { GerritAPIWith } from '../lib/gerritAPI/api';
 import { getConfiguration } from '../lib/config';
 
-async function onStatusBarClick() {
+async function onStatusBarClick(): Promise<void> {
 	const changeId = await getCurrentChangeId();
 	const url = getConfiguration().get('gerrit.url');
 	if (!changeId || !url) {
@@ -25,7 +25,7 @@ async function onStatusBarClick() {
 	if (!change) {
 		return;
 	}
-	env.openExternal(
+	await env.openExternal(
 		Uri.parse(`${url}/c/${change.project}/+/${change._number}`)
 	);
 }
@@ -33,7 +33,7 @@ async function onStatusBarClick() {
 async function updateStatusBarState(
 	statusBar: StatusBarItem,
 	lastCommit: Commit
-) {
+): Promise<void> {
 	if (!isGerritCommit(lastCommit)) {
 		return statusBar.hide();
 	}
@@ -51,7 +51,7 @@ async function updateStatusBarState(
 	}
 
 	const owner = await change.detailedOwner();
-	const ownerName = owner?.getName() ?? null;
+	const ownerName = owner?.getName();
 	statusBar.text = `$(git-commit) #${change._number}`;
 	statusBar.tooltip = `#${change._number}: ${change.subject}\n${
 		ownerName ? `By ${ownerName} - ` : ''
@@ -59,7 +59,9 @@ async function updateStatusBarState(
 	statusBar.show();
 }
 
-export async function showStatusBarIcon(context: ExtensionContext) {
+export async function showStatusBarIcon(
+	context: ExtensionContext
+): Promise<void> {
 	const statusBarCommand = 'gerrit.changeStatus';
 	context.subscriptions.push(
 		commands.registerCommand(statusBarCommand, onStatusBarClick)

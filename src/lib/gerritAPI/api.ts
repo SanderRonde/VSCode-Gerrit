@@ -4,23 +4,17 @@ import {
 	GerritCommentResponse,
 	GerritCommentSide,
 	GerritCommentsResponse,
-	GerritCommitResponse,
 	GerritDetailedUserResponse,
 } from './types';
-import {
-	GerritComment,
-	GerritCommentBase,
-	GerritDraftComment,
-} from './gerritComment';
 import { FileCache } from '../../views/activityBar/changes/changeTreeView/file/fileCache';
 import got, { OptionsOfTextResponseBody, Response } from 'got/dist/source';
 import { DefaultChangeFilter, GerritChangeFilter } from './filters';
+import { GerritComment, GerritDraftComment } from './gerritComment';
 import { getChangeCache } from '../gerritCache';
 import { GerritChange } from './gerritChange';
 import { READONLY_MODE } from '../constants';
 import { TextContent } from './gerritFile';
 import { GerritUser } from './gerritUser';
-import { decodeBase64 } from '../util';
 import { URLSearchParams } from 'url';
 import { window } from 'vscode';
 
@@ -44,16 +38,20 @@ type WithValue<
 	};
 };
 
+interface ResponseWithBody<T> extends Response<T> {
+	strippedBody: string;
+}
+
 export class GerritAPI {
 	private readonly _MAGIC_PREFIX = ")]}'";
 
-	constructor(
+	public constructor(
 		private _url: string,
 		private _username: string,
 		private _password: string
 	) {}
 
-	private get _headers() {
+	private get _headers(): Record<string, string> {
 		return {
 			Authorization:
 				'Basic ' +
@@ -78,11 +76,11 @@ export class GerritAPI {
 		};
 	}
 
-	private _getURL(path: string) {
+	private _getURL(path: string): string {
 		return `${this._url}/a/${path}`;
 	}
 
-	private _stripMagicPrefix(body: string) {
+	private _stripMagicPrefix(body: string): string {
 		if (!body.startsWith(this._MAGIC_PREFIX)) {
 			return body.trim();
 		}
@@ -97,11 +95,11 @@ export class GerritAPI {
 			if (READONLY_MODE && body?.method !== 'GET') {
 				throw new Error('Trying to modify data in readonly mode');
 			}
-			const response = (await got(url, body)) as any;
+			const response = (await got(url, body)) as ResponseWithBody<string>;
 			response.strippedBody = this._stripMagicPrefix(response.body);
 			return response;
 		} catch (e) {
-			window.showErrorMessage(
+			await window.showErrorMessage(
 				`Gerrit request to "${url}" failed. Please check your settings and/or connection`
 			);
 			return null;
@@ -116,7 +114,7 @@ export class GerritAPI {
 		}
 	}
 
-	async testConnection(): Promise<boolean> {
+	public async testConnection(): Promise<boolean> {
 		const response = await this._tryRequest(
 			this._getURL('config/server/version'),
 			this._get
@@ -124,28 +122,28 @@ export class GerritAPI {
 		return response?.statusCode === 200;
 	}
 
-	async getChange(
+	public async getChange(
 		changeId: string,
 		...withValues: never[]
 	): Promise<GerritChange | null>;
-	async getChange(
+	public async getChange(
 		changeId: string,
 		...withValues: GerritAPIWith.LABELS[]
 	): Promise<InstanceType<WithValue<typeof GerritChange, 'labels'>> | null>;
-	async getChange(
+	public async getChange(
 		changeId: string,
 		...withValues: GerritAPIWith.DETAILED_LABELS[]
 	): Promise<InstanceType<
 		WithValue<typeof GerritChange, 'detailedLabels'>
 	> | null>;
-	async getChange(
+	public async getChange(
 		changeId: string,
 		...withValues: GerritAPIWith[]
 	): Promise<GerritChange | null>;
-	async getChange(
+	public async getChange(
 		changeId: string,
 		...withValues: GerritAPIWith[]
-	): Promise<GerritChange | any | null> {
+	): Promise<GerritChange | null> {
 		const response = await this._tryRequest(
 			this._getURL(`changes/${changeId}/detail/`),
 			{
@@ -172,29 +170,29 @@ export class GerritAPI {
 		return change;
 	}
 
-	async getChanges(
+	public async getChanges(
 		filters: (DefaultChangeFilter | GerritChangeFilter)[][],
 		...withValues: never[]
 	): Promise<GerritChange[]>;
-	async getChanges(
+	public async getChanges(
 		filters: (DefaultChangeFilter | GerritChangeFilter)[][],
 		...withValues: GerritAPIWith.LABELS[]
 	): Promise<InstanceType<WithValue<typeof GerritChange, 'labels'>>[]>;
-	async getChanges(
+	public async getChanges(
 		filters: (DefaultChangeFilter | GerritChangeFilter)[][],
 		...withValues: GerritAPIWith.DETAILED_LABELS[]
 	): Promise<
 		InstanceType<WithValue<typeof GerritChange, 'detailedLabels'>>[]
 	>;
-	async getChanges(
+	public async getChanges(
 		filters: (DefaultChangeFilter | GerritChangeFilter)[][],
 		...withValues: GerritAPIWith[]
 	): Promise<GerritChange[]>;
-	async getChanges(
+	public async getChanges(
 		filters: (DefaultChangeFilter | GerritChangeFilter)[][],
 		...withValues: GerritAPIWith[]
-	): Promise<GerritChange[] | any> {
-		const response = await this._tryRequest(this._getURL(`changes/`), {
+	): Promise<GerritChange[]> {
+		const response = await this._tryRequest(this._getURL('changes/'), {
 			...this._get,
 			searchParams: new URLSearchParams([
 				...filters.map((filter) => {
@@ -246,7 +244,9 @@ export class GerritAPI {
 		return json;
 	}
 
-	async getComments(changeId: string): Promise<Map<string, GerritComment[]>> {
+	public async getComments(
+		changeId: string
+	): Promise<Map<string, GerritComment[]>> {
 		const json = await this._getCommentsShared(changeId, 'comments');
 		if (!json) {
 			return new Map();
@@ -267,7 +267,7 @@ export class GerritAPI {
 		return map;
 	}
 
-	async getDraftComments(
+	public async getDraftComments(
 		changeId: string
 	): Promise<Map<string, GerritDraftComment[]>> {
 		const json = await this._getCommentsShared(changeId, 'drafts');
@@ -290,7 +290,7 @@ export class GerritAPI {
 		return map;
 	}
 
-	async getFileContent(
+	public async getFileContent(
 		project: string,
 		commit: string,
 		changeId: string,
@@ -314,7 +314,12 @@ export class GerritAPI {
 		}
 
 		const textContent = TextContent.from(
-			{ project, commit, filePath, changeId },
+			{
+				project,
+				commit,
+				filePath,
+				changeId,
+			},
 			response.body,
 			'base64'
 		);
@@ -326,7 +331,7 @@ export class GerritAPI {
 		return textContent;
 	}
 
-	async createDraftComment(
+	public async createDraftComment(
 		content: string,
 		changeId: string,
 		revision: string,
@@ -376,9 +381,9 @@ export class GerritAPI {
 		return GerritComment.from(changeId, filePath, json);
 	}
 
-	async getSelf(): Promise<GerritUser | null> {
+	public async getSelf(): Promise<GerritUser | null> {
 		const response = await this._tryRequest(
-			this._getURL(`accounts/self`),
+			this._getURL('accounts/self'),
 			this._get
 		);
 

@@ -3,7 +3,6 @@ import {
 	GerritChangeResponse,
 	GerritChangeStatus,
 	GerritDetailedChangeLabels,
-	GerritDetailedUserResponse,
 	GerritUserResponse,
 } from './types';
 import { DefaultChangeFilter, GerritChangeFilter } from './filters';
@@ -126,7 +125,7 @@ export class GerritChange extends DynamicallyFetchable {
 		return await currentRevision.commit();
 	}
 
-	constructor(response: GerritChangeResponse) {
+	public constructor(response: GerritChangeResponse) {
 		super();
 		this._patchID = response.id;
 		this.id = response.id;
@@ -178,28 +177,34 @@ export class GerritChange extends DynamicallyFetchable {
 	 * Note that the first level of filters is OR, while the second
 	 * level of filters is AND
 	 */
-	static getChanges(
+	public static async getChanges(
 		filters: (DefaultChangeFilter | GerritChangeFilter)[][],
 		...withValues: GerritAPIWith[]
-	) {
-		const api = getAPI();
+	): Promise<GerritChange[]> {
+		const api = await getAPI();
 		if (!api) {
-			return [];
+			return [] as GerritChange[];
 		}
 
-		return api.getChanges(filters, ...withValues);
+		return await api.getChanges(filters, ...withValues);
 	}
 
-	static getChange(changeId: string, ...withValues: GerritAPIWith[]) {
-		const api = getAPI();
+	public static async getChange(
+		changeId: string,
+		...withValues: GerritAPIWith[]
+	): Promise<GerritChange | null> {
+		const api = await getAPI();
 		if (!api) {
 			return null;
 		}
 
-		return api.getChange(changeId, ...withValues);
+		return await api.getChange(changeId, ...withValues);
 	}
 
-	static getChangeCached(changeId: string, ...withValues: GerritAPIWith[]) {
+	public static async getChangeCached(
+		changeId: string,
+		...withValues: GerritAPIWith[]
+	): Promise<GerritChange | null> {
 		const cache = getChangeCache();
 		if (cache.has(changeId, withValues)) {
 			return cache.get(changeId, withValues)!;

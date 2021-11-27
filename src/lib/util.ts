@@ -10,10 +10,9 @@ export function createAwaitingInterval(
 } {
 	let timer: NodeJS.Timeout | undefined;
 
-	const setTimer = () => {
-		timer = setTimeout(async () => {
-			await action();
-			setTimer();
+	const setTimer = (): void => {
+		timer = setTimeout(() => {
+			void action().then(setTimer);
 		}, interval);
 	};
 
@@ -34,18 +33,21 @@ export interface Wither {
 	breakDown: () => void;
 }
 
-export async function runWith<R>(wither: Wither, fn: () => Promise<R> | R) {
+export async function runWith<R>(
+	wither: Wither,
+	fn: () => Promise<R> | R
+): Promise<R> {
 	wither.setup();
-	let value = await fn();
+	const value = await fn();
 	wither.breakDown();
 	return value;
 }
 
-export function uniqueSimple<T>(arr: T[]) {
+export function uniqueSimple<T>(arr: T[]): T[] {
 	return [...new Set(arr)];
 }
 
-export function uniqueComplex<T>(arr: T[], key: (item: T) => string) {
+export function uniqueComplex<T>(arr: T[], key: (item: T) => string): T[] {
 	const items: T[] = [];
 	for (const item of arr) {
 		const keyValue = key(item);

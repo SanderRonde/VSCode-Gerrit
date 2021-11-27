@@ -38,7 +38,7 @@ async function getFileDiffContent(
 	return [oldContent, newContent];
 }
 
-async function getFileUri(file: GerritFile) {
+async function getFileUri(file: GerritFile): Promise<Uri | null> {
 	const [oldContent, newContent] = await getFileDiffContent(file);
 
 	if (newContent && !newContent.isEmpty()) {
@@ -83,13 +83,13 @@ async function createDiffCommand(file: GerritFile): Promise<Command | null> {
 }
 
 export class FileTreeView implements TreeItemWithoutChildren {
-	constructor(
+	public constructor(
 		public filePath: string,
 		public change: GerritChange,
 		public file: GerritFile
 	) {}
 
-	async getItem(): Promise<TreeItem> {
+	public async getItem(): Promise<TreeItem> {
 		// TODO: strikethrough deleted stuff etc
 		return {
 			label: this.filePath,

@@ -16,23 +16,26 @@ export abstract class DashboardGroupContainerLike {
 	> = new EventEmitter<
 		DashboardGroupContainerLike | undefined | null | void
 	>();
-	readonly onDidChangeTreeData: Event<
+	public readonly onDidChangeTreeData: Event<
 		DashboardGroupContainerLike | undefined | null | void
 	> = this._onDidChangeTreeData.event;
 
-	abstract getFilters(): (DefaultChangeFilter | GerritChangeFilter)[];
-	abstract getDefaultLimit(): number;
+	protected abstract getFilters(): (
+		| DefaultChangeFilter
+		| GerritChangeFilter
+	)[];
+	protected abstract getDefaultLimit(): number;
 
-	private _fetched: number = 0;
+	private _fetched = 0;
 	private _limit: number = this.getDefaultLimit();
 
-	refresh() {
+	public refresh(): void {
 		// TODO: add "refresh" button
 		// TODO: add "fetch more" button
 		this._onDidChangeTreeData.fire();
 	}
 
-	async fetch() {
+	private async _fetch(): Promise<ChangeTreeView[]> {
 		const changes = await Promise.all(
 			(
 				await GerritChange.getChanges(
@@ -51,7 +54,7 @@ export abstract class DashboardGroupContainerLike {
 		return changes;
 	}
 
-	async getChildren(): Promise<TreeItemWithChildren[]> {
-		return this.fetch();
+	public async getChildren(): Promise<TreeItemWithChildren[]> {
+		return this._fetch();
 	}
 }

@@ -1,6 +1,5 @@
 import {
 	commands,
-	CommentReply,
 	ConfigurationTarget,
 	ExtensionContext,
 	window,
@@ -19,7 +18,7 @@ export enum GerritExtensionCommands {
 	CANCEL_COMMENT = 'gerrit.cancelComment',
 }
 
-async function enterCredentials() {
+async function enterCredentials(): Promise<void> {
 	const config = getConfiguration();
 	const urlStep = new MultiStepEntry({
 		placeHolder: 'http://gerrithost.com',
@@ -32,7 +31,7 @@ async function enterCredentials() {
 			} catch (e) {
 				return {
 					isValid: false,
-					message: `Failed to reach URL: "${e}""`,
+					message: `Failed to reach URL: "${e as string}""`,
 				};
 			}
 		},
@@ -66,7 +65,7 @@ async function enterCredentials() {
 			}
 
 			const api = new GerritAPI(url, username, password);
-			if (await !api.testConnection()) {
+			if (!(await api.testConnection())) {
 				return {
 					isValid: false,
 					message: 'Invalid URL or credentials',
@@ -88,19 +87,21 @@ async function enterCredentials() {
 	}
 
 	const [url, username, password] = result;
-	config.update('gerrit.url', url, ConfigurationTarget.Global);
-	config.update('gerrit.username', username, ConfigurationTarget.Global);
-	config.update('gerrit.password', password, ConfigurationTarget.Global);
+	await Promise.all([
+		config.update('gerrit.url', url, ConfigurationTarget.Global),
+		config.update('gerrit.username', username, ConfigurationTarget.Global),
+		config.update('gerrit.password', password, ConfigurationTarget.Global),
+	]);
 }
 
-async function checkConnection() {
+async function checkConnection(): Promise<void> {
 	const config = getConfiguration();
 	const url = config.get('gerrit.url');
 	const username = config.get('gerrit.username');
 	const password = config.get('gerrit.password');
 
 	if (!url || !username || !password) {
-		showInvalidSettingsMessage(
+		await showInvalidSettingsMessage(
 			'Missing URL, username or password. Please set them in your settings. (gerrit.{url|username|password})'
 		);
 		return;
@@ -108,16 +109,16 @@ async function checkConnection() {
 
 	const api = new GerritAPI(url, username, password);
 	if (!(await api.testConnection())) {
-		showInvalidSettingsMessage(
+		await showInvalidSettingsMessage(
 			'Connection to Gerrit failed, please check your settings and/or connection'
 		);
 		return;
 	}
 
-	window.showInformationMessage('Succesfully connected!');
+	await window.showInformationMessage('Succesfully connected!');
 }
 
-export function registerCommands(context: ExtensionContext) {
+export function registerCommands(context: ExtensionContext): void {
 	context.subscriptions.push(
 		commands.registerCommand(
 			GerritExtensionCommands.ENTER_CREDENTIALS,

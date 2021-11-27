@@ -3,7 +3,7 @@ import { Disposable, InputBox, QuickInputButtons, window } from 'vscode';
 type GettableValue = string | ((stepper: MultiStepper) => string);
 
 export class MultiStepEntry {
-	constructor(
+	public constructor(
 		public settings: {
 			placeHolder?: GettableValue;
 			prompt?: GettableValue;
@@ -22,7 +22,7 @@ export class MultiStepEntry {
 	public static getGettable(
 		stepper: MultiStepper,
 		gettableValue?: GettableValue
-	) {
+	): string | undefined {
 		if (!gettableValue) {
 			return gettableValue;
 		}
@@ -33,7 +33,7 @@ export class MultiStepEntry {
 		return gettableValue(stepper);
 	}
 
-	setInputSettings(stepper: MultiStepper, input: InputBox) {
+	public setInputSettings(stepper: MultiStepper, input: InputBox): void {
 		input.placeholder = MultiStepEntry.getGettable(
 			stepper,
 			this.settings.placeHolder
@@ -47,7 +47,7 @@ export class MultiStepEntry {
 		input.password = !!this.settings.isPassword;
 	}
 
-	async validate(
+	public async validate(
 		stepper: MultiStepper,
 		input: InputBox,
 		value: string
@@ -79,7 +79,7 @@ export class MultiStepEntry {
 }
 
 export class MultiStepper {
-	private _currentStepIndex: number = 0;
+	private _currentStepIndex = 0;
 	private _disposables: Disposable[] = [];
 	private _values: (string | undefined)[] = [];
 	private _runPromise: Promise<(string | undefined)[] | undefined> | null =
@@ -88,7 +88,7 @@ export class MultiStepper {
 		| null
 		| ((value: (string | undefined)[] | undefined) => void) = null;
 
-	constructor(private _steps: MultiStepEntry[]) {
+	public constructor(private _steps: MultiStepEntry[]) {
 		this._values = this._steps.map((step) => {
 			return (
 				MultiStepEntry.getGettable(this, step.settings.value) ??
@@ -97,7 +97,7 @@ export class MultiStepper {
 		});
 	}
 
-	run() {
+	public run(): Promise<undefined | (string | undefined)[]> {
 		this._runPromise = new Promise((resolve) => {
 			this._resolveRunPromise = resolve;
 		});
@@ -106,56 +106,58 @@ export class MultiStepper {
 		input.totalSteps = this._steps.length;
 		input.ignoreFocusOut = true;
 		this._disposables.push(
-			input.onDidTriggerButton(async (e) => {
+			input.onDidTriggerButton((e) => {
 				if (e === QuickInputButtons.Back) {
-					this.prevStep(input);
+					this._prevStep(input);
 				}
 			})
 		);
 		this._disposables.push(
-			input.onDidHide(async () => {
+			input.onDidHide(() => {
 				this.dispose();
 				this._resolveRunPromise?.(undefined);
 			})
 		);
 		this._disposables.push(
 			input.onDidAccept(async () => {
-				if (await this.currentStep.validate(this, input, input.value)) {
+				if (
+					await this._currentStep.validate(this, input, input.value)
+				) {
 					this._values[this._currentStepIndex] = input.value;
-					this.nextStep(input);
+					this._nextStep(input);
 				}
 			})
 		);
 
-		this.runStep(input, 0);
+		this._runStep(input, 0);
 		input.show();
 
 		return this._runPromise;
 	}
 
-	get currentStep() {
+	private get _currentStep(): MultiStepEntry {
 		return this._steps[this._currentStepIndex];
 	}
 
-	get values() {
+	public get values(): (string | undefined)[] {
 		return this._values;
 	}
 
-	runStep(input: InputBox, stepIndex: number) {
+	private _runStep(input: InputBox, stepIndex: number): void {
 		this._currentStepIndex = stepIndex;
-		const step = this.currentStep;
+		const step = this._currentStep;
 		input.step = stepIndex + 1;
 		step.setInputSettings(this, input);
 		input.buttons = stepIndex > 0 ? [QuickInputButtons.Back] : [];
 	}
 
-	prevStep(input: InputBox) {
-		this.runStep(input, this._currentStepIndex - 1);
+	private _prevStep(input: InputBox): void {
+		this._runStep(input, this._currentStepIndex - 1);
 	}
 
-	nextStep(input: InputBox) {
+	private _nextStep(input: InputBox): void {
 		if (this._currentStepIndex + 1 < this._steps.length) {
-			this.runStep(input, this._currentStepIndex + 1);
+			this._runStep(input, this._currentStepIndex + 1);
 		} else {
 			// Done :)
 			this.dispose();
@@ -164,7 +166,7 @@ export class MultiStepper {
 		}
 	}
 
-	dispose() {
-		this._disposables.forEach((d) => d.dispose());
+	public dispose(): void {
+		this._disposables.forEach((d) => void d.dispose());
 	}
 }

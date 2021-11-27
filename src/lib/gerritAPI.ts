@@ -22,7 +22,7 @@ function hasSameConfig(
 	);
 }
 
-export function createAPI() {
+export async function createAPI(): Promise<GerritAPI | null> {
 	const config = getConfiguration();
 	const url = config.get('gerrit.url');
 	const username = config.get('gerrit.username');
@@ -33,11 +33,15 @@ export function createAPI() {
 			log(
 				'Missing URL, username or password. Please set them in your settings. (gerrit.{url|username|password})'
 			);
-			showInvalidSettingsMessage(
+			await showInvalidSettingsMessage(
 				'Missing Gerrit API connection settings. Please enter them using the "Gerrit credentials" command or in your settings file'
 			);
 		}
-		lastConfig = { url, username, password };
+		lastConfig = {
+			url,
+			username,
+			password,
+		};
 		return null;
 	}
 
@@ -45,10 +49,10 @@ export function createAPI() {
 	return api;
 }
 
-export function getAPI(): GerritAPI | null {
+export async function getAPI(): Promise<GerritAPI | null> {
 	if (api) {
 		return api;
 	}
 
-	return (api = createAPI());
+	return (api = await createAPI());
 }

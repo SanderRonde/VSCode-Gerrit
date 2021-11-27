@@ -4,11 +4,15 @@ import { GerritAPIWith } from './gerritAPI/api';
 export class GerritChangeCache {
 	private _cache: Map<string, Map<string, GerritChange>> = new Map();
 
-	private _withValuesToString(withValues: GerritAPIWith[]) {
+	private _withValuesToString(withValues: GerritAPIWith[]): string {
 		return withValues.sort().join('.');
 	}
 
-	set(changeId: string, withValues: GerritAPIWith[], change: GerritChange) {
+	public set(
+		changeId: string,
+		withValues: GerritAPIWith[],
+		change: GerritChange
+	): void {
 		if (!this._cache.has(changeId)) {
 			this._cache.set(changeId, new Map());
 		}
@@ -17,14 +21,17 @@ export class GerritChangeCache {
 			.set(this._withValuesToString(withValues), change);
 	}
 
-	has(changeId: string, withValues: GerritAPIWith[]): boolean {
+	public has(changeId: string, withValues: GerritAPIWith[]): boolean {
 		return (
 			this._cache.has(changeId) &&
 			this._cache.get(changeId)!.has(this._withValuesToString(withValues))
 		);
 	}
 
-	get(changeId: string, withValues: GerritAPIWith[]) {
+	public get(
+		changeId: string,
+		withValues: GerritAPIWith[]
+	): GerritChange | null | undefined {
 		if (!this._cache.has(changeId)) {
 			return null;
 		}

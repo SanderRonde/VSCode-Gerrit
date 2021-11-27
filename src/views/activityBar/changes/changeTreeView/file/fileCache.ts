@@ -6,7 +6,7 @@ export class FileCache {
 		project: string,
 		revision: string,
 		path: string
-	) {
+	): string {
 		return `${project}|${revision}|${path}`;
 	}
 
@@ -37,7 +37,7 @@ export class FileCache {
 		revision: string,
 		path: string,
 		content: TextContent
-	) {
+	): void {
 		this._fileContentCache.set(
 			this._getFileContentCacheKey(project, revision, path),
 			content

@@ -1,9 +1,9 @@
-import { Commit, GitExtension } from '../types/vscode-extension-git';
+import { API, Commit, GitExtension } from '../types/vscode-extension-git';
 import { PERIODICAL_FETCH_INTERVAL } from './constants';
-import { ExtensionContext, extensions } from 'vscode';
 import { createAwaitingInterval } from './util';
+import { Disposable, extensions } from 'vscode';
 
-export function getGitAPI() {
+export function getGitAPI(): API | null {
 	const extension = extensions.getExtension<GitExtension>('vscode.git');
 	if (!extension) {
 		return null;
@@ -11,7 +11,7 @@ export function getGitAPI() {
 	return extension?.exports.getAPI(1);
 }
 
-export async function getLastCommit() {
+export async function getLastCommit(): Promise<Commit | null> {
 	const api = getGitAPI();
 
 	if (!api || api.repositories.length !== 1) {
@@ -28,9 +28,9 @@ export async function getLastCommit() {
 }
 
 export async function onChangeLastCommit(
-	handler: (lastCommit: Commit) => void,
-	callInitial: boolean = false
-) {
+	handler: (lastCommit: Commit) => void | Promise<void>,
+	callInitial = false
+): Promise<Disposable> {
 	const gitAPI = getGitAPI();
 	if (!gitAPI) {
 		return { dispose: () => {} };
@@ -38,7 +38,7 @@ export async function onChangeLastCommit(
 
 	let currentLastCommit = await getLastCommit();
 	if (callInitial && currentLastCommit) {
-		handler(currentLastCommit);
+		await handler(currentLastCommit);
 	}
 	const interval = createAwaitingInterval(async () => {
 		const newLastCommit = await getLastCommit();
@@ -47,7 +47,7 @@ export async function onChangeLastCommit(
 		}
 		if (!currentLastCommit) {
 			currentLastCommit = newLastCommit;
-			handler(currentLastCommit);
+			await handler(currentLastCommit);
 			return;
 		}
 		if (
@@ -55,7 +55,7 @@ export async function onChangeLastCommit(
 			newLastCommit.message !== currentLastCommit.message
 		) {
 			currentLastCommit = newLastCommit;
-			handler(currentLastCommit);
+			await handler(currentLastCommit);
 		}
 	}, PERIODICAL_FETCH_INTERVAL);
 

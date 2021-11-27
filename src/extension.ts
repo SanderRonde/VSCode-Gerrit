@@ -11,9 +11,9 @@ import { setContextProp } from './lib/context';
 import { isUsingGerrit } from './lib/gerrit';
 import { storageInit } from './lib/storage';
 
-export async function activate(context: ExtensionContext) {
+export async function activate(context: ExtensionContext): Promise<void> {
 	// Initially hide icon
-	setContextProp('gerrit.isUsingGerrit', false);
+	await setContextProp('gerrit.isUsingGerrit', false);
 
 	// Init storage
 	storageInit(context);
@@ -28,7 +28,7 @@ export async function activate(context: ExtensionContext) {
 	const usesGerrit = await isUsingGerrit();
 
 	// Set context to show/hide icon
-	setContextProp('gerrit.isUsingGerrit', usesGerrit);
+	await setContextProp('gerrit.isUsingGerrit', usesGerrit);
 	if (!usesGerrit) {
 		return;
 	}
@@ -59,6 +59,6 @@ export async function activate(context: ExtensionContext) {
 	void GerritUser.getSelf();
 }
 
-export function deactivate() {
+export function deactivate(): void {
 	FileCache.clear();
 }

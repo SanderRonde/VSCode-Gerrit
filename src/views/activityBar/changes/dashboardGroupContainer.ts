@@ -22,28 +22,28 @@ export class DashboardGroupContainer
 	extends DashboardGroupContainerLike
 	implements TreeItemWithChildren
 {
-	constructor(
+	public constructor(
 		private _groupName: DashboardGroupContainerGroup,
 		private _collapsibleState: TreeItemCollapsibleState
 	) {
 		super();
 	}
 
-	getItem(): Promise<TreeItem> {
+	public getItem(): Promise<TreeItem> {
 		return Promise.resolve({
 			label: this._groupName,
 			collapsibleState: this._collapsibleState,
 		});
 	}
 
-	getDefaultLimit() {
+	protected getDefaultLimit(): number {
 		if (this._groupName === DashboardGroupContainerGroup.RECENTLY_CLOSED) {
 			return 10;
 		}
 		return 25;
 	}
 
-	getFilters(): (DefaultChangeFilter | GerritChangeFilter)[] {
+	protected getFilters(): (DefaultChangeFilter | GerritChangeFilter)[] {
 		switch (this._groupName) {
 			case DashboardGroupContainerGroup.YOUR_TURN:
 				return [DefaultChangeFilter.ATTENTION_SELF];

@@ -1,5 +1,4 @@
-import { GerritDetailedUserResponse, GerritUserResponse } from './types';
-import { DynamicallyFetchable } from './shared';
+import { GerritDetailedUserResponse } from './types';
 import { getAPI } from '../gerritAPI';
 
 export class GerritUser {
@@ -9,7 +8,7 @@ export class GerritUser {
 	public email: string | undefined;
 	public username: string | undefined;
 
-	constructor(response: GerritDetailedUserResponse) {
+	public constructor(response: GerritDetailedUserResponse) {
 		this.accountId = response._account_id;
 		this.name = response.name;
 		this.displayName = response.display_name;
@@ -17,19 +16,24 @@ export class GerritUser {
 		this.username = response.username;
 	}
 
-	getName() {
+	public getName(useFallback: true, fallback?: string): string;
+	public getName(useFallback?: false): string | null;
+	public getName(
+		useFallback: boolean = false,
+		fallback: string = ''
+	): string | null {
 		return (
 			(this.displayName || this.name || this.username || this.email) ??
-			null
+			(useFallback ? fallback : null)
 		);
 	}
 
-	static _self: GerritUser | null = null;
-	static async getSelf() {
+	private static _self: GerritUser | null = null;
+	public static async getSelf(): Promise<GerritUser | null> {
 		if (this._self) {
 			return this._self;
 		}
-		const api = getAPI();
+		const api = await getAPI();
 		if (!api) {
 			return null;
 		}

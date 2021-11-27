@@ -10,13 +10,13 @@ const disableRecursionWither: Wither = {
 };
 
 export abstract class DynamicallyFetchable {
-	protected abstract _patchID: string;
+	protected abstract get _patchID(): string;
 
 	protected _fieldFallbackGetter<K extends keyof this>(
 		fieldName: K,
 		flags: GerritAPIWith[],
-		getRemoteValue: (remote: GerritChange) => Promise<any>,
-		extraCallback?: (remote: GerritChange) => Promise<any>
+		getRemoteValue: (remote: GerritChange) => Promise<this[K]>,
+		extraCallback?: (remote: GerritChange) => Promise<unknown>
 	): Promise<this[K] | null> {
 		return (async () => {
 			if (this[fieldName]) {
@@ -27,18 +27,21 @@ export abstract class DynamicallyFetchable {
 				return null;
 			}
 
-			const api = getAPI();
+			const api = await getAPI();
 			if (!api) {
 				return null;
 			}
 
-			const res = await api.getChange(this._patchID, ...uniqueSimple(flags));
+			const res = await api.getChange(
+				this._patchID,
+				...uniqueSimple(flags)
+			);
 			if (!res) {
 				return null;
 			}
 
 			await runWith(disableRecursionWither, async () => {
-				(this as any)[fieldName] = await getRemoteValue(res);
+				this[fieldName] = await getRemoteValue(res);
 				if (extraCallback) {
 					await extraCallback(res);
 				}

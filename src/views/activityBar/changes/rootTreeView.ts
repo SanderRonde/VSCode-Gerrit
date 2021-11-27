@@ -2,10 +2,14 @@ import {
 	DashboardGroupContainer,
 	DashboardGroupContainerGroup,
 } from './dashboardGroupContainer';
+import {
+	DefaultChangeFilter,
+	GerritChangeFilter,
+	limit,
+} from '../../../lib/gerritAPI/filters';
+import { ExtensionContext, TreeItem, TreeItemCollapsibleState } from 'vscode';
 import { DashboardGroupContainerLike } from './dashboardGroupContainerLike';
-import { DefaultChangeFilter, limit } from '../../../lib/gerritAPI/filters';
 import { GerritChangesView, getConfiguration } from '../../../lib/config';
-import { ExtensionContext, TreeItemCollapsibleState } from 'vscode';
 import { storageGet, StorageScope } from '../../../lib/storage';
 import { TreeItemWithChildren } from '../treeTypes';
 
@@ -13,19 +17,19 @@ export class RootTreeViewProvider
 	extends DashboardGroupContainerLike
 	implements TreeItemWithChildren
 {
-	constructor(private _context: ExtensionContext) {
+	public constructor(private _context: ExtensionContext) {
 		super();
 	}
 
-	getItem() {
+	public getItem(): Promise<TreeItem> {
 		return Promise.resolve({});
 	}
 
-	getDefaultLimit() {
+	public getDefaultLimit(): number {
 		return 25;
 	}
 
-	getFilters() {
+	public getFilters(): (DefaultChangeFilter | GerritChangeFilter)[] {
 		switch (
 			getConfiguration().get(
 				'gerrit.changesView',
@@ -52,7 +56,9 @@ export class RootTreeViewProvider
 		return [];
 	}
 
-	private _getCollapseState(shouldBeCollapsed: boolean) {
+	private _getCollapseState(
+		shouldBeCollapsed: boolean
+	): TreeItemCollapsibleState {
 		if (shouldBeCollapsed) {
 			return TreeItemCollapsibleState.Collapsed;
 		} else {
@@ -60,7 +66,7 @@ export class RootTreeViewProvider
 		}
 	}
 
-	private async _getDashboard(): Promise<DashboardGroupContainer[]> {
+	private _getDashboard(): DashboardGroupContainer[] {
 		return [
 			new DashboardGroupContainer(
 				DashboardGroupContainerGroup.YOUR_TURN,
@@ -131,7 +137,7 @@ export class RootTreeViewProvider
 		];
 	}
 
-	async getChildren(): Promise<TreeItemWithChildren[]> {
+	public async getChildren(): Promise<TreeItemWithChildren[]> {
 		const config = getConfiguration().get(
 			'gerrit.changesView',
 			GerritChangesView.DASHBOARD

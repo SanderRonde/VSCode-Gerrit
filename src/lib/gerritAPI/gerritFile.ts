@@ -21,27 +21,30 @@ export class TextContent {
 		public meta: Omit<FileMeta, 'side'>
 	) {}
 
-	static from(
+	public static from(
 		meta: Omit<FileMeta, 'side'>,
 		content: string,
 		encoding: BufferEncoding
-	) {
+	): TextContent {
 		return new TextContent(Buffer.from(content, encoding), meta);
 	}
 
-	getText() {
+	public getText(): string {
 		return this.buffer.toString('utf8');
 	}
 
-	toVirtualFile(forSide: GerritCommentSide) {
+	public toVirtualFile(forSide: GerritCommentSide): Uri {
 		return Uri.from({
 			scheme: GERRIT_FILE_SCHEME,
 			path: this.meta.filePath,
-			query: FileProvider.createMeta({ ...this.meta, side: forSide }),
+			query: FileProvider.createMeta({
+				...this.meta,
+				side: forSide,
+			}),
 		});
 	}
 
-	isEmpty() {
+	public isEmpty(): boolean {
 		return this.meta === EMPTY_FILE_META;
 	}
 }
@@ -54,7 +57,7 @@ export class GerritFile extends DynamicallyFetchable {
 	public status: GerritRevisionFileStatus | null;
 	public oldPath: string | null;
 
-	constructor(
+	public constructor(
 		protected _patchID: string,
 		public change: GerritChange,
 		public currentRevision: string,
@@ -70,12 +73,12 @@ export class GerritFile extends DynamicallyFetchable {
 		this.oldPath = response.old_path ?? null;
 	}
 
-	async getNewContent(): Promise<TextContent | null> {
+	public async getNewContent(): Promise<TextContent | null> {
 		return this.getContent(this.currentRevision);
 	}
 
-	async getOldContent(): Promise<TextContent | null> {
-		const api = getAPI();
+	public async getOldContent(): Promise<TextContent | null> {
+		const api = await getAPI();
 		if (!api) {
 			return null;
 		}
@@ -93,14 +96,14 @@ export class GerritFile extends DynamicallyFetchable {
 		);
 	}
 
-	async getContent(
+	public async getContent(
 		revision: string = this.currentRevision,
-		useOldPath: boolean = false
+		useOldPath = false
 	): Promise<TextContent | null> {
 		const filePath = useOldPath
 			? this.oldPath ?? this.filePath
 			: this.filePath;
-		const api = getAPI();
+		const api = await getAPI();
 		if (!api) {
 			return null;
 		}
@@ -118,7 +121,7 @@ export class GerritFile extends DynamicallyFetchable {
 		return content;
 	}
 
-	getLocalURI(forSide: GerritCommentSide) {
+	public getLocalURI(forSide: GerritCommentSide): Uri | null {
 		if (
 			!workspace.workspaceFolders ||
 			workspace.workspaceFolders.length !== 1
@@ -138,7 +141,7 @@ export class GerritFile extends DynamicallyFetchable {
 		});
 	}
 
-	async isLocalFile(content: TextContent): Promise<boolean> {
+	public async isLocalFile(content: TextContent): Promise<boolean> {
 		const filePath = this.getLocalURI(GerritCommentSide.LEFT);
 		if (!filePath) {
 			return false;

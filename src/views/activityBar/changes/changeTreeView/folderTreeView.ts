@@ -4,9 +4,13 @@ import { GerritChange } from '../../../../lib/gerritAPI/gerritChange';
 import { ChangeTreeView, FileMap } from '../changeTreeView';
 
 export class FolderTreeView implements TreeItemWithoutChildren {
-	constructor(public folderPath: string, public change: GerritChange, public fileMap: FileMap) {}
+	public constructor(
+		public folderPath: string,
+		public change: GerritChange,
+		public fileMap: FileMap
+	) {}
 
-	async getItem(): Promise<TreeItem> {
+	public getItem(): TreeItem {
 		return {
 			label: this.folderPath,
 			collapsibleState: TreeItemCollapsibleState.Expanded,
@@ -15,7 +19,7 @@ export class FolderTreeView implements TreeItemWithoutChildren {
 		};
 	}
 
-	async getChildren(): Promise<TreeViewItem[]> {
+	public getChildren(): TreeViewItem[] {
 		return ChangeTreeView.getFilesAndFolders(this.change, this.fileMap);
 	}
 }

@@ -1,16 +1,18 @@
 import { GerritExtensionCommands } from '../commands/commands';
 import { commands, window } from 'vscode';
 
-export function showInvalidSettingsMessage(message: string) {
+export async function showInvalidSettingsMessage(
+	message: string
+): Promise<void> {
 	const openSettingsFileOption = 'Open settings file';
 	const launchCommandOption = 'Launch credentials command';
-	window
+	await window
 		.showErrorMessage(message, openSettingsFileOption, launchCommandOption)
-		.then((selection) => {
+		.then(async (selection) => {
 			if (selection === openSettingsFileOption) {
-				commands.executeCommand('workbench.action.openSettings');
+				await commands.executeCommand('workbench.action.openSettings');
 			} else if (selection === launchCommandOption) {
-				commands.executeCommand(
+				await commands.executeCommand(
 					GerritExtensionCommands.ENTER_CREDENTIALS
 				);
 			}

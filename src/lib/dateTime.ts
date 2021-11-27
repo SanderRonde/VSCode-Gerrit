@@ -8,9 +8,9 @@ export enum DateSortDirection {
 export class DateTime {
 	private _date: Date;
 
-	constructor(date: Date);
-	constructor(dateString: string);
-	constructor(dateOrString: string | Date) {
+	public constructor(date: Date);
+	public constructor(dateString: string);
+	public constructor(dateOrString: string | Date) {
 		if (typeof dateOrString === 'string') {
 			this._date = new Date(dateOrString);
 		} else {
@@ -18,7 +18,7 @@ export class DateTime {
 		}
 	}
 
-	static sortByDate<V>(
+	public static sortByDate<V>(
 		array: V[],
 		direction: DateSortDirection,
 		getDate: (value: V) => DateTime
@@ -34,17 +34,19 @@ export class DateTime {
 		});
 	}
 
-	format(options: Intl.DateTimeFormatOptions) {
+	public format(options: Intl.DateTimeFormatOptions): string {
 		return Intl.DateTimeFormat(env.language, options).format(this._date);
 	}
 
-	formatToParts(options: Intl.DateTimeFormatOptions) {
+	public formatToParts(
+		options: Intl.DateTimeFormatOptions
+	): Intl.DateTimeFormatPart[] {
 		return Intl.DateTimeFormat(env.language, options).formatToParts(
 			this._date
 		);
 	}
 
-	timestamp() {
+	public timestamp(): number {
 		return this._date.getTime();
 	}
 }

@@ -101,12 +101,12 @@ export class GerritFile extends DynamicallyFetchable {
 			return null;
 		}
 
-		const content = await api.getFileContent(
-			this.change.project,
-			revision,
-			this.change.id,
-			filePath
-		);
+		const content = await api.getFileContent({
+			project: this.change.project,
+			commit: revision,
+			changeID: this.change.id,
+			filePath,
+		});
 		if (!content) {
 			return null;
 		}

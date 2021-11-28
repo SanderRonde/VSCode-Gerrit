@@ -107,26 +107,10 @@ export abstract class GerritCommentBase
 		}
 
 		if (options.filePath === PATCHSET_LEVEL_KEY) {
-			return await api.createPatchSetLevelDraftComment(
-				options.content,
-				options.changeID,
-				options.revision,
-				options.filePath,
-				options.unresolved,
-				options.replyTo
-			);
+			return await api.createPatchSetLevelDraftComment(options);
 		}
 
-		return await api.createDraftComment(
-			options.content,
-			options.changeID,
-			options.revision,
-			options.filePath,
-			options.unresolved,
-			options.side,
-			options.lineOrRange,
-			options.replyTo
-		);
+		return await api.createDraftComment(options);
 	}
 
 	public static vsCodeRangeToGerritRange(range: Range): GerritCommentRange {
@@ -247,8 +231,11 @@ export class GerritDraftComment extends GerritCommentBase implements Comment {
 			return;
 		}
 
-		const newComment = await api.updateDraftComment(this, {
-			content: message,
+		const newComment = await api.updateDraftComment({
+			draft: this,
+			changes: {
+				content: message,
+			},
 		});
 		if (newComment) {
 			this.updated = newComment.updated;
@@ -266,8 +253,11 @@ export class GerritDraftComment extends GerritCommentBase implements Comment {
 			return;
 		}
 
-		const newComment = await api.updateDraftComment(this, {
-			unresolved: !isResolved,
+		const newComment = await api.updateDraftComment({
+			draft: this,
+			changes: {
+				unresolved: !isResolved,
+			},
 		});
 		if (newComment) {
 			this.updated = newComment.updated;
@@ -287,16 +277,16 @@ export class GerritDraftComment extends GerritCommentBase implements Comment {
 					return;
 				}
 
-				const newComment = await api.updateDraftComment(
-					c as GerritDraftComment,
-					{
+				const newComment = await api.updateDraftComment({
+					draft: c as GerritDraftComment,
+					changes: {
 						content: draft,
 						unresolved:
 							resolvedStatus === null
 								? undefined
 								: !resolvedStatus,
-					}
-				);
+					},
+				});
 				if (newComment) {
 					this.updated = newComment.updated;
 					this.message = newComment.message;

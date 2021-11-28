@@ -413,12 +413,17 @@ export class GerritAPI {
 		return map;
 	}
 
-	public async getFileContent(
-		project: string,
-		commit: string,
-		changeID: string,
-		filePath: string
-	): Promise<TextContent | null> {
+	public async getFileContent({
+		project,
+		commit,
+		changeID,
+		filePath,
+	}: {
+		project: string;
+		commit: string;
+		changeID: string;
+		filePath: string;
+	}): Promise<TextContent | null> {
 		if (FileCache.has(project, commit, filePath)) {
 			return FileCache.get(project, commit, filePath);
 		}
@@ -457,16 +462,25 @@ export class GerritAPI {
 		return textContent;
 	}
 
-	public async createDraftComment(
-		content: string,
-		changeID: string,
-		revision: string,
-		filePath: string,
-		unresolved: boolean,
-		side: GerritCommentSide | undefined,
-		lineOrRange?: number | GerritCommentRange,
-		replyTo?: string
-	): Promise<GerritDraftComment | null> {
+	public async createDraftComment({
+		content,
+		changeID,
+		revision,
+		filePath,
+		unresolved,
+		side,
+		lineOrRange,
+		replyTo,
+	}: {
+		content: string;
+		changeID: string;
+		revision: string;
+		filePath: string;
+		unresolved: boolean;
+		side: GerritCommentSide | undefined;
+		lineOrRange?: number | GerritCommentRange;
+		replyTo?: string;
+	}): Promise<GerritDraftComment | null> {
 		const response = await this._tryRequest(
 			this._getURL(`changes/${changeID}/revisions/${revision}/drafts`),
 			{
@@ -497,14 +511,21 @@ export class GerritAPI {
 		return GerritDraftComment.from(changeID, filePath, json);
 	}
 
-	public async createPatchSetLevelDraftComment(
-		content: string,
-		changeID: string,
-		revision: string,
-		filePath: string,
-		unresolved: boolean,
-		replyTo?: string
-	): Promise<GerritDraftComment | null> {
+	public async createPatchSetLevelDraftComment({
+		content,
+		changeID,
+		revision,
+		filePath,
+		unresolved,
+		replyTo,
+	}: {
+		content: string;
+		changeID: string;
+		revision: string;
+		filePath: string;
+		unresolved: boolean;
+		replyTo?: string;
+	}): Promise<GerritDraftComment | null> {
 		const response = await this._tryRequest(
 			this._getURL(`changes/${changeID}/revisions/${revision}/drafts`),
 			{
@@ -526,13 +547,16 @@ export class GerritAPI {
 		return GerritDraftComment.from(changeID, filePath, json);
 	}
 
-	public async updateDraftComment(
-		draft: GerritDraftComment,
+	public async updateDraftComment({
+		draft,
+		changes,
+	}: {
+		draft: GerritDraftComment;
 		changes: {
 			content?: string;
 			unresolved?: boolean;
-		}
-	): Promise<GerritDraftComment | null> {
+		};
+	}): Promise<GerritDraftComment | null> {
 		const response = await this._tryRequest(
 			this._getURL(
 				`changes/${draft.changeID}/revisions/${draft.commitID}/drafts/${draft.id}`

@@ -204,12 +204,7 @@ export class FileProvider implements TextDocumentContentProvider {
 			return null;
 		}
 
-		const content = await api.getFileContent(
-			meta.project,
-			meta.commit,
-			meta.changeID,
-			meta.filePath
-		);
+		const content = await api.getFileContent(meta);
 
 		if (!content || token.isCancellationRequested) {
 			return null;

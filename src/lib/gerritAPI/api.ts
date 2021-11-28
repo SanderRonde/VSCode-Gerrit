@@ -46,23 +46,6 @@ interface ResponseWithBody<T> extends Response<T> {
 export class GerritAPI {
 	private readonly _MAGIC_PREFIX = ")]}'";
 
-	public constructor(
-		private _url: string,
-		private _username: string,
-		private _password: string
-	) {}
-
-	private _headers(withContent: boolean): Record<string, string | undefined> {
-		return {
-			Authorization:
-				'Basic ' +
-				Buffer.from(`${this._username}:${this._password}`).toString(
-					'base64'
-				),
-			'Content-Type': withContent ? 'application/json' : undefined,
-		};
-	}
-
 	private get _get(): OptionsOfTextResponseBody {
 		return {
 			method: 'GET',
@@ -77,17 +60,27 @@ export class GerritAPI {
 		};
 	}
 
-	private get _post(): OptionsOfTextResponseBody {
-		return {
-			method: 'POST',
-			headers: this._headers(true),
-		};
-	}
-
 	private get _delete(): OptionsOfTextResponseBody {
 		return {
 			method: 'DELETE',
 			headers: this._headers(false),
+		};
+	}
+
+	public constructor(
+		private readonly _url: string,
+		private readonly _username: string,
+		private readonly _password: string
+	) {}
+
+	private _headers(withContent: boolean): Record<string, string | undefined> {
+		return {
+			Authorization:
+				'Basic ' +
+				Buffer.from(`${this._username}:${this._password}`).toString(
+					'base64'
+				),
+			'Content-Type': withContent ? 'application/json' : undefined,
 		};
 	}
 
@@ -183,6 +176,18 @@ export class GerritAPI {
 		return parsed;
 	}
 
+	private async _getCommentsShared(
+		changeId: string,
+		type: 'drafts' | 'comments'
+	): Promise<GerritCommentsResponse | null> {
+		const response = await this._tryRequest(
+			this._getURL(`changes/${changeId}/${type}/`),
+			this._get
+		);
+
+		return this._handleResponse<GerritCommentsResponse>(response);
+	}
+
 	public async testConnection(): Promise<boolean> {
 		const response = await this._tryRequest(
 			this._getURL('config/server/version'),
@@ -276,18 +281,6 @@ export class GerritAPI {
 			cache.set(change.change_id, withValues, change)
 		);
 		return changes;
-	}
-
-	private async _getCommentsShared(
-		changeId: string,
-		type: 'drafts' | 'comments'
-	): Promise<GerritCommentsResponse | null> {
-		const response = await this._tryRequest(
-			this._getURL(`changes/${changeId}/${type}/`),
-			this._get
-		);
-
-		return this._handleResponse<GerritCommentsResponse>(response);
 	}
 
 	public async getComments(

@@ -23,17 +23,10 @@ export class DashboardGroupContainer
 	implements TreeItemWithChildren
 {
 	public constructor(
-		private _groupName: DashboardGroupContainerGroup,
-		private _collapsibleState: TreeItemCollapsibleState
+		private readonly _groupName: DashboardGroupContainerGroup,
+		private readonly _collapsibleState: TreeItemCollapsibleState
 	) {
 		super();
-	}
-
-	public getItem(): Promise<TreeItem> {
-		return Promise.resolve({
-			label: this._groupName,
-			collapsibleState: this._collapsibleState,
-		});
 	}
 
 	protected getDefaultLimit(): number {
@@ -94,5 +87,12 @@ export class DashboardGroupContainer
 					invert(age('4w')),
 				];
 		}
+	}
+
+	public getItem(): Promise<TreeItem> {
+		return Promise.resolve({
+			label: this._groupName,
+			collapsibleState: this._collapsibleState,
+		});
 	}
 }

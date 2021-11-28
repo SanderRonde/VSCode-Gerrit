@@ -26,49 +26,6 @@ export class GerritRevision extends DynamicallyFetchable {
 	public _detailedUploader: GerritDetailedUserResponse | null = null;
 	public _commit: GerritCommit | null = null;
 
-	public files(
-		...additionalWith: GerritAPIWith[]
-	): Promise<Record<string, GerritFile> | null> {
-		return this._fieldFallbackGetter(
-			'_files',
-			[
-				GerritAPIWith.CURRENT_REVISION,
-				GerritAPIWith.CURRENT_FILES,
-				...additionalWith,
-			],
-			async (c) => (await c.getCurrentRevision())?.files() ?? null
-		);
-	}
-
-	public detailedUploader(
-		...additionalWith: GerritAPIWith[]
-	): Promise<GerritDetailedUserResponse | null> {
-		return this._fieldFallbackGetter(
-			'_detailedUploader',
-			[
-				GerritAPIWith.DETAILED_ACCOUNTS,
-				GerritAPIWith.CURRENT_REVISION,
-				...additionalWith,
-			],
-			async (c) =>
-				(await c.getCurrentRevision())?.detailedUploader() ?? null
-		);
-	}
-
-	public commit(
-		...additionalWith: GerritAPIWith[]
-	): Promise<GerritCommit | null> {
-		return this._fieldFallbackGetter(
-			'_commit',
-			[
-				GerritAPIWith.CURRENT_REVISION,
-				GerritAPIWith.CURRENT_COMMIT,
-				...additionalWith,
-			],
-			async (c) => (await c.getCurrentRevision())?.commit() ?? null
-		);
-	}
-
 	public constructor(
 		public override changeID: string,
 		public change: GerritChange,
@@ -117,5 +74,48 @@ export class GerritRevision extends DynamicallyFetchable {
 				)
 			);
 		}
+	}
+
+	public files(
+		...additionalWith: GerritAPIWith[]
+	): Promise<Record<string, GerritFile> | null> {
+		return this._fieldFallbackGetter(
+			'_files',
+			[
+				GerritAPIWith.CURRENT_REVISION,
+				GerritAPIWith.CURRENT_FILES,
+				...additionalWith,
+			],
+			async (c) => (await c.getCurrentRevision())?.files() ?? null
+		);
+	}
+
+	public detailedUploader(
+		...additionalWith: GerritAPIWith[]
+	): Promise<GerritDetailedUserResponse | null> {
+		return this._fieldFallbackGetter(
+			'_detailedUploader',
+			[
+				GerritAPIWith.DETAILED_ACCOUNTS,
+				GerritAPIWith.CURRENT_REVISION,
+				...additionalWith,
+			],
+			async (c) =>
+				(await c.getCurrentRevision())?.detailedUploader() ?? null
+		);
+	}
+
+	public commit(
+		...additionalWith: GerritAPIWith[]
+	): Promise<GerritCommit | null> {
+		return this._fieldFallbackGetter(
+			'_commit',
+			[
+				GerritAPIWith.CURRENT_REVISION,
+				GerritAPIWith.CURRENT_COMMIT,
+				...additionalWith,
+			],
+			async (c) => (await c.getCurrentRevision())?.commit() ?? null
+		);
 	}
 }

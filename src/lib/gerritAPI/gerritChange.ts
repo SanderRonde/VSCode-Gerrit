@@ -39,92 +39,6 @@ export class GerritChange extends DynamicallyFetchable {
 	public _revisions: Record<string, GerritRevision> | null = null;
 	public _currentRevision: string | null = null;
 
-	public labels(
-		...additionalWith: GerritAPIWith[]
-	): Promise<GerritChangeLabels | null> {
-		return this._fieldFallbackGetter(
-			'_labels',
-			[GerritAPIWith.LABELS, ...additionalWith],
-			(c) => c.labels()
-		);
-	}
-
-	public detailedLabels(
-		...additionalWith: GerritAPIWith[]
-	): Promise<GerritDetailedChangeLabels | null> {
-		return this._fieldFallbackGetter(
-			'_detailedLabels',
-			[GerritAPIWith.DETAILED_LABELS, ...additionalWith],
-			(c) => c.detailedLabels()
-		);
-	}
-
-	public detailedOwner(
-		...additionalWith: GerritAPIWith[]
-	): Promise<GerritUser | null> {
-		return this._fieldFallbackGetter(
-			'_detailedOwner',
-			[GerritAPIWith.DETAILED_ACCOUNTS, ...additionalWith],
-			(c) => c.detailedOwner()
-		);
-	}
-
-	public revisions(
-		...additionalWith: GerritAPIWith[]
-	): Promise<Record<string, GerritRevision> | null> {
-		return this._fieldFallbackGetter(
-			'_revisions',
-			[GerritAPIWith.CURRENT_REVISION, ...additionalWith],
-			(c) => c.revisions(),
-			async (c) => {
-				this._currentRevision = await c.currentRevision();
-			}
-		);
-	}
-
-	public currentRevision(
-		...additionalWith: GerritAPIWith[]
-	): Promise<string | null> {
-		return this._fieldFallbackGetter(
-			'_currentRevision',
-			[GerritAPIWith.CURRENT_REVISION, ...additionalWith],
-			(c) => c.currentRevision(),
-			async (c) => {
-				this._revisions = await c.revisions();
-			}
-		);
-	}
-
-	public async getCurrentRevision(
-		...additionalWith: GerritAPIWith[]
-	): Promise<GerritRevision | null> {
-		const currentRevision = await this.currentRevision(...additionalWith);
-		if (!currentRevision) {
-			return null;
-		}
-		const revisions = await this.revisions(...additionalWith);
-		if (!revisions) {
-			return null;
-		}
-		return revisions[currentRevision];
-	}
-
-	public async getCurrentCommit(
-		...additionalWith: GerritAPIWith[]
-	): Promise<GerritCommit | null> {
-		const currentRevision = await this.getCurrentRevision(
-			GerritAPIWith.CURRENT_REVISION,
-			GerritAPIWith.CURRENT_COMMIT,
-			...additionalWith
-		);
-
-		if (!currentRevision) {
-			return null;
-		}
-
-		return await currentRevision.commit();
-	}
-
 	public constructor(response: GerritChangeResponse) {
 		super();
 		this.changeID = response.id;
@@ -211,5 +125,91 @@ export class GerritChange extends DynamicallyFetchable {
 		}
 
 		return this.getChange(changeId, ...withValues);
+	}
+
+	public labels(
+		...additionalWith: GerritAPIWith[]
+	): Promise<GerritChangeLabels | null> {
+		return this._fieldFallbackGetter(
+			'_labels',
+			[GerritAPIWith.LABELS, ...additionalWith],
+			(c) => c.labels()
+		);
+	}
+
+	public detailedLabels(
+		...additionalWith: GerritAPIWith[]
+	): Promise<GerritDetailedChangeLabels | null> {
+		return this._fieldFallbackGetter(
+			'_detailedLabels',
+			[GerritAPIWith.DETAILED_LABELS, ...additionalWith],
+			(c) => c.detailedLabels()
+		);
+	}
+
+	public detailedOwner(
+		...additionalWith: GerritAPIWith[]
+	): Promise<GerritUser | null> {
+		return this._fieldFallbackGetter(
+			'_detailedOwner',
+			[GerritAPIWith.DETAILED_ACCOUNTS, ...additionalWith],
+			(c) => c.detailedOwner()
+		);
+	}
+
+	public revisions(
+		...additionalWith: GerritAPIWith[]
+	): Promise<Record<string, GerritRevision> | null> {
+		return this._fieldFallbackGetter(
+			'_revisions',
+			[GerritAPIWith.CURRENT_REVISION, ...additionalWith],
+			(c) => c.revisions(),
+			async (c) => {
+				this._currentRevision = await c.currentRevision();
+			}
+		);
+	}
+
+	public currentRevision(
+		...additionalWith: GerritAPIWith[]
+	): Promise<string | null> {
+		return this._fieldFallbackGetter(
+			'_currentRevision',
+			[GerritAPIWith.CURRENT_REVISION, ...additionalWith],
+			(c) => c.currentRevision(),
+			async (c) => {
+				this._revisions = await c.revisions();
+			}
+		);
+	}
+
+	public async getCurrentRevision(
+		...additionalWith: GerritAPIWith[]
+	): Promise<GerritRevision | null> {
+		const currentRevision = await this.currentRevision(...additionalWith);
+		if (!currentRevision) {
+			return null;
+		}
+		const revisions = await this.revisions(...additionalWith);
+		if (!revisions) {
+			return null;
+		}
+		return revisions[currentRevision];
+	}
+
+	public async getCurrentCommit(
+		...additionalWith: GerritAPIWith[]
+	): Promise<GerritCommit | null> {
+		const currentRevision = await this.getCurrentRevision(
+			GerritAPIWith.CURRENT_REVISION,
+			GerritAPIWith.CURRENT_COMMIT,
+			...additionalWith
+		);
+
+		if (!currentRevision) {
+			return null;
+		}
+
+		return await currentRevision.commit();
 	}
 }

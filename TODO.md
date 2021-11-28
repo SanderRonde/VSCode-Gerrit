@@ -41,12 +41,12 @@
 					[ ] M (modified)
 					[ ] D (deleted)
 					[ ] Double-check standards here
-				[ ] Add "mark reviewed" checkmark as button
 				[ ] Add comment icon that shows whether you (or someone else) commented
 				[ ] RMB:
 					[ ] Open unmodified
 					[ ] Open modified
 					[ ] Open on gerrit
+					[ ] Mark reviewed
 				[x] What happens when you click:
 					[x] Diff view
 						[-] Highlighting text and pressing "c" creates comment (not possible in VSCode)

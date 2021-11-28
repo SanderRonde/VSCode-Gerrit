@@ -3,9 +3,9 @@ import { RootTreeViewProvider } from './changes/rootTreeView';
 import { TreeViewItem } from './treeTypes';
 
 export class ChangesTreeProvider implements TreeDataProvider<TreeViewItem> {
-	public constructor(private _context: ExtensionContext) {}
-
 	private _rootViewProvider = new RootTreeViewProvider(this._context);
+
+	public constructor(private readonly _context: ExtensionContext) {}
 
 	public async getChildren(element?: TreeViewItem): Promise<TreeViewItem[]> {
 		if (!element) {

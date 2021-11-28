@@ -38,6 +38,28 @@ export class FileProvider implements TextDocumentContentProvider {
 		);
 	}
 
+	public static tryGetFileMeta(uri: Uri): FileMeta | null {
+		try {
+			return this.getFileMeta(uri);
+		} catch (e) {
+			return null;
+		}
+	}
+
+	public static getFileMeta(uri: Uri): FileMeta {
+		return JSON.parse(uri.query) as FileMeta;
+	}
+
+	// We put this in a function just so that when the signature
+	// of FileMeta changes, TS notices
+	public static createMeta(meta: FileMeta): string {
+		return JSON.stringify(meta);
+	}
+
+	public static fileMetaToKey(meta: FileMeta): string {
+		return `${meta.project}/${meta.changeId}/${meta.commit}/${meta.filePath}/${meta.side}`;
+	}
+
 	private _isEmptyFile(fileMeta: FileMeta): boolean {
 		return (
 			fileMeta.project === '' &&
@@ -73,27 +95,5 @@ export class FileProvider implements TextDocumentContentProvider {
 		}
 
 		return content.getText();
-	}
-
-	public static tryGetFileMeta(uri: Uri): FileMeta | null {
-		try {
-			return this.getFileMeta(uri);
-		} catch (e) {
-			return null;
-		}
-	}
-
-	public static getFileMeta(uri: Uri): FileMeta {
-		return JSON.parse(uri.query) as FileMeta;
-	}
-
-	// We put this in a function just so that when the signature
-	// of FileMeta changes, TS notices
-	public static createMeta(meta: FileMeta): string {
-		return JSON.stringify(meta);
-	}
-
-	public static fileMetaToKey(meta: FileMeta): string {
-		return `${meta.project}/${meta.changeId}/${meta.commit}/${meta.filePath}/${meta.side}`;
 	}
 }

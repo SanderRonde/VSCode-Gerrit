@@ -88,13 +88,44 @@ export class MultiStepper {
 		| null
 		| ((value: (string | undefined)[] | undefined) => void) = null;
 
-	public constructor(private _steps: MultiStepEntry[]) {
+	private get _currentStep(): MultiStepEntry {
+		return this._steps[this._currentStepIndex];
+	}
+
+	public get values(): (string | undefined)[] {
+		return this._values;
+	}
+
+	public constructor(private readonly _steps: MultiStepEntry[]) {
 		this._values = this._steps.map((step) => {
 			return (
 				MultiStepEntry.getGettable(this, step.settings.value) ??
 				undefined
 			);
 		});
+	}
+
+	private _runStep(input: InputBox, stepIndex: number): void {
+		this._currentStepIndex = stepIndex;
+		const step = this._currentStep;
+		input.step = stepIndex + 1;
+		step.setInputSettings(this, input);
+		input.buttons = stepIndex > 0 ? [QuickInputButtons.Back] : [];
+	}
+
+	private _prevStep(input: InputBox): void {
+		this._runStep(input, this._currentStepIndex - 1);
+	}
+
+	private _nextStep(input: InputBox): void {
+		if (this._currentStepIndex + 1 < this._steps.length) {
+			this._runStep(input, this._currentStepIndex + 1);
+		} else {
+			// Done :)
+			this.dispose();
+			this._resolveRunPromise?.(this._values);
+			input.hide();
+		}
 	}
 
 	public run(): Promise<undefined | (string | undefined)[]> {
@@ -133,37 +164,6 @@ export class MultiStepper {
 		input.show();
 
 		return this._runPromise;
-	}
-
-	private get _currentStep(): MultiStepEntry {
-		return this._steps[this._currentStepIndex];
-	}
-
-	public get values(): (string | undefined)[] {
-		return this._values;
-	}
-
-	private _runStep(input: InputBox, stepIndex: number): void {
-		this._currentStepIndex = stepIndex;
-		const step = this._currentStep;
-		input.step = stepIndex + 1;
-		step.setInputSettings(this, input);
-		input.buttons = stepIndex > 0 ? [QuickInputButtons.Back] : [];
-	}
-
-	private _prevStep(input: InputBox): void {
-		this._runStep(input, this._currentStepIndex - 1);
-	}
-
-	private _nextStep(input: InputBox): void {
-		if (this._currentStepIndex + 1 < this._steps.length) {
-			this._runStep(input, this._currentStepIndex + 1);
-		} else {
-			// Done :)
-			this.dispose();
-			this._resolveRunPromise?.(this._values);
-			input.hide();
-		}
 	}
 
 	public dispose(): void {

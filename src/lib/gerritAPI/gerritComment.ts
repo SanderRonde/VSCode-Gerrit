@@ -48,7 +48,26 @@ export abstract class GerritCommentBase
 	// Why is this a getter? Because ESLint crashes if it's not...
 	public abstract get isDraft(): boolean;
 	public abstract get author(): CommentAuthorInformation;
-	public abstract getContextValues(): string[];
+
+	public get thread(): GerritCommentThread | null {
+		return (
+			CommentManager.getFileManagersForUri(this.uri)
+				.map((manager) => manager.getThreadByComment(this))
+				.find((m) => !!m) ?? null
+		);
+	}
+
+	public get contextValue(): string {
+		return this.getContextValues().join(',');
+	}
+
+	public get body(): string {
+		return this.message ?? '';
+	}
+
+	public set body(_str: string) {
+		throw new Error('Cannot set body of a non-draft comment');
+	}
 
 	protected constructor(
 		public override changeID: string,
@@ -127,25 +146,7 @@ export abstract class GerritCommentBase
 		);
 	}
 
-	public get body(): string {
-		return this.message ?? '';
-	}
-
-	public set body(_str: string) {
-		throw new Error('Cannot set body of a non-draft comment');
-	}
-
-	public get thread(): GerritCommentThread | null {
-		return (
-			CommentManager.getFileManagersForUri(this.uri)
-				.map((manager) => manager.getThreadByComment(this))
-				.find((m) => !!m) ?? null
-		);
-	}
-
-	public get contextValue(): string {
-		return this.getContextValues().join(',');
-	}
+	public abstract getContextValues(): string[];
 
 	public init(): Promise<this> {
 		return Promise.resolve(this);
@@ -175,15 +176,6 @@ export class GerritComment extends GerritCommentBase {
 		};
 	}
 
-	public getContextValues(): string[] {
-		const values: string[] = [];
-		const thread = this.thread;
-		if (thread?.comments.every((c) => !c.isDraft)) {
-			values.push('allNonDraft');
-		}
-		return values;
-	}
-
 	public static async from(
 		changeID: string,
 		uri: Uri,
@@ -204,12 +196,21 @@ export class GerritComment extends GerritCommentBase {
 
 		return await api.getComments(meta.changeId, uri);
 	}
+
+	public getContextValues(): string[] {
+		const values: string[] = [];
+		const thread = this.thread;
+		if (thread?.comments.every((c) => !c.isDraft)) {
+			values.push('allNonDraft');
+		}
+		return values;
+	}
 }
 
 export class GerritDraftComment extends GerritCommentBase implements Comment {
-	public readonly isDraft = true as const;
 	private _draftMessage: string | undefined = undefined;
 	private _self: GerritUser | null = null;
+	public readonly isDraft = true as const;
 
 	public get author(): CommentAuthorInformation {
 		const authorName = this._self?.getName() ?? 'Unknown Author';
@@ -230,10 +231,6 @@ export class GerritDraftComment extends GerritCommentBase implements Comment {
 
 	public override set body(str: string) {
 		this._draftMessage = str;
-	}
-
-	public getContextValues(): string[] {
-		return ['editable', 'deletable'];
 	}
 
 	public static from(
@@ -257,6 +254,10 @@ export class GerritDraftComment extends GerritCommentBase implements Comment {
 		}
 
 		return await api.getDraftComments(meta.changeId, uri);
+	}
+
+	public getContextValues(): string[] {
+		return ['editable', 'deletable'];
 	}
 
 	public override async init(): Promise<this> {

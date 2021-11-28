@@ -48,6 +48,51 @@ export class DocumentCommentManager implements Disposable {
 		private readonly commentController: CommentController
 	) {}
 
+	public static getCommentRange(
+		comment: Readonly<GerritCommentBase>
+	): Range | null {
+		if (comment.range) {
+			return GerritComment.gerritRangeToVSCodeRange(comment.range);
+		}
+		if (comment.line) {
+			return new Range(
+				new Position(comment.line - 1, 0),
+				new Position(comment.line - 1, 0)
+			);
+		}
+		return null;
+	}
+
+	private _getAllRepliesTo(
+		comment: GerritCommentBase,
+		allComments: GerritCommentBase[]
+	): GerritCommentBase[] {
+		const replies: GerritCommentBase[] = [comment];
+		const directReplies = allComments.filter(
+			(c) => c.inReplyTo === comment.id
+		);
+		replies.push(...directReplies);
+		for (const reply of directReplies) {
+			replies.push(...this._getAllRepliesTo(reply, allComments));
+		}
+		return uniqueComplex(replies, (c) => c.id);
+	}
+
+	private _buildThreadsFromComments(
+		comments: GerritCommentBase[]
+	): GerritCommentBase[][] {
+		return comments
+			.filter((c) => !c.inReplyTo)
+			.map((c) => this._getAllRepliesTo(c, comments))
+			.map((t) =>
+				DateTime.sortByDate(
+					t,
+					DateSortDirection.INCREASING_TIME,
+					(c) => c.updated
+				)
+			);
+	}
+
 	public async loadComments(): Promise<this> {
 		const fileMeta = FileProvider.tryGetFileMeta(this.document);
 		if (!fileMeta) {
@@ -102,51 +147,6 @@ export class DocumentCommentManager implements Disposable {
 		for (const comment of thread.comments) {
 			this._threadMap.set(comment.id, thread);
 		}
-	}
-
-	private _getAllRepliesTo(
-		comment: GerritCommentBase,
-		allComments: GerritCommentBase[]
-	): GerritCommentBase[] {
-		const replies: GerritCommentBase[] = [comment];
-		const directReplies = allComments.filter(
-			(c) => c.inReplyTo === comment.id
-		);
-		replies.push(...directReplies);
-		for (const reply of directReplies) {
-			replies.push(...this._getAllRepliesTo(reply, allComments));
-		}
-		return uniqueComplex(replies, (c) => c.id);
-	}
-
-	private _buildThreadsFromComments(
-		comments: GerritCommentBase[]
-	): GerritCommentBase[][] {
-		return comments
-			.filter((c) => !c.inReplyTo)
-			.map((c) => this._getAllRepliesTo(c, comments))
-			.map((t) =>
-				DateTime.sortByDate(
-					t,
-					DateSortDirection.INCREASING_TIME,
-					(c) => c.updated
-				)
-			);
-	}
-
-	public static getCommentRange(
-		comment: Readonly<GerritCommentBase>
-	): Range | null {
-		if (comment.range) {
-			return GerritComment.gerritRangeToVSCodeRange(comment.range);
-		}
-		if (comment.line) {
-			return new Range(
-				new Position(comment.line - 1, 0),
-				new Position(comment.line - 1, 0)
-			);
-		}
-		return null;
 	}
 
 	public createCommentThread(

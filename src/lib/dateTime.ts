@@ -6,7 +6,7 @@ export enum DateSortDirection {
 }
 
 export class DateTime {
-	private _date: Date;
+	private readonly _date: Date;
 	private _source: string | null = null;
 	public get source(): string {
 		return this._source ?? this._date.toISOString();

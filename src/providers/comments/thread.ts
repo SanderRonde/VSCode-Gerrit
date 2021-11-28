@@ -26,9 +26,19 @@ export class GerritCommentThread implements Disposable {
 	private static _lastThreadId: number = 0;
 	private static _threadMap: Map<string, GerritCommentThread> = new Map();
 
-	private _threadID: string;
+	private readonly _threadID: string;
 	private _thread: CommentThreadWithGerritComments;
-	private _filePath: string | undefined;
+	private readonly _filePath: string | undefined;
+
+	private get _manager(): DocumentCommentManager | null {
+		const meta = FileProvider.tryGetFileMeta(this._thread.uri);
+		if (!meta) {
+			return null;
+		}
+		return (
+			CommentManager.getFileManagersForUri(this._thread.uri)[0] ?? null
+		);
+	}
 
 	public get lastComment(): Readonly<GerritCommentBase> | undefined {
 		return this._thread.comments[this._thread.comments.length - 1];
@@ -44,15 +54,6 @@ export class GerritCommentThread implements Disposable {
 
 	public get resolved(): boolean {
 		return !(this.lastComment?.unresolved ?? false);
-	}
-
-	public async setResolved(newValue: boolean): Promise<void> {
-		if (!this.lastComment?.isDraft) {
-			return;
-		}
-
-		await (this.lastComment as GerritDraftComment).setResolved(newValue);
-		this.update(false);
 	}
 
 	private constructor(thread: CommentThread) {
@@ -106,16 +107,6 @@ export class GerritCommentThread implements Disposable {
 		this._thread.contextValue = `${this._threadID}|${contextValue}`;
 	}
 
-	private get _manager(): DocumentCommentManager | null {
-		const meta = FileProvider.tryGetFileMeta(this._thread.uri);
-		if (!meta) {
-			return null;
-		}
-		return (
-			CommentManager.getFileManagersForUri(this._thread.uri)[0] ?? null
-		);
-	}
-
 	private _updateContextValues(): void {
 		const contextValues: string[] = [];
 		// Use yes/no here because the string "resolved" is in "unresolved"
@@ -126,6 +117,15 @@ export class GerritCommentThread implements Disposable {
 				: 'nodLastCommentDaft'
 		);
 		this._setContextValue(contextValues.join(','));
+	}
+
+	public async setResolved(newValue: boolean): Promise<void> {
+		if (!this.lastComment?.isDraft) {
+			return;
+		}
+
+		await (this.lastComment as GerritDraftComment).setResolved(newValue);
+		this.update(false);
 	}
 
 	public update(isInitial: boolean): void {

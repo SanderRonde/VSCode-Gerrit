@@ -17,43 +17,8 @@ export class RootTreeViewProvider
 	extends DashboardGroupContainerLike
 	implements TreeItemWithChildren
 {
-	public constructor(private _context: ExtensionContext) {
+	public constructor(private readonly _context: ExtensionContext) {
 		super();
-	}
-
-	public getItem(): Promise<TreeItem> {
-		return Promise.resolve({});
-	}
-
-	public getDefaultLimit(): number {
-		return 25;
-	}
-
-	public getFilters(): (DefaultChangeFilter | GerritChangeFilter)[] {
-		switch (
-			getConfiguration().get(
-				'gerrit.changesView',
-				GerritChangesView.DASHBOARD
-			)
-		) {
-			case GerritChangesView.STARRED:
-				return [DefaultChangeFilter.IS_STARRED, limit(25)];
-			case GerritChangesView.WATCHED:
-				return [
-					DefaultChangeFilter.IS_WATCHED,
-					DefaultChangeFilter.IS_OPEN,
-					limit(25),
-				];
-			case GerritChangesView.DRAFT:
-				return [DefaultChangeFilter.HAS_DRAFT, limit(25)];
-			case GerritChangesView.MY_CHANGES:
-				return [
-					DefaultChangeFilter.IS_OPEN,
-					DefaultChangeFilter.OWNER_SELF,
-					limit(25),
-				];
-		}
-		return [];
 	}
 
 	private _getCollapseState(
@@ -135,6 +100,41 @@ export class RootTreeViewProvider
 				)
 			),
 		];
+	}
+
+	public getItem(): Promise<TreeItem> {
+		return Promise.resolve({});
+	}
+
+	public getDefaultLimit(): number {
+		return 25;
+	}
+
+	public getFilters(): (DefaultChangeFilter | GerritChangeFilter)[] {
+		switch (
+			getConfiguration().get(
+				'gerrit.changesView',
+				GerritChangesView.DASHBOARD
+			)
+		) {
+			case GerritChangesView.STARRED:
+				return [DefaultChangeFilter.IS_STARRED, limit(25)];
+			case GerritChangesView.WATCHED:
+				return [
+					DefaultChangeFilter.IS_WATCHED,
+					DefaultChangeFilter.IS_OPEN,
+					limit(25),
+				];
+			case GerritChangesView.DRAFT:
+				return [DefaultChangeFilter.HAS_DRAFT, limit(25)];
+			case GerritChangesView.MY_CHANGES:
+				return [
+					DefaultChangeFilter.IS_OPEN,
+					DefaultChangeFilter.OWNER_SELF,
+					limit(25),
+				];
+		}
+		return [];
 	}
 
 	public override async getChildren(): Promise<TreeItemWithChildren[]> {

@@ -23,19 +23,31 @@ interface FileWithPath {
 export class ChangeTreeView implements TreeItemWithChildren {
 	public constructor(public change: GerritChange) {}
 
-	public async getItem(): Promise<TreeItem> {
-		const changeNumber = `#${this.change._number}`;
+	public static getFilesAndFolders(
+		change: GerritChange,
+		fileMap: FileMap
+	): TreeViewItem[] {
+		const currentValues = [...fileMap.entries()];
+		const folderValues = [];
+		const fileValues = [];
 
-		const owner = await this.change.detailedOwner();
+		for (const [key, value] of currentValues) {
+			if (value.map.size) {
+				folderValues.push(new FolderTreeView(key, change, value.map));
+			}
+			fileValues.push(
+				...value.files.map(
+					(file) => new FileTreeView(key, change, file)
+				)
+			);
+		}
 
-		return {
-			label: `${changeNumber}: ${this.change.subject}`,
-			collapsibleState: TreeItemCollapsibleState.Collapsed,
-			tooltip: this.change.subject,
-			contextValue: 'change',
-			iconPath: new ThemeIcon('git-pull-request'),
-			description: owner ? `by ${owner.getName(true)!}` : undefined,
-		};
+		return [
+			...folderValues.sort((a, b) =>
+				a.folderPath.localeCompare(b.folderPath)
+			),
+			...fileValues.sort((a, b) => a.filePath.localeCompare(b.filePath)),
+		];
 	}
 
 	private _getFilePaths(files: GerritFile[]): FileWithPath[] {
@@ -137,31 +149,19 @@ export class ChangeTreeView implements TreeItemWithChildren {
 		return pathMap;
 	}
 
-	public static getFilesAndFolders(
-		change: GerritChange,
-		fileMap: FileMap
-	): TreeViewItem[] {
-		const currentValues = [...fileMap.entries()];
-		const folderValues = [];
-		const fileValues = [];
+	public async getItem(): Promise<TreeItem> {
+		const changeNumber = `#${this.change._number}`;
 
-		for (const [key, value] of currentValues) {
-			if (value.map.size) {
-				folderValues.push(new FolderTreeView(key, change, value.map));
-			}
-			fileValues.push(
-				...value.files.map(
-					(file) => new FileTreeView(key, change, file)
-				)
-			);
-		}
+		const owner = await this.change.detailedOwner();
 
-		return [
-			...folderValues.sort((a, b) =>
-				a.folderPath.localeCompare(b.folderPath)
-			),
-			...fileValues.sort((a, b) => a.filePath.localeCompare(b.filePath)),
-		];
+		return {
+			label: `${changeNumber}: ${this.change.subject}`,
+			collapsibleState: TreeItemCollapsibleState.Collapsed,
+			tooltip: this.change.subject,
+			contextValue: 'change',
+			iconPath: new ThemeIcon('git-pull-request'),
+			description: owner ? `by ${owner.getName(true)!}` : undefined,
+		};
 	}
 
 	public async getChildren(): Promise<TreeViewItem[]> {

@@ -70,7 +70,7 @@ export class GerritRevision extends DynamicallyFetchable {
 	}
 
 	public constructor(
-		protected _patchID: string,
+		public override changeID: string,
 		public change: GerritChange,
 		public currentRevision: string,
 		response: GerritRevisionResponse
@@ -94,7 +94,7 @@ export class GerritRevision extends DynamicallyFetchable {
 
 		if (response.commit) {
 			this._commit = new GerritCommit(
-				this._patchID,
+				this.changeID,
 				this.currentRevision,
 				response.commit
 			);
@@ -107,7 +107,7 @@ export class GerritRevision extends DynamicallyFetchable {
 						[
 							k,
 							new GerritFile(
-								this._patchID,
+								this.changeID,
 								this.change,
 								this.currentRevision,
 								k,

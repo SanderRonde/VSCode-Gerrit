@@ -1,9 +1,13 @@
 import {
 	cancelComment,
 	collapseAllComments,
-	createComment,
+	saveComment,
+	deleteComment,
+	editComment,
 	NewlyCreatedGerritCommentReply,
 	setCommentResolved,
+	doneComment,
+	ackComment,
 } from '../providers/commentProvider';
 import {
 	commands,
@@ -18,11 +22,15 @@ import { GerritAPI } from '../lib/gerritAPI/api';
 import got from 'got';
 
 export enum GerritExtensionCommands {
-	ENTER_CREDENTIALS = 'gerrit.enterCredentials',
-	CHECK_CONNECTION = 'gerrit.checkConnection',
 	CREATE_COMMENT_RESOLVED = 'gerrit.createCommentResolved',
 	CREATE_COMMENT_UNRESOLVED = 'gerrit.createCommentUnresolved',
 	CANCEL_COMMENT = 'gerrit.cancelComment',
+	ENTER_CREDENTIALS = 'gerrit.enterCredentials',
+	ACK_COMMENT_THREAD = 'gerrit.ackCommentThread',
+	DONE_COMMENT_THREAD = 'gerrit.doneCommentThread',
+	CHECK_CONNECTION = 'gerrit.checkConnection',
+	DELETE_COMMENT = 'gerrit.deleteComment',
+	EDIT_COMMENT = 'gerrit.editComment',
 	RESOLVE_COMMENT = 'gerrit.toggleResolvedOn',
 	UNRESOLVE_COMMENT = 'gerrit.toggleResolvedOff',
 	COLLAPSE_ALL_COMMENTS = 'gerrit.collapseAllComments',
@@ -151,15 +159,13 @@ export function registerCommands(context: ExtensionContext): void {
 	context.subscriptions.push(
 		commands.registerCommand(
 			GerritExtensionCommands.CREATE_COMMENT_RESOLVED,
-			(reply: NewlyCreatedGerritCommentReply) =>
-				createComment(reply, true)
+			(reply: NewlyCreatedGerritCommentReply) => saveComment(reply, true)
 		)
 	);
 	context.subscriptions.push(
 		commands.registerCommand(
 			GerritExtensionCommands.CREATE_COMMENT_UNRESOLVED,
-			(reply: NewlyCreatedGerritCommentReply) =>
-				createComment(reply, false)
+			(reply: NewlyCreatedGerritCommentReply) => saveComment(reply, false)
 		)
 	);
 	context.subscriptions.push(
@@ -180,6 +186,30 @@ export function registerCommands(context: ExtensionContext): void {
 		commands.registerCommand(
 			GerritExtensionCommands.COLLAPSE_ALL_COMMENTS,
 			collapseAllComments
+		)
+	);
+	context.subscriptions.push(
+		commands.registerCommand(
+			GerritExtensionCommands.DELETE_COMMENT,
+			deleteComment
+		)
+	);
+	context.subscriptions.push(
+		commands.registerCommand(
+			GerritExtensionCommands.EDIT_COMMENT,
+			editComment
+		)
+	);
+	context.subscriptions.push(
+		commands.registerCommand(
+			GerritExtensionCommands.DONE_COMMENT_THREAD,
+			doneComment
+		)
+	);
+	context.subscriptions.push(
+		commands.registerCommand(
+			GerritExtensionCommands.ACK_COMMENT_THREAD,
+			ackComment
 		)
 	);
 }

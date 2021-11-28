@@ -10,7 +10,7 @@ const disableRecursionWither: Wither = {
 };
 
 export abstract class DynamicallyFetchable {
-	protected abstract get _patchID(): string;
+	public abstract get changeID(): string;
 
 	protected _fieldFallbackGetter<K extends keyof this>(
 		fieldName: K,
@@ -33,7 +33,7 @@ export abstract class DynamicallyFetchable {
 			}
 
 			const res = await api.getChange(
-				this._patchID,
+				this.changeID,
 				...uniqueSimple(flags)
 			);
 			if (!res) {

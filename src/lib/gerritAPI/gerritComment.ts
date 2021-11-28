@@ -4,6 +4,7 @@ import {
 	CommentMode,
 	Position,
 	Range,
+	Uri,
 } from 'vscode';
 import {
 	GerritCommentRange,
@@ -24,7 +25,7 @@ export abstract class GerritCommentBase
 {
 	public id: string;
 	public gerritAuthor?: GerritUser;
-	public patchSet?: string;
+	public patchSet?: number;
 	public commitId: string;
 	public path?: string;
 	public side?: GerritCommentSide;
@@ -42,6 +43,7 @@ export abstract class GerritCommentBase
 		contextLine: string;
 	}[];
 	public sourceContentType?: string;
+	public mode: CommentMode = CommentMode.Preview;
 
 	// Why is this a getter? Because ESLint crashes if it's not...
 	public abstract get isDraft(): boolean;
@@ -49,7 +51,8 @@ export abstract class GerritCommentBase
 	public abstract getContextValues(): string[];
 
 	protected constructor(
-		protected _patchID: string,
+		public override changeID: string,
+		public uri: Uri,
 		public filePath: string,
 		response: GerritCommentResponse
 	) {
@@ -79,38 +82,9 @@ export abstract class GerritCommentBase
 		this.sourceContentType = response.source_content_type;
 	}
 
-	public get body(): string {
-		return this.message ?? '';
-	}
-
-	public get mode(): CommentMode {
-		return CommentMode.Preview;
-	}
-
-	public get thread(): GerritCommentThread | null {
-		return (
-			CommentManager.getFileManagersForPath(this.filePath)
-				.map((manager) => manager.getThread(this))
-				.find((m) => !!m) ?? null
-		);
-	}
-
-	public get contextValue(): string {
-		return this.getContextValues().join(',');
-	}
-
-	public init(): Promise<this> {
-		return Promise.resolve(this);
-	}
-
-	private static _vsCodeMap: Map<Comment, GerritComment> = new Map();
-
-	public static getFromVSCodeComment(comment: Comment): GerritComment | null {
-		return GerritComment._vsCodeMap.get(comment) ?? null;
-	}
-
 	public static async create(options: {
 		content: string;
+		uri: Uri;
 		changeId: string;
 		revision: string;
 		filePath: string;
@@ -118,7 +92,7 @@ export abstract class GerritCommentBase
 		lineOrRange?: number | GerritCommentRange;
 		replyTo?: string;
 		side: GerritCommentSide;
-	}): Promise<GerritComment | null> {
+	}): Promise<GerritDraftComment | null> {
 		const api = await getAPI();
 		if (!api) {
 			return null;
@@ -126,6 +100,7 @@ export abstract class GerritCommentBase
 
 		return await api.createDraftComment(
 			options.content,
+			options.uri,
 			options.changeId,
 			options.revision,
 			options.filePath,
@@ -138,18 +113,53 @@ export abstract class GerritCommentBase
 
 	public static vsCodeRangeToGerritRange(range: Range): GerritCommentRange {
 		return {
-			start_line: range.start.line,
+			start_line: range.start.line + 1,
 			start_character: range.start.character,
-			end_line: range.end.line,
+			end_line: range.end.line + 1,
 			end_character: range.end.character,
 		};
 	}
 
 	public static gerritRangeToVSCodeRange(range: GerritCommentRange): Range {
 		return new Range(
-			new Position(range.start_line, range.start_character),
-			new Position(range.end_line, range.end_character)
+			new Position(range.start_line - 1, range.start_character),
+			new Position(range.end_line - 1, range.end_character)
 		);
+	}
+
+	public get body(): string {
+		return this.message ?? '';
+	}
+
+	public set body(_str: string) {
+		throw new Error('Cannot set body of a non-draft comment');
+	}
+
+	public get thread(): GerritCommentThread | null {
+		return (
+			CommentManager.getFileManagersForUri(this.uri)
+				.map((manager) => manager.getThreadByComment(this))
+				.find((m) => !!m) ?? null
+		);
+	}
+
+	public get contextValue(): string {
+		return this.getContextValues().join(',');
+	}
+
+	public init(): Promise<this> {
+		return Promise.resolve(this);
+	}
+
+	public async updateInThread(
+		updater: (comment: GerritCommentBase) => void | Promise<void>
+	): Promise<void> {
+		if (!this.thread) {
+			await updater(this);
+			return;
+		}
+
+		await this.thread.updateComment(this, updater);
 	}
 }
 
@@ -175,27 +185,30 @@ export class GerritComment extends GerritCommentBase {
 	}
 
 	public static async from(
-		patchID: string,
+		changeID: string,
+		uri: Uri,
 		filePath: string,
 		response: GerritCommentResponse
 	): Promise<GerritComment> {
-		return new GerritComment(patchID, filePath, response).init();
+		return new GerritComment(changeID, uri, filePath, response).init();
 	}
 
 	public static async getForMeta(
-		meta: FileMeta
+		meta: FileMeta,
+		uri: Uri
 	): Promise<Map<string, GerritComment[]>> {
 		const api = await getAPI();
 		if (!api) {
 			return Promise.resolve(new Map() as Map<string, GerritComment[]>);
 		}
 
-		return await api.getComments(meta.changeId);
+		return await api.getComments(meta.changeId, uri);
 	}
 }
 
 export class GerritDraftComment extends GerritCommentBase implements Comment {
 	public readonly isDraft = true as const;
+	private _draftMessage: string | undefined = undefined;
 	private _self: GerritUser | null = null;
 
 	public get author(): CommentAuthorInformation {
@@ -211,20 +224,30 @@ export class GerritDraftComment extends GerritCommentBase implements Comment {
 		return 'Draft';
 	}
 
+	public override get body(): string {
+		return super.body;
+	}
+
+	public override set body(str: string) {
+		this._draftMessage = str;
+	}
+
 	public getContextValues(): string[] {
 		return ['editable', 'deletable'];
 	}
 
 	public static from(
-		patchID: string,
+		changeID: string,
+		uri: Uri,
 		filePath: string,
 		response: GerritCommentResponse
 	): Promise<GerritDraftComment> {
-		return new GerritDraftComment(patchID, filePath, response).init();
+		return new GerritDraftComment(changeID, uri, filePath, response).init();
 	}
 
 	public static async getForMeta(
-		meta: FileMeta
+		meta: FileMeta,
+		uri: Uri
 	): Promise<Map<string, GerritDraftComment[]>> {
 		const api = await getAPI();
 		if (!api) {
@@ -233,18 +256,101 @@ export class GerritDraftComment extends GerritCommentBase implements Comment {
 			);
 		}
 
-		return await api.getDraftComments(meta.changeId);
+		return await api.getDraftComments(meta.changeId, uri);
 	}
 
-	public async init(): Promise<this> {
+	public override async init(): Promise<this> {
+		await super.init();
 		this._self = await GerritUser.getSelf();
 		return this;
 	}
 
-	// TODO: remove ignore
-	// eslint-disable-next-line @typescript-eslint/require-await
+	public async setMessage(message: string): Promise<void> {
+		if (message !== this.message) {
+			return;
+		}
+
+		const api = await getAPI();
+		if (!api) {
+			return;
+		}
+
+		const newComment = await api.updateDraftComment(this, {
+			content: message,
+		});
+		if (newComment) {
+			this.updated = newComment.updated;
+			this.message = newComment.message;
+		}
+	}
+
 	public async setResolved(isResolved: boolean): Promise<void> {
-		this.unresolved = !isResolved;
-		// TODO: XHR to update it
+		if (this.unresolved !== isResolved) {
+			return;
+		}
+
+		const api = await getAPI();
+		if (!api) {
+			return;
+		}
+
+		const newComment = await api.updateDraftComment(this, {
+			unresolved: !isResolved,
+		});
+		if (newComment) {
+			this.updated = newComment.updated;
+			this.unresolved = newComment.unresolved;
+		}
+	}
+
+	public async saveDraftMessage(
+		resolvedStatus: boolean | null = null
+	): Promise<void> {
+		const draft = this._draftMessage;
+		this._draftMessage = undefined;
+		if (draft !== undefined || resolvedStatus !== undefined) {
+			await this.updateInThread(async (c) => {
+				const api = await getAPI();
+				if (!api) {
+					return;
+				}
+
+				const newComment = await api.updateDraftComment(
+					c as GerritDraftComment,
+					{
+						content: draft,
+						unresolved:
+							resolvedStatus === null
+								? undefined
+								: !resolvedStatus,
+					}
+				);
+				if (newComment) {
+					this.updated = newComment.updated;
+					this.message = newComment.message;
+					this.unresolved = newComment.unresolved;
+				}
+			});
+		} else {
+			this.thread?.refreshComments();
+		}
+	}
+
+	public async delete(): Promise<boolean> {
+		const api = await getAPI();
+		if (!api) {
+			return false;
+		}
+
+		const deleted = await api.deleteDraftComment(this);
+		if (!deleted) {
+			return false;
+		}
+
+		if (this.thread) {
+			this.thread.removeComment(this);
+		}
+
+		return true;
 	}
 }

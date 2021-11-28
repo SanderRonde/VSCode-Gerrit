@@ -7,12 +7,17 @@ export enum DateSortDirection {
 
 export class DateTime {
 	private _date: Date;
+	private _source: string | null = null;
+	public get source(): string {
+		return this._source ?? this._date.toISOString();
+	}
 
 	public constructor(date: Date);
 	public constructor(dateString: string);
 	public constructor(dateOrString: string | Date) {
 		if (typeof dateOrString === 'string') {
 			this._date = new Date(dateOrString);
+			this._source = dateOrString;
 		} else {
 			this._date = dateOrString;
 		}

@@ -60,7 +60,7 @@ async function createDiffCommand(file: GerritFile): Promise<Command | null> {
 	// Never use local file for old content since then you're
 	// just editing history which makes no sense.
 	const oldURI = oldContent.toVirtualFile(GerritCommentSide.LEFT);
-	// TODO: Only use local file when checking out this patch
+	// TODO: Only use local file when checking out this change
 	const newURI = tertiaryWithFallback(
 		await file.isLocalFile(newContent),
 		file.getLocalURI(GerritCommentSide.RIGHT),

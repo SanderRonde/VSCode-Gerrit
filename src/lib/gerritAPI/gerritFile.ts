@@ -58,7 +58,7 @@ export class GerritFile extends DynamicallyFetchable {
 	public oldPath: string | null;
 
 	public constructor(
-		protected _patchID: string,
+		public override changeID: string,
 		public change: GerritChange,
 		public currentRevision: string,
 		public filePath: string,

@@ -137,7 +137,7 @@ export class RootTreeViewProvider
 		];
 	}
 
-	public async getChildren(): Promise<TreeItemWithChildren[]> {
+	public override async getChildren(): Promise<TreeItemWithChildren[]> {
 		const config = getConfiguration().get(
 			'gerrit.changesView',
 			GerritChangesView.DASHBOARD

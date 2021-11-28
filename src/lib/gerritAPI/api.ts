@@ -10,13 +10,14 @@ import { FileCache } from '../../views/activityBar/changes/changeTreeView/file/f
 import got, { OptionsOfTextResponseBody, Response } from 'got/dist/source';
 import { DefaultChangeFilter, GerritChangeFilter } from './filters';
 import { GerritComment, GerritDraftComment } from './gerritComment';
+import { DEBUG_REQUESTS, READONLY_MODE } from '../constants';
 import { getChangeCache } from '../gerritCache';
 import { GerritChange } from './gerritChange';
-import { READONLY_MODE } from '../constants';
 import { TextContent } from './gerritFile';
 import { GerritUser } from './gerritUser';
 import { URLSearchParams } from 'url';
-import { window } from 'vscode';
+import { Uri, window } from 'vscode';
+import { log } from '../log';
 
 export enum GerritAPIWith {
 	LABELS = 'LABELS',
@@ -51,28 +52,42 @@ export class GerritAPI {
 		private _password: string
 	) {}
 
-	private get _headers(): Record<string, string> {
+	private _headers(withContent: boolean): Record<string, string | undefined> {
 		return {
 			Authorization:
 				'Basic ' +
 				Buffer.from(`${this._username}:${this._password}`).toString(
 					'base64'
 				),
-			ContentType: 'application/json',
+			'Content-Type': withContent ? 'application/json' : undefined,
 		};
 	}
 
 	private get _get(): OptionsOfTextResponseBody {
 		return {
 			method: 'GET',
-			headers: this._headers,
+			headers: this._headers(false),
 		};
 	}
 
 	private get _put(): OptionsOfTextResponseBody {
 		return {
 			method: 'PUT',
-			headers: this._headers,
+			headers: this._headers(true),
+		};
+	}
+
+	private get _post(): OptionsOfTextResponseBody {
+		return {
+			method: 'POST',
+			headers: this._headers(true),
+		};
+	}
+
+	private get _delete(): OptionsOfTextResponseBody {
+		return {
+			method: 'DELETE',
+			headers: this._headers(false),
 		};
 	}
 
@@ -91,14 +106,28 @@ export class GerritAPI {
 		url: string,
 		body?: OptionsOfTextResponseBody
 	): Promise<(Response<string> & { strippedBody: string }) | null> {
+		if (READONLY_MODE && body?.method !== 'GET') {
+			await window.showErrorMessage(
+				'Canceled request trying to modify data in readonly mode'
+			);
+			return null;
+		}
+		log(`${body?.method || 'GET'} request to "${url}"`);
+		if (DEBUG_REQUESTS) {
+			console.log(body);
+		}
 		try {
-			if (READONLY_MODE && body?.method !== 'GET') {
-				throw new Error('Trying to modify data in readonly mode');
-			}
 			const response = (await got(url, body)) as ResponseWithBody<string>;
 			response.strippedBody = this._stripMagicPrefix(response.body);
 			return response;
 		} catch (e) {
+			if (DEBUG_REQUESTS) {
+				console.log(
+					e,
+					(e as { response: string }).response,
+					(e as { response: { body: string } }).response.body
+				);
+			}
 			await window.showErrorMessage(
 				`Gerrit request to "${url}" failed. Please check your settings and/or connection`
 			);
@@ -112,6 +141,46 @@ export class GerritAPI {
 		} catch (e) {
 			return null;
 		}
+	}
+
+	private _assertResponse(
+		response: null | Response<string>
+	): response is Response<string> {
+		if (!response) {
+			log('Invalid response');
+			return false;
+		}
+		return true;
+	}
+
+	private _assertRequestSucceeded(response: Response<string>): boolean {
+		const succeeded =
+			response.statusCode > 199 && response.statusCode < 300;
+		if (!succeeded) {
+			log(`Request failed: ${response.statusCode}`);
+		}
+		return succeeded;
+	}
+
+	private _handleResponse<T>(
+		response:
+			| null
+			| (Response<string> & {
+					strippedBody: string;
+			  })
+	): T | null {
+		if (
+			!this._assertResponse(response) ||
+			!this._assertRequestSucceeded(response)
+		) {
+			return null;
+		}
+		const parsed = this._tryParseJSON<T>(response.strippedBody);
+		if (!parsed) {
+			log(`Failed to parse response JSON: ${response.strippedBody}`);
+			return null;
+		}
+		return parsed;
 	}
 
 	public async testConnection(): Promise<boolean> {
@@ -154,13 +223,7 @@ export class GerritAPI {
 			}
 		);
 
-		if (!response || response.statusCode !== 200) {
-			return null;
-		}
-
-		const json = this._tryParseJSON<GerritChangeResponse>(
-			response.strippedBody
-		);
+		const json = this._handleResponse<GerritChangeResponse>(response);
 		if (!json) {
 			return null;
 		}
@@ -202,13 +265,7 @@ export class GerritAPI {
 			]),
 		});
 
-		if (!response || response.statusCode !== 200) {
-			return [];
-		}
-
-		const json = this._tryParseJSON<GerritChangeResponse[]>(
-			response.strippedBody
-		);
+		const json = this._handleResponse<GerritChangeResponse[]>(response);
 		if (!json) {
 			return [];
 		}
@@ -230,22 +287,12 @@ export class GerritAPI {
 			this._get
 		);
 
-		if (!response || response.statusCode !== 200) {
-			return null;
-		}
-
-		const json = this._tryParseJSON<GerritCommentsResponse>(
-			response.strippedBody
-		);
-		if (!json) {
-			return null;
-		}
-
-		return json;
+		return this._handleResponse<GerritCommentsResponse>(response);
 	}
 
 	public async getComments(
-		changeId: string
+		changeId: string,
+		uri: Uri
 	): Promise<Map<string, GerritComment[]>> {
 		const json = await this._getCommentsShared(changeId, 'comments');
 		if (!json) {
@@ -259,7 +306,7 @@ export class GerritAPI {
 				filePath,
 				await Promise.all(
 					comments.map((c) =>
-						GerritComment.from(changeId, filePath, c)
+						GerritComment.from(changeId, uri, filePath, c)
 					)
 				)
 			);
@@ -268,7 +315,8 @@ export class GerritAPI {
 	}
 
 	public async getDraftComments(
-		changeId: string
+		changeId: string,
+		uri: Uri
 	): Promise<Map<string, GerritDraftComment[]>> {
 		const json = await this._getCommentsShared(changeId, 'drafts');
 		if (!json) {
@@ -282,7 +330,7 @@ export class GerritAPI {
 				filePath,
 				await Promise.all(
 					comments.map((c) =>
-						GerritDraftComment.from(changeId, filePath, c)
+						GerritDraftComment.from(changeId, uri, filePath, c)
 					)
 				)
 			);
@@ -309,7 +357,10 @@ export class GerritAPI {
 			this._get
 		);
 
-		if (!response || response.statusCode !== 200) {
+		if (
+			!this._assertResponse(response) ||
+			!this._assertRequestSucceeded(response)
+		) {
 			return null;
 		}
 
@@ -333,6 +384,7 @@ export class GerritAPI {
 
 	public async createDraftComment(
 		content: string,
+		uri: Uri,
 		changeId: string,
 		revision: string,
 		filePath: string,
@@ -340,13 +392,9 @@ export class GerritAPI {
 		side: GerritCommentSide,
 		lineOrRange?: number | GerritCommentRange,
 		replyTo?: string
-	): Promise<GerritComment | null> {
+	): Promise<GerritDraftComment | null> {
 		const response = await this._tryRequest(
-			this._getURL(
-				`changes/${changeId}/revisions/${revision}/drafts/${encodeURIComponent(
-					filePath
-				)}/content`
-			),
+			this._getURL(`changes/${changeId}/revisions/${revision}/drafts`),
 			{
 				...this._put,
 				body: JSON.stringify({
@@ -367,18 +415,69 @@ export class GerritAPI {
 			}
 		);
 
-		if (!response || response.statusCode !== 200) {
-			return null;
-		}
-
-		const json = this._tryParseJSON<GerritCommentResponse>(
-			response.strippedBody
-		);
+		const json = this._handleResponse<GerritCommentResponse>(response);
 		if (!json) {
 			return null;
 		}
 
-		return GerritComment.from(changeId, filePath, json);
+		return GerritDraftComment.from(changeId, uri, filePath, json);
+	}
+
+	public async updateDraftComment(
+		draft: GerritDraftComment,
+		changes: {
+			content?: string;
+			unresolved?: boolean;
+		}
+	): Promise<GerritDraftComment | null> {
+		const response = await this._tryRequest(
+			this._getURL(
+				`changes/${draft.changeID}/revisions/${draft.commitId}/drafts/${draft.id}`
+			),
+			{
+				...this._put,
+				body: JSON.stringify({
+					commit_id: draft.commitId,
+					id: draft.id,
+					line: draft.line,
+					range: draft.range,
+					path: draft.filePath,
+					updated: draft.updated.source,
+					message: changes.content,
+					unresolved: changes.unresolved,
+					patch_set: draft.patchSet,
+					__draft: true,
+				}),
+			}
+		);
+
+		const json = this._handleResponse<GerritCommentResponse>(response);
+		if (!json) {
+			return null;
+		}
+
+		return GerritDraftComment.from(
+			draft.changeID,
+			draft.uri,
+			draft.filePath,
+			json
+		);
+	}
+
+	public async deleteDraftComment(
+		draft: GerritDraftComment
+	): Promise<boolean> {
+		const response = await this._tryRequest(
+			this._getURL(
+				`changes/${draft.changeID}/revisions/${draft.commitId}/drafts/${draft.id}`
+			),
+			this._delete
+		);
+
+		return (
+			this._assertResponse(response) &&
+			this._assertRequestSucceeded(response)
+		);
 	}
 
 	public async getSelf(): Promise<GerritUser | null> {
@@ -387,13 +486,7 @@ export class GerritAPI {
 			this._get
 		);
 
-		if (!response || response.statusCode !== 200) {
-			return null;
-		}
-
-		const json = this._tryParseJSON<GerritDetailedUserResponse>(
-			response.strippedBody
-		);
+		const json = this._handleResponse<GerritDetailedUserResponse>(response);
 		if (!json) {
 			return null;
 		}

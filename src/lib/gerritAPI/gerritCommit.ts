@@ -9,7 +9,7 @@ export class GerritCommit extends DynamicallyFetchable {
 	public message: string;
 
 	public constructor(
-		protected _patchID: string,
+		public override changeID: string,
 		public currentRevision: string,
 		response: GerritCommitResponse
 	) {

@@ -3,4 +3,5 @@ export const PERIODICAL_FETCH_INTERVAL = 5000;
 /**
  * Don't allow any writing API requests (only GET)
  */
-export const READONLY_MODE = true;
+export const READONLY_MODE = false;
+export const DEBUG_REQUESTS = true;

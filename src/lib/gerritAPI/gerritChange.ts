@@ -15,7 +15,7 @@ import { GerritAPIWith } from './api';
 import { getAPI } from '../gerritAPI';
 
 export class GerritChange extends DynamicallyFetchable {
-	protected _patchID: string;
+	public override changeID: string;
 	public id: string;
 	public project: string;
 	public branch: string;
@@ -127,7 +127,7 @@ export class GerritChange extends DynamicallyFetchable {
 
 	public constructor(response: GerritChangeResponse) {
 		super();
-		this._patchID = response.id;
+		this.changeID = response.id;
 		this.id = response.id;
 		this.project = response.project;
 		this.branch = response.branch;
@@ -164,7 +164,7 @@ export class GerritChange extends DynamicallyFetchable {
 			this._revisions = Object.fromEntries(
 				Object.entries(response.revisions).map(
 					([k, v]) =>
-						[k, new GerritRevision(this._patchID, this, k, v)] as [
+						[k, new GerritRevision(this.changeID, this, k, v)] as [
 							string,
 							GerritRevision
 						]

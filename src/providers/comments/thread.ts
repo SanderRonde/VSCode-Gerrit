@@ -7,6 +7,13 @@ import {
 	CommentThreadCollapsibleState,
 	Disposable,
 } from 'vscode';
+import { CommentManager, DocumentCommentManager } from '../commentProvider';
+import { FileProvider } from '../fileProvider';
+
+interface CommentThreadWithGerritComments
+	extends Omit<CommentThread, 'comments'> {
+	comments: readonly GerritCommentBase[];
+}
 
 /**
  * We use a bit of a fancy technique for keeping track of threads. We are not
@@ -20,18 +27,18 @@ export class GerritCommentThread implements Disposable {
 	private static _threadMap: Map<string, GerritCommentThread> = new Map();
 
 	private _threadID: string;
-	private _thread: CommentThread;
-	private _comments: GerritCommentBase[] = [];
+	private _thread: CommentThreadWithGerritComments;
+	private _filePath: string | undefined;
 
 	public get lastComment(): Readonly<GerritCommentBase> | undefined {
-		return this._comments[this._comments.length - 1];
+		return this._thread.comments[this._thread.comments.length - 1];
 	}
 
 	public get comments(): ReadonlyArray<GerritCommentBase> {
-		return this._comments;
+		return this._thread.comments;
 	}
 
-	public get thread(): Readonly<CommentThread> {
+	public get thread(): Readonly<CommentThreadWithGerritComments> {
 		return this._thread;
 	}
 
@@ -50,7 +57,11 @@ export class GerritCommentThread implements Disposable {
 
 	private constructor(thread: CommentThread) {
 		this._threadID = GerritCommentThread._setThreadID(thread, this);
-		this._thread = thread;
+		this._thread = thread as CommentThreadWithGerritComments;
+		const meta = FileProvider.tryGetFileMeta(thread.uri);
+		if (meta) {
+			this._filePath = meta.filePath;
+		}
 	}
 
 	private static _generateID(): number {
@@ -76,16 +87,33 @@ export class GerritCommentThread implements Disposable {
 		return String(id);
 	}
 
-	public static from(thread: CommentThread): GerritCommentThread {
+	public static from(thread: CommentThread): GerritCommentThread | null {
 		const id = GerritCommentThread._getThreadID(thread);
 		if (id && GerritCommentThread._threadMap.has(id)) {
 			return GerritCommentThread._threadMap.get(id)!;
 		}
-		return new GerritCommentThread(thread);
+		const gthread = new GerritCommentThread(thread);
+		const managers = CommentManager.getFileManagersForUri(thread.uri);
+		if (managers.length === 0) {
+			return null;
+		}
+
+		managers[0].registerNewThread(gthread);
+		return gthread;
 	}
 
 	private _setContextValue(contextValue: string): void {
 		this._thread.contextValue = `${this._threadID}|${contextValue}`;
+	}
+
+	private get _manager(): DocumentCommentManager | null {
+		const meta = FileProvider.tryGetFileMeta(this._thread.uri);
+		if (!meta) {
+			return null;
+		}
+		return (
+			CommentManager.getFileManagersForUri(this._thread.uri)[0] ?? null
+		);
 	}
 
 	private _updateContextValues(): void {
@@ -108,24 +136,91 @@ export class GerritCommentThread implements Disposable {
 			this._thread.label = 'Comment (unresolved)';
 		}
 
+		this._thread.canReply = !this.lastComment || !this.lastComment?.isDraft;
+
 		if (isInitial) {
-			this._thread.collapsibleState = this.resolved
-				? CommentThreadCollapsibleState.Collapsed
-				: CommentThreadCollapsibleState.Expanded;
+			// If there are multiple threads on this line, expand them all.
+			// VSCode is really bad at showing multiple comments on a line.
+			const overrideExpand = ((): boolean => {
+				if (!this._filePath || !this.lastComment) {
+					return false;
+				}
+				const range = DocumentCommentManager.getCommentRange(
+					this.lastComment
+				);
+				if (!range) {
+					return false;
+				}
+				const managers = CommentManager.getFileManagersForUri(
+					this.thread.uri
+				);
+				let threadCount: number = 0;
+				managers.forEach((manager) => {
+					threadCount += manager.getLineThreadCount(range.start.line);
+				});
+				if (threadCount > 1) {
+					return true;
+				}
+				return false;
+			})();
+			this._thread.collapsibleState =
+				!overrideExpand && this.resolved
+					? CommentThreadCollapsibleState.Collapsed
+					: CommentThreadCollapsibleState.Expanded;
 		}
 	}
 
-	public setComments(comments: GerritCommentBase[]): void {
+	public setComments(
+		comments: readonly GerritCommentBase[],
+		isInitial: boolean = false
+	): void {
+		this._manager?.registerComments(this, ...comments);
 		this._thread.comments = comments;
-		this._comments = [...comments];
-		this.update(true);
+		this.update(isInitial);
+
+		if (this._thread.comments.length === 0) {
+			this._thread.dispose();
+		}
 	}
 
-	public pushComment(comment: GerritCommentBase): void {
+	public pushComment(
+		comment: GerritCommentBase,
+		collapseState?: CommentThreadCollapsibleState
+	): void {
+		this._manager?.registerComments(this, comment);
 		const isInitial: boolean = this._thread.comments.length === 0;
 		this._thread.comments = [...this._thread.comments, comment];
-		this._comments = [...this._comments, comment];
 		this.update(isInitial);
+		if (collapseState) {
+			this._thread.collapsibleState = collapseState;
+		}
+	}
+
+	public async updateComment(
+		comment: GerritCommentBase,
+		updater: (comment: GerritCommentBase) => void | Promise<void>
+	): Promise<void> {
+		this.setComments(
+			await Promise.all(
+				this._thread.comments.map(async (c) => {
+					if (c.id === comment.id) {
+						await updater(c);
+					}
+					return c;
+				})
+			)
+		);
+	}
+
+	public removeComment(comment: GerritCommentBase): void {
+		this.setComments(
+			this._thread.comments.filter((c) => {
+				if (c.id === comment.id) {
+					return false;
+				}
+				return true;
+			})
+		);
 	}
 
 	public collapse(): void {
@@ -134,6 +229,14 @@ export class GerritCommentThread implements Disposable {
 
 	public expand(): void {
 		this._thread.collapsibleState = CommentThreadCollapsibleState.Expanded;
+	}
+
+	/**
+	 * Sets comments with themselves. This triggers the VSCode set
+	 * listener, which will update the thread.
+	 */
+	public refreshComments(): void {
+		this.setComments(this.comments);
 	}
 
 	public dispose(): void {

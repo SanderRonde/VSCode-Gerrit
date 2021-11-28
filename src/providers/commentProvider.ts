@@ -1,7 +1,9 @@
 import {
 	CommentController,
+	CommentMode,
 	comments,
 	CommentThread,
+	CommentThreadCollapsibleState,
 	Disposable,
 	Position,
 	Range,
@@ -35,45 +37,71 @@ interface GerritCommentThreadProps {
 	comments: GerritCommentBase[];
 }
 
-class DocumentCommentManager implements Disposable {
+export class DocumentCommentManager implements Disposable {
 	public static _lastThreadId = 0;
 
 	private _threadMap: Map<string, GerritCommentThread> = new Map();
+	private _threadLineCount: Map<number, number> = new Map();
 
 	public constructor(
 		private readonly document: Uri,
 		private readonly commentController: CommentController
 	) {}
 
-	public async init(): Promise<this> {
+	public async loadComments(): Promise<this> {
 		const fileMeta = FileProvider.tryGetFileMeta(this.document);
 		if (!fileMeta) {
 			return this;
 		}
 
 		const comments =
-			(await GerritComment.getForMeta(fileMeta)).get(fileMeta.filePath) ??
-			[];
+			(await GerritComment.getForMeta(fileMeta, this.document)).get(
+				fileMeta.filePath
+			) ?? [];
 		const draftComments =
-			(await GerritDraftComment.getForMeta(fileMeta)).get(
+			(await GerritDraftComment.getForMeta(fileMeta, this.document)).get(
 				fileMeta.filePath
 			) ?? [];
 		const allComments = [...comments, ...draftComments];
 		const thisSideComments = allComments.filter(
 			(c) => c.side ?? GerritCommentSide.RIGHT === fileMeta.side
 		);
-		for (const thread of this._buildThreadsFromComments(thisSideComments)) {
-			if (thread.length === 0) {
-				continue;
-			}
+		const threads = this._buildThreadsFromComments(thisSideComments).filter(
+			(t) => t.length !== 0
+		);
+		for (const thread of threads) {
+			const line =
+				DocumentCommentManager.getCommentRange(thread[0])?.start.line ??
+				-1;
+			this._threadLineCount.set(
+				line,
+				(this._threadLineCount.get(line) ?? 0) + 1
+			);
+		}
+		for (const thread of threads) {
 			const commentThread = this.createCommentThread(thread);
-			thread.forEach((comment) => {
-				if (commentThread) {
+			if (commentThread) {
+				thread.forEach((comment) => {
 					this._threadMap.set(comment.id, commentThread);
-				}
-			});
+				});
+			}
 		}
 		return this;
+	}
+
+	public registerComments(
+		thread: GerritCommentThread,
+		...comments: GerritCommentBase[]
+	): void {
+		for (const comment of comments) {
+			this._threadMap.set(comment.id, thread);
+		}
+	}
+
+	public registerNewThread(thread: GerritCommentThread): void {
+		for (const comment of thread.comments) {
+			this._threadMap.set(comment.id, thread);
+		}
 	}
 
 	private _getAllRepliesTo(
@@ -106,23 +134,25 @@ class DocumentCommentManager implements Disposable {
 			);
 	}
 
+	public static getCommentRange(
+		comment: Readonly<GerritCommentBase>
+	): Range | null {
+		if (comment.range) {
+			return GerritComment.gerritRangeToVSCodeRange(comment.range);
+		}
+		if (comment.line) {
+			return new Range(
+				new Position(comment.line - 1, 0),
+				new Position(comment.line - 1, 0)
+			);
+		}
+		return null;
+	}
+
 	public createCommentThread(
 		comments: GerritCommentBase[]
 	): GerritCommentThread | null {
-		const range = (() => {
-			if (comments[0].range) {
-				return GerritComment.gerritRangeToVSCodeRange(
-					comments[0].range
-				);
-			}
-			if (comments[0].line) {
-				return new Range(
-					new Position(comments[0].line, 0),
-					new Position(comments[0].line, 0)
-				);
-			}
-			return null;
-		})();
+		const range = DocumentCommentManager.getCommentRange(comments[0]);
 		if (!range) {
 			return null;
 		}
@@ -133,12 +163,18 @@ class DocumentCommentManager implements Disposable {
 			comments
 		) as CommentThread & Partial<GerritCommentThreadProps>;
 		const thread = GerritCommentThread.from(vscodeThread);
-		thread.setComments(comments);
+		thread?.setComments(comments, true);
 		return thread;
 	}
 
-	public getThread(comment: GerritCommentBase): GerritCommentThread | null {
+	public getThreadByComment(
+		comment: GerritCommentBase
+	): GerritCommentThread | null {
 		return this._threadMap.get(comment.id) ?? null;
+	}
+
+	public getLineThreadCount(lineNumber: number): number {
+		return this._threadLineCount.get(lineNumber) ?? 0;
 	}
 
 	public collapseAll(): void {
@@ -187,10 +223,10 @@ export class CommentManager {
 				if (meta) {
 					const lineCount = document.lineCount;
 					void (async () => {
-						const manager = await new DocumentCommentManager(
+						const manager = new DocumentCommentManager(
 							document.uri,
 							this._commentController
-						).init();
+						);
 						this._commentManagers.set(
 							FileProvider.fileMetaToKey(meta),
 							manager
@@ -206,6 +242,7 @@ export class CommentManager {
 						this._commentManagersByFilePath
 							.get(meta.filePath)!
 							.push(manager);
+						await manager.loadComments();
 					})();
 					return [new Range(0, 0, lineCount - 1, 0)];
 				}
@@ -215,10 +252,23 @@ export class CommentManager {
 		return this;
 	}
 
-	public static getFileManagersForPath(
-		filePath: string
-	): DocumentCommentManager[] {
-		return this._commentManagersByFilePath.get(filePath) ?? [];
+	public static getFileManagersForUri(uri: Uri): DocumentCommentManager[] {
+		const meta = FileProvider.tryGetFileMeta(uri);
+		if (!meta) {
+			return [];
+		}
+		const managers = this._commentManagersByFilePath.get(meta.filePath);
+		if (managers) {
+			return managers;
+		}
+
+		// No need to load comments since we're creating this dynamically
+		const manager = new DocumentCommentManager(
+			uri,
+			this._commentController
+		);
+		this._commentManagers.set(FileProvider.fileMetaToKey(meta), manager);
+		return this._commentManagersByFilePath.get(meta.filePath) ?? [];
 	}
 
 	public static collapseAll(): void {
@@ -227,12 +277,7 @@ export class CommentManager {
 			return;
 		}
 
-		const meta = FileProvider.tryGetFileMeta(editor.document.uri);
-		if (!meta) {
-			return;
-		}
-
-		const managers = this.getFileManagersForPath(meta.filePath);
+		const managers = this.getFileManagersForUri(editor.document.uri);
 		for (const manager of managers) {
 			manager.collapseAll();
 		}
@@ -249,37 +294,77 @@ export class CommentManager {
 	}
 }
 
-export async function createComment(
-	reply: NewlyCreatedGerritCommentReply,
-	isResolved: boolean
-): Promise<void> {
-	const gthread = GerritCommentThread.from(reply.thread);
-	const meta = FileProvider.getFileMeta(gthread.thread.uri);
+async function createComment(
+	thread: GerritCommentThread,
+	text: string,
+	isResolved: boolean,
+	parentComment = thread.lastComment
+): Promise<GerritDraftComment | null> {
+	const meta = FileProvider.getFileMeta(thread.thread.uri);
 
 	const newComment = await GerritComment.create({
 		changeId: meta.changeId,
-		content: reply.text,
+		content: text,
 		filePath: meta.filePath,
 		revision: meta.commit,
 		unresolved: !isResolved,
-		replyTo: gthread.lastComment
-			? GerritComment.getFromVSCodeComment(gthread.lastComment)?.id
-			: undefined,
-		lineOrRange: GerritComment.vsCodeRangeToGerritRange(reply.thread.range),
+		replyTo: parentComment?.id,
+		lineOrRange: GerritComment.vsCodeRangeToGerritRange(
+			thread.thread.range
+		),
 		side: meta.side,
+		uri: thread.thread.uri,
 	});
 	if (!newComment) {
 		await window.showErrorMessage('Failed to create comment');
+		return null;
+	}
+
+	thread.pushComment(newComment, CommentThreadCollapsibleState.Expanded);
+	return newComment;
+}
+
+async function updateComment(
+	comment: GerritCommentBase,
+	isResolved: boolean
+): Promise<void> {
+	if (comment.isDraft) {
+		await (comment as GerritDraftComment).saveDraftMessage(isResolved);
+		comment.mode = CommentMode.Preview;
+		comment.thread?.expand();
+	}
+}
+
+export async function saveComment(
+	reply: NewlyCreatedGerritCommentReply | GerritCommentBase,
+	isResolved: boolean
+): Promise<void> {
+	if (!reply.thread) {
 		return;
 	}
 
-	gthread.pushComment(newComment);
+	if ('id' in reply) {
+		await updateComment(reply, isResolved);
+	} else {
+		const thread = GerritCommentThread.from(reply.thread);
+		if (!thread) {
+			return;
+		}
+		await createComment(thread, reply.text, isResolved);
+	}
 }
 
-export function cancelComment(reply: NewlyCreatedGerritCommentReply): void {
-	const thread = reply.thread;
-	if (thread.comments.length === 0) {
-		thread.dispose();
+export async function cancelComment(
+	reply: NewlyCreatedGerritCommentReply | GerritCommentBase
+): Promise<void> {
+	if ('id' in reply) {
+		await reply.updateInThread((comment) => {
+			comment.mode = CommentMode.Preview;
+		});
+	} else {
+		if (reply.thread.comments.length === 0) {
+			reply.thread.dispose();
+		}
 	}
 }
 
@@ -288,9 +373,39 @@ export async function setCommentResolved(
 	isResolved: boolean
 ): Promise<void> {
 	const gthread = GerritCommentThread.from(reply.thread);
+	if (!gthread) {
+		return;
+	}
 	await gthread.setResolved(isResolved);
 }
 
 export function collapseAllComments(): void {
 	CommentManager.collapseAll();
+}
+
+export async function editComment(comment: GerritCommentBase): Promise<void> {
+	await comment.updateInThread((c) => {
+		c.mode = CommentMode.Editing;
+	});
+}
+
+export async function deleteComment(comment: GerritCommentBase): Promise<void> {
+	if (!comment.isDraft) {
+		return;
+	}
+	await (comment as GerritDraftComment).delete();
+}
+
+export async function doneComment(comment: GerritCommentBase): Promise<void> {
+	if (!comment.thread) {
+		return;
+	}
+	await createComment(comment.thread, 'Done', true, comment);
+}
+
+export async function ackComment(comment: GerritCommentBase): Promise<void> {
+	if (!comment.thread) {
+		return;
+	}
+	await createComment(comment.thread, 'Ack', true, comment);
 }

@@ -1,6 +1,7 @@
 import { showInvalidSettingsMessage } from './messages';
 import { getConfiguration } from './config';
 import { GerritAPI } from './gerritAPI/api';
+import { window } from 'vscode';
 import { log } from './log';
 
 let api: GerritAPI | null = null;
@@ -20,6 +21,30 @@ function hasSameConfig(
 		username === lastConfig?.username &&
 		password === lastConfig?.password
 	);
+}
+
+export async function checkConnection(): Promise<void> {
+	const config = getConfiguration();
+	const url = config.get('gerrit.url');
+	const username = config.get('gerrit.username');
+	const password = config.get('gerrit.password');
+
+	if (!url || !username || !password) {
+		await showInvalidSettingsMessage(
+			'Missing URL, username or password. Please set them in your settings. (gerrit.{url|username|password})'
+		);
+		return;
+	}
+
+	const api = new GerritAPI(url, username, password);
+	if (!(await api.testConnection())) {
+		await showInvalidSettingsMessage(
+			'Connection to Gerrit failed, please check your settings and/or connection'
+		);
+		return;
+	}
+
+	await window.showInformationMessage('Succesfully connected!');
 }
 
 export async function createAPI(): Promise<GerritAPI | null> {

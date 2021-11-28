@@ -1,5 +1,4 @@
 import { PatchSetLevelCommentsTreeView } from './changeTreeView/patchSetLevelCommentsTreeView';
-import { DescriptionTreeView } from './changeTreeView/descriptionTreeView';
 import { ThemeIcon, TreeItem, TreeItemCollapsibleState } from 'vscode';
 import { GerritChange } from '../../../lib/gerritAPI/gerritChange';
 import { TreeItemWithChildren, TreeViewItem } from '../treeTypes';
@@ -173,7 +172,6 @@ export class ChangeTreeView implements TreeItemWithChildren {
 		);
 
 		return [
-			new DescriptionTreeView(this.change),
 			...optionalArrayEntry(
 				await PatchSetLevelCommentsTreeView.isVisible(this.change),
 				() => new PatchSetLevelCommentsTreeView(this.change)

@@ -78,6 +78,21 @@ export class GerritAPI {
 		private readonly _password: string
 	) {}
 
+	public static async performRequest(
+		url: string,
+		body?: OptionsOfTextResponseBody
+	): Promise<ResponseWithBody<string>> {
+		return (await got(url, {
+			...body,
+			https: {
+				rejectUnauthorized: !getConfiguration().get(
+					'gerrit.allowInvalidSSLCerts',
+					false
+				),
+			},
+		})) as ResponseWithBody<string>;
+	}
+
 	private _headers(withContent: boolean): Record<string, string | undefined> {
 		return {
 			Authorization:
@@ -89,11 +104,6 @@ export class GerritAPI {
 				'Content-Type': withContent ? 'application/json' : undefined,
 			}),
 		};
-	}
-
-	private _getURL(path: string): string {
-		const trailingSlash = this._url.endsWith('/') ? '' : '/';
-		return `${this._url}${trailingSlash}a/${path}`;
 	}
 
 	private _stripMagicPrefix(body: string): string {
@@ -135,21 +145,6 @@ export class GerritAPI {
 		return `${url}|${this._stringify(body)}`;
 	}
 
-	private async _performRequest(
-		url: string,
-		body?: OptionsOfTextResponseBody
-	): Promise<ResponseWithBody<string>> {
-		return (await got(url, {
-			...body,
-			https: {
-				rejectUnauthorized: !getConfiguration().get(
-					'gerrit.allowInvalidSSLCerts',
-					false
-				),
-			},
-		})) as ResponseWithBody<string>;
-	}
-
 	/**
 	 * Sometimes it happens that the same request is being
 	 * performed in two places at the same time. It's kind of
@@ -164,7 +159,7 @@ export class GerritAPI {
 		// Non-get requests perform some remote action, we can't
 		// just assume that that action only needs to happen once
 		if (body && body.method !== 'GET') {
-			return this._performRequest(url, body);
+			return GerritAPI.performRequest(url, body);
 		}
 
 		const id = this._createRequestID(url, body);
@@ -172,7 +167,7 @@ export class GerritAPI {
 			return this._inFlightRequests.get(id)!;
 		}
 
-		const req = this._performRequest(url, body);
+		const req = GerritAPI.performRequest(url, body);
 		this._inFlightRequests.set(id, req);
 		const response = await req;
 		this._inFlightRequests.delete(id);
@@ -265,7 +260,7 @@ export class GerritAPI {
 		type: 'drafts' | 'comments'
 	): Promise<GerritCommentsResponse | null> {
 		const response = await this._tryRequest(
-			this._getURL(`changes/${changeID}/${type}/`),
+			this.getURL(`changes/${changeID}/${type}/`),
 			this._get
 		);
 
@@ -274,10 +269,19 @@ export class GerritAPI {
 
 	public async testConnection(): Promise<boolean> {
 		const response = await this._tryRequest(
-			this._getURL('config/server/version'),
+			this.getURL('config/server/version'),
 			this._get
 		);
 		return response?.statusCode === 200;
+	}
+
+	/**
+	 * Gets the path to given URL. Note that the trailing slash
+	 * is included.
+	 */
+	public getURL(path: string): string {
+		const trailingSlash = this._url.endsWith('/') ? '' : '/';
+		return `${this._url}${trailingSlash}a/${path}`;
 	}
 
 	public async getChange(
@@ -303,7 +307,7 @@ export class GerritAPI {
 		...withValues: GerritAPIWith[]
 	): Promise<GerritChange | null> {
 		const response = await this._tryRequest(
-			this._getURL(`changes/${changeID}/detail/`),
+			this.getURL(`changes/${changeID}/detail/`),
 			{
 				...this._get,
 				searchParams: new URLSearchParams(
@@ -344,7 +348,7 @@ export class GerritAPI {
 		filters: (DefaultChangeFilter | GerritChangeFilter)[][],
 		...withValues: GerritAPIWith[]
 	): Promise<GerritChange[]> {
-		const response = await this._tryRequest(this._getURL('changes/'), {
+		const response = await this._tryRequest(this.getURL('changes/'), {
 			...this._get,
 			searchParams: new URLSearchParams([
 				...filters.map((filter) => {
@@ -429,7 +433,7 @@ export class GerritAPI {
 		}
 
 		const response = await this._tryRequest(
-			this._getURL(
+			this.getURL(
 				`projects/${project}/commits/${commit}/files/${encodeURIComponent(
 					filePath
 				)}/content`
@@ -482,7 +486,7 @@ export class GerritAPI {
 		replyTo?: string;
 	}): Promise<GerritDraftComment | null> {
 		const response = await this._tryRequest(
-			this._getURL(`changes/${changeID}/revisions/${revision}/drafts`),
+			this.getURL(`changes/${changeID}/revisions/${revision}/drafts`),
 			{
 				...this._put,
 				body: JSON.stringify({
@@ -527,7 +531,7 @@ export class GerritAPI {
 		replyTo?: string;
 	}): Promise<GerritDraftComment | null> {
 		const response = await this._tryRequest(
-			this._getURL(`changes/${changeID}/revisions/${revision}/drafts`),
+			this.getURL(`changes/${changeID}/revisions/${revision}/drafts`),
 			{
 				...this._put,
 				body: JSON.stringify({
@@ -558,7 +562,7 @@ export class GerritAPI {
 		};
 	}): Promise<GerritDraftComment | null> {
 		const response = await this._tryRequest(
-			this._getURL(
+			this.getURL(
 				`changes/${draft.changeID}/revisions/${draft.commitID}/drafts/${draft.id}`
 			),
 			{
@@ -590,7 +594,7 @@ export class GerritAPI {
 		draft: GerritDraftComment
 	): Promise<boolean> {
 		const response = await this._tryRequest(
-			this._getURL(
+			this.getURL(
 				`changes/${draft.changeID}/revisions/${draft.commitID}/drafts/${draft.id}`
 			),
 			this._delete
@@ -604,7 +608,7 @@ export class GerritAPI {
 
 	public async getSelf(): Promise<GerritUser | null> {
 		const response = await this._tryRequest(
-			this._getURL('accounts/self'),
+			this.getURL('accounts/self'),
 			this._get
 		);
 

@@ -68,7 +68,7 @@ export class DocumentCommentManager extends OnceDisposable {
 		return null;
 	}
 
-	private _getAllRepliesTo(
+	public static getAllRepliesTo(
 		comment: GerritCommentBase,
 		allComments: GerritCommentBase[]
 	): GerritCommentBase[] {
@@ -78,17 +78,17 @@ export class DocumentCommentManager extends OnceDisposable {
 		);
 		replies.push(...directReplies);
 		for (const reply of directReplies) {
-			replies.push(...this._getAllRepliesTo(reply, allComments));
+			replies.push(...this.getAllRepliesTo(reply, allComments));
 		}
 		return uniqueComplex(replies, (c) => c.id);
 	}
 
-	private _buildThreadsFromComments(
+	public static buildThreadsFromComments(
 		comments: GerritCommentBase[]
 	): GerritCommentBase[][] {
 		return comments
 			.filter((c) => !c.inReplyTo)
-			.map((c) => this._getAllRepliesTo(c, comments))
+			.map((c) => this.getAllRepliesTo(c, comments))
 			.map((t) =>
 				DateTime.sortByDate(
 					t,
@@ -116,23 +116,20 @@ export class DocumentCommentManager extends OnceDisposable {
 			return this;
 		}
 
-		const change = await GerritChange.getChangeCached(fileMeta.changeID);
-		if (!change) {
-			return this;
-		}
-
 		const isPatchSetLevel = fileMeta.filePath === PATCHSET_LEVEL_KEY;
 		const comments =
-			(await change.getAllCommentsCached()).get(fileMeta.filePath) ?? [];
+			(await GerritChange.getAllCommentsCached(fileMeta.changeID)).get(
+				fileMeta.filePath
+			) ?? [];
 		const thisSideComments = isPatchSetLevel
 			? comments
 			: comments.filter(
 					(c) => c.side ?? GerritCommentSide.RIGHT === fileMeta.side
 			  );
 		let threads = this._getThreadRanges(
-			this._buildThreadsFromComments(thisSideComments).filter(
-				(t) => t.length !== 0
-			)
+			DocumentCommentManager.buildThreadsFromComments(
+				thisSideComments
+			).filter((t) => t.length !== 0)
 		);
 		if (isPatchSetLevel) {
 			threads = threads.map((thread, index) => {

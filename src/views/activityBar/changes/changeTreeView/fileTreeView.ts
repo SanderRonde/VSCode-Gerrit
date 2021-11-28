@@ -91,10 +91,9 @@ export class FileTreeView implements TreeItemWithoutChildren {
 	}
 
 	public async getItem(): Promise<TreeItem> {
-		// TODO: strikethrough deleted stuff etc
 		return {
 			label: this.filePath,
-			contextValue: 'view-online',
+			contextValue: 'view-file',
 			resourceUri: (await this._getFileUri(this.file)) ?? undefined,
 			iconPath: ThemeIcon.File,
 			command: (await this._createDiffCommand(this.file)) ?? undefined,

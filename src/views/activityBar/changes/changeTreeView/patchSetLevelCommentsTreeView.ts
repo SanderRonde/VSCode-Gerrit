@@ -10,7 +10,7 @@ export class PatchSetLevelCommentsTreeView implements TreeItemWithoutChildren {
 	public constructor(public change: GerritChange) {}
 
 	public static async isVisible(change: GerritChange): Promise<boolean> {
-		const comments = await change.getAllCommentsCached();
+		const comments = await GerritChange.getAllCommentsCached(change.id);
 		const patchsetComments = comments.get(PATCHSET_LEVEL_KEY);
 		return !!patchsetComments && patchsetComments.length > 0;
 	}
@@ -18,7 +18,9 @@ export class PatchSetLevelCommentsTreeView implements TreeItemWithoutChildren {
 	private async _createCommand(): Promise<Command | null> {
 		// We create a file that has N number of lines, where N = number of comments.
 		// That way we can place one comment on every line
-		const comments = await this.change.getAllCommentsCached();
+		const comments = await GerritChange.getAllCommentsCached(
+			this.change.id
+		);
 		const revision = await this.change.currentRevision();
 		if (!revision) {
 			return null;

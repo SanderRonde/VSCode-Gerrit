@@ -5,12 +5,14 @@ import {
 	CommentMode,
 	Position,
 	Range,
+	Uri,
 } from 'vscode';
 import {
 	GerritCommentRange,
 	GerritCommentResponse,
 	GerritCommentSide,
 } from './types';
+import { commentDecorationProvider } from '../../providers/commentDecorationProvider';
 import { GerritCommentThread } from '../../providers/comments/thread';
 import { DynamicallyFetchable } from './shared';
 import { GerritUser } from './gerritUser';
@@ -211,6 +213,10 @@ export class GerritDraftComment extends GerritCommentBase implements Comment {
 		return new GerritDraftComment(changeID, filePath, response).init();
 	}
 
+	public static async refreshComments(uri: Uri): Promise<void> {
+		await commentDecorationProvider.refreshFileComments(uri);
+	}
+
 	public getContextValues(): string[] {
 		return ['editable', 'deletable'];
 	}
@@ -263,6 +269,11 @@ export class GerritDraftComment extends GerritCommentBase implements Comment {
 			this.updated = newComment.updated;
 			this.unresolved = newComment.unresolved;
 		}
+
+		const uri = this.thread?.thread.uri;
+		if (uri) {
+			await GerritDraftComment.refreshComments(uri);
+		}
 	}
 
 	public async saveDraftMessage(
@@ -296,6 +307,11 @@ export class GerritDraftComment extends GerritCommentBase implements Comment {
 		} else {
 			this.thread?.refreshComments();
 		}
+
+		const uri = this.thread?.thread.uri;
+		if (uri) {
+			await GerritDraftComment.refreshComments(uri);
+		}
 	}
 
 	public async delete(): Promise<boolean> {
@@ -311,6 +327,10 @@ export class GerritDraftComment extends GerritCommentBase implements Comment {
 
 		if (this.thread) {
 			this.thread.removeComment(this);
+			const uri = this.thread?.thread.uri;
+			if (uri) {
+				await GerritDraftComment.refreshComments(uri);
+			}
 		}
 
 		return true;

@@ -36,12 +36,12 @@
 					[ ] Possible future TODO, create custom UI
 			[x] Do something with comments that aren't inside of a file
 			[x] All changed files by path
-				[ ] Badges:
-					[ ] A (added)
-					[ ] M (modified)
-					[ ] D (deleted)
-					[ ] Double-check standards here
-				[ ] Add comment icon that shows whether you (or someone else) commented
+				[x] Badges:
+					[x] A (added)
+					[x] M (modified)
+					[x] D (deleted)
+					[x] Double-check standards here
+				[x] Add comment icon that shows whether you (or someone else) commented
 				[ ] RMB:
 					[ ] Open unmodified
 					[ ] Open modified

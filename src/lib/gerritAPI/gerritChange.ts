@@ -92,6 +92,42 @@ export class GerritChange extends DynamicallyFetchable {
 		}
 	}
 
+	public static async getAllComments(changeID: string): Promise<CommentMap> {
+		const api = await getAPI();
+		if (!api) {
+			return new Map();
+		}
+
+		const [comments, draftComments] = await Promise.all([
+			api.getComments(changeID),
+			api.getDraftComments(changeID),
+		]);
+
+		const mergedMap: Map<string, (GerritComment | GerritDraftComment)[]> =
+			new Map();
+		for (const [key, entries] of [
+			...comments.entries(),
+			...draftComments.entries(),
+		]) {
+			if (!mergedMap.has(key)) {
+				mergedMap.set(key, []);
+			}
+			mergedMap.get(key)!.push(...entries);
+		}
+
+		GerritChange._commentMap.set(changeID, mergedMap);
+		return mergedMap;
+	}
+
+	public static async getAllCommentsCached(
+		changeID: string
+	): Promise<CommentMap> {
+		if (GerritChange._commentMap.has(changeID)) {
+			return GerritChange._commentMap.get(changeID)!;
+		}
+		return this.getAllComments(changeID);
+	}
+
 	/**
 	 * Note that the first level of filters is OR, while the second
 	 * level of filters is AND
@@ -216,39 +252,5 @@ export class GerritChange extends DynamicallyFetchable {
 		}
 
 		return await currentRevision.commit();
-	}
-
-	public async getAllComments(): Promise<CommentMap> {
-		const api = await getAPI();
-		if (!api) {
-			return new Map();
-		}
-
-		const [comments, draftComments] = await Promise.all([
-			api.getComments(this.id),
-			api.getDraftComments(this.id),
-		]);
-
-		const mergedMap: Map<string, (GerritComment | GerritDraftComment)[]> =
-			new Map();
-		for (const [key, entries] of [
-			...comments.entries(),
-			...draftComments.entries(),
-		]) {
-			if (!mergedMap.has(key)) {
-				mergedMap.set(key, []);
-			}
-			mergedMap.get(key)!.push(...entries);
-		}
-
-		GerritChange._commentMap.set(this.id, mergedMap);
-		return mergedMap;
-	}
-
-	public async getAllCommentsCached(): Promise<CommentMap> {
-		if (GerritChange._commentMap.has(this.id)) {
-			return GerritChange._commentMap.get(this.id)!;
-		}
-		return this.getAllComments();
 	}
 }

@@ -231,6 +231,12 @@
 					],
 					"title": "Active changes view",
 					"default": "dashboard"
+				},
+				"gerrit.allowInvalidSSLCerts": {
+					"type": "boolean",
+					"title": "Allow requests to failed/invalid SSL certs",
+					"description": "Note: before you use this, ask your server maintainer to fix their certs. This option can can be dangerous.",
+					"default": false
 				}
 			}
 		}

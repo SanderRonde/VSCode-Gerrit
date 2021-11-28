@@ -11,8 +11,10 @@ import got, { OptionsOfTextResponseBody, Response } from 'got/dist/source';
 import { DefaultChangeFilter, GerritChangeFilter } from './filters';
 import { GerritComment, GerritDraftComment } from './gerritComment';
 import { DEBUG_REQUESTS, READONLY_MODE } from '../constants';
+import { optionalObjectProperty } from '../util';
 import { getChangeCache } from '../gerritCache';
 import { GerritChange } from './gerritChange';
+import { getConfiguration } from '../config';
 import { TextContent } from './gerritFile';
 import { GerritUser } from './gerritUser';
 import { URLSearchParams } from 'url';
@@ -80,12 +82,15 @@ export class GerritAPI {
 				Buffer.from(`${this._username}:${this._password}`).toString(
 					'base64'
 				),
-			'Content-Type': withContent ? 'application/json' : undefined,
+			...optionalObjectProperty({
+				'Content-Type': withContent ? 'application/json' : undefined,
+			}),
 		};
 	}
 
 	private _getURL(path: string): string {
-		return `${this._url}/a/${path}`;
+		const trailingSlash = this._url.endsWith('/') ? '' : '/';
+		return `${this._url}${trailingSlash}a/${path}`;
 	}
 
 	private _stripMagicPrefix(body: string): string {
@@ -110,7 +115,15 @@ export class GerritAPI {
 			console.log(body);
 		}
 		try {
-			const response = (await got(url, body)) as ResponseWithBody<string>;
+			const response = (await got(url, {
+				...body,
+				https: {
+					rejectUnauthorized: !getConfiguration().get(
+						'gerrit.allowInvalidSSLCerts',
+						false
+					),
+				},
+			})) as ResponseWithBody<string>;
 			response.strippedBody = this._stripMagicPrefix(response.body);
 			return response;
 		} catch (e) {
@@ -118,7 +131,7 @@ export class GerritAPI {
 				console.log(
 					e,
 					(e as { response: string }).response,
-					(e as { response: { body: string } }).response.body
+					(e as { response?: { body: string } }).response?.body
 				);
 			}
 			await window.showErrorMessage(

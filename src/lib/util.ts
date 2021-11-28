@@ -79,3 +79,27 @@ export function tertiaryWithFallback<V>(
 	}
 	return ifTrue ?? fallback;
 }
+
+export function optionalObjectProperty<
+	O extends {
+		[K: string]: V | undefined;
+	},
+	V
+>(
+	object: O
+): {
+	[K in keyof O]: O[K] extends undefined ? never : O[K];
+} {
+	const newObj: Partial<{
+		[K in keyof O]: O[K] extends undefined ? never : O[K];
+	}> = {};
+	for (const key in object) {
+		if (object[key] !== undefined) {
+			// eslint-disable-next-line @typescript-eslint/no-explicit-any
+			newObj[key] = object[key] as any;
+		}
+	}
+	return newObj as {
+		[K in keyof O]: O[K] extends undefined ? never : O[K];
+	};
+}

@@ -18,6 +18,7 @@ interface ConfigSettings {
 	'gerrit.username': string;
 	'gerrit.password': string;
 	'gerrit.changesView': GerritChangesView;
+	'gerrit.allowInvalidSSLCerts': boolean;
 }
 
 interface TypedWorkspaceConfiguration<T> extends WorkspaceConfiguration {

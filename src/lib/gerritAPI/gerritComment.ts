@@ -1,10 +1,10 @@
+import { PATCHSET_LEVEL_KEY } from '../../views/activityBar/changes/changeTreeView/patchSetLevelCommentsTreeView';
 import {
 	Comment,
 	CommentAuthorInformation,
 	CommentMode,
 	Position,
 	Range,
-	Uri,
 } from 'vscode';
 import {
 	GerritCommentRange,
@@ -12,8 +12,6 @@ import {
 	GerritCommentSide,
 } from './types';
 import { GerritCommentThread } from '../../providers/comments/thread';
-import { CommentManager } from '../../providers/commentProvider';
-import { FileMeta } from '../../providers/fileProvider';
 import { DynamicallyFetchable } from './shared';
 import { GerritUser } from './gerritUser';
 import { DateTime } from '../dateTime';
@@ -23,10 +21,11 @@ export abstract class GerritCommentBase
 	extends DynamicallyFetchable
 	implements Comment
 {
+	public thread: GerritCommentThread | null = null;
 	public id: string;
 	public gerritAuthor?: GerritUser;
 	public patchSet?: number;
-	public commitId: string;
+	public commitID: string;
 	public path?: string;
 	public side?: GerritCommentSide;
 	public parent?: number;
@@ -37,7 +36,7 @@ export abstract class GerritCommentBase
 	public updated: DateTime;
 	public tag?: string;
 	public unresolved?: boolean;
-	public changeMessageId: string;
+	public changeMessageID: string;
 	public contextLines: {
 		lineNumber: number;
 		contextLine: string;
@@ -48,14 +47,6 @@ export abstract class GerritCommentBase
 	// Why is this a getter? Because ESLint crashes if it's not...
 	public abstract get isDraft(): boolean;
 	public abstract get author(): CommentAuthorInformation;
-
-	public get thread(): GerritCommentThread | null {
-		return (
-			CommentManager.getFileManagersForUri(this.uri)
-				.map((manager) => manager.getThreadByComment(this))
-				.find((m) => !!m) ?? null
-		);
-	}
 
 	public get contextValue(): string {
 		return this.getContextValues().join(',');
@@ -71,7 +62,6 @@ export abstract class GerritCommentBase
 
 	protected constructor(
 		public override changeID: string,
-		public uri: Uri,
 		public filePath: string,
 		response: GerritCommentResponse
 	) {
@@ -82,7 +72,7 @@ export abstract class GerritCommentBase
 			? new GerritUser(response.author)
 			: undefined;
 		this.patchSet = response.patch_set;
-		this.commitId = response.commit_id;
+		this.commitID = response.commit_id;
 		this.path = response.path;
 		this.side = response.side;
 		this.parent = response.parent;
@@ -93,7 +83,7 @@ export abstract class GerritCommentBase
 		this.updated = new DateTime(response.updated);
 		this.tag = response.tag;
 		this.unresolved = response.unresolved;
-		this.changeMessageId = response.change_message_id;
+		this.changeMessageID = response.change_message_id;
 		this.contextLines = (response.context_lines || []).map((l) => ({
 			contextLine: l.context_line,
 			lineNumber: l.line_number,
@@ -103,24 +93,33 @@ export abstract class GerritCommentBase
 
 	public static async create(options: {
 		content: string;
-		uri: Uri;
-		changeId: string;
+		changeID: string;
 		revision: string;
 		filePath: string;
 		unresolved: boolean;
 		lineOrRange?: number | GerritCommentRange;
 		replyTo?: string;
-		side: GerritCommentSide;
+		side: GerritCommentSide | undefined;
 	}): Promise<GerritDraftComment | null> {
 		const api = await getAPI();
 		if (!api) {
 			return null;
 		}
 
+		if (options.filePath === PATCHSET_LEVEL_KEY) {
+			return await api.createPatchSetLevelDraftComment(
+				options.content,
+				options.changeID,
+				options.revision,
+				options.filePath,
+				options.unresolved,
+				options.replyTo
+			);
+		}
+
 		return await api.createDraftComment(
 			options.content,
-			options.uri,
-			options.changeId,
+			options.changeID,
 			options.revision,
 			options.filePath,
 			options.unresolved,
@@ -178,23 +177,10 @@ export class GerritComment extends GerritCommentBase {
 
 	public static async from(
 		changeID: string,
-		uri: Uri,
 		filePath: string,
 		response: GerritCommentResponse
 	): Promise<GerritComment> {
-		return new GerritComment(changeID, uri, filePath, response).init();
-	}
-
-	public static async getForMeta(
-		meta: FileMeta,
-		uri: Uri
-	): Promise<Map<string, GerritComment[]>> {
-		const api = await getAPI();
-		if (!api) {
-			return Promise.resolve(new Map() as Map<string, GerritComment[]>);
-		}
-
-		return await api.getComments(meta.changeId, uri);
+		return new GerritComment(changeID, filePath, response).init();
 	}
 
 	public getContextValues(): string[] {
@@ -235,25 +221,10 @@ export class GerritDraftComment extends GerritCommentBase implements Comment {
 
 	public static from(
 		changeID: string,
-		uri: Uri,
 		filePath: string,
 		response: GerritCommentResponse
 	): Promise<GerritDraftComment> {
-		return new GerritDraftComment(changeID, uri, filePath, response).init();
-	}
-
-	public static async getForMeta(
-		meta: FileMeta,
-		uri: Uri
-	): Promise<Map<string, GerritDraftComment[]>> {
-		const api = await getAPI();
-		if (!api) {
-			return Promise.resolve(
-				new Map() as Map<string, GerritDraftComment[]>
-			);
-		}
-
-		return await api.getDraftComments(meta.changeId, uri);
+		return new GerritDraftComment(changeID, filePath, response).init();
 	}
 
 	public getContextValues(): string[] {

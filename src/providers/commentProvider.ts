@@ -11,15 +11,18 @@ import {
 	window,
 	workspace,
 } from 'vscode';
+import { PATCHSET_LEVEL_KEY } from '../views/activityBar/changes/changeTreeView/patchSetLevelCommentsTreeView';
 import {
 	GerritComment,
 	GerritCommentBase,
 	GerritDraftComment,
 } from '../lib/gerritAPI/gerritComment';
 import { DateSortDirection, DateTime } from '../lib/dateTime';
+import { GerritChange } from '../lib/gerritAPI/gerritChange';
 import { GerritCommentSide } from '../lib/gerritAPI/types';
 import { GerritCommentThread } from './comments/thread';
-import { FileProvider } from './fileProvider';
+import { OnceDisposable } from '../lib/onceDisposable';
+import { FileMetaWithSide } from './fileProvider';
 import { uniqueComplex } from '../lib/util';
 
 export interface GerritCommentReply {
@@ -37,8 +40,8 @@ interface GerritCommentThreadProps {
 	comments: GerritCommentBase[];
 }
 
-export class DocumentCommentManager implements Disposable {
-	public static _lastThreadId = 0;
+export class DocumentCommentManager extends OnceDisposable {
+	public static _lastThreadID = 0;
 
 	private _threadMap: Map<string, GerritCommentThread> = new Map();
 	private _threadLineCount: Map<number, number> = new Map();
@@ -46,7 +49,9 @@ export class DocumentCommentManager implements Disposable {
 	public constructor(
 		private readonly document: Uri,
 		private readonly commentController: CommentController
-	) {}
+	) {
+		super();
+	}
 
 	public static getCommentRange(
 		comment: Readonly<GerritCommentBase>
@@ -93,31 +98,55 @@ export class DocumentCommentManager implements Disposable {
 			);
 	}
 
+	private _getThreadRanges(threads: GerritCommentBase[][]): {
+		range: Range | null;
+		comments: GerritCommentBase[];
+	}[] {
+		return threads.map((thread) => {
+			return {
+				range: DocumentCommentManager.getCommentRange(thread[0]),
+				comments: thread,
+			};
+		});
+	}
+
 	public async loadComments(): Promise<this> {
-		const fileMeta = FileProvider.tryGetFileMeta(this.document);
-		if (!fileMeta) {
+		const fileMeta = FileMetaWithSide.tryFrom(this.document);
+		if (!fileMeta || fileMeta.isEmpty()) {
 			return this;
 		}
 
+		const change = await GerritChange.getChangeCached(fileMeta.changeID);
+		if (!change) {
+			return this;
+		}
+
+		const isPatchSetLevel = fileMeta.filePath === PATCHSET_LEVEL_KEY;
 		const comments =
-			(await GerritComment.getForMeta(fileMeta, this.document)).get(
-				fileMeta.filePath
-			) ?? [];
-		const draftComments =
-			(await GerritDraftComment.getForMeta(fileMeta, this.document)).get(
-				fileMeta.filePath
-			) ?? [];
-		const allComments = [...comments, ...draftComments];
-		const thisSideComments = allComments.filter(
-			(c) => c.side ?? GerritCommentSide.RIGHT === fileMeta.side
+			(await change.getAllCommentsCached()).get(fileMeta.filePath) ?? [];
+		const thisSideComments = isPatchSetLevel
+			? comments
+			: comments.filter(
+					(c) => c.side ?? GerritCommentSide.RIGHT === fileMeta.side
+			  );
+		let threads = this._getThreadRanges(
+			this._buildThreadsFromComments(thisSideComments).filter(
+				(t) => t.length !== 0
+			)
 		);
-		const threads = this._buildThreadsFromComments(thisSideComments).filter(
-			(t) => t.length !== 0
-		);
+		if (isPatchSetLevel) {
+			threads = threads.map((thread, index) => {
+				return {
+					comments: thread.comments,
+					range: new Range(
+						new Position(index, 0),
+						new Position(index, 0)
+					),
+				};
+			});
+		}
 		for (const thread of threads) {
-			const line =
-				DocumentCommentManager.getCommentRange(thread[0])?.start.line ??
-				-1;
+			const line = thread.range?.start.line ?? -1;
 			this._threadLineCount.set(
 				line,
 				(this._threadLineCount.get(line) ?? 0) + 1
@@ -126,9 +155,7 @@ export class DocumentCommentManager implements Disposable {
 		for (const thread of threads) {
 			const commentThread = this.createCommentThread(thread);
 			if (commentThread) {
-				thread.forEach((comment) => {
-					this._threadMap.set(comment.id, commentThread);
-				});
+				this.registerComments(commentThread, ...comments);
 			}
 		}
 		return this;
@@ -140,6 +167,7 @@ export class DocumentCommentManager implements Disposable {
 	): void {
 		for (const comment of comments) {
 			this._threadMap.set(comment.id, thread);
+			comment.thread = thread;
 		}
 	}
 
@@ -149,22 +177,22 @@ export class DocumentCommentManager implements Disposable {
 		}
 	}
 
-	public createCommentThread(
-		comments: GerritCommentBase[]
-	): GerritCommentThread | null {
-		const range = DocumentCommentManager.getCommentRange(comments[0]);
-		if (!range) {
+	public createCommentThread(thread: {
+		range: Range | null;
+		comments: GerritCommentBase[];
+	}): GerritCommentThread | null {
+		if (!thread.range) {
 			return null;
 		}
 
 		const vscodeThread = this.commentController.createCommentThread(
 			this.document,
-			range,
-			comments
+			thread.range,
+			thread.comments
 		) as CommentThread & Partial<GerritCommentThreadProps>;
-		const thread = GerritCommentThread.from(vscodeThread);
-		thread?.setComments(comments, true);
-		return thread;
+		const gthread = GerritCommentThread.from(vscodeThread);
+		gthread?.setComments(thread.comments, true);
+		return gthread;
 	}
 
 	public getThreadByComment(
@@ -181,11 +209,15 @@ export class DocumentCommentManager implements Disposable {
 		[...this._threadMap.values()].forEach((thread) => thread.collapse());
 	}
 
-	public dispose(): void {
+	public override dispose(): void {
+		if (!super.dispose()) {
+			return;
+		}
 		for (const thread of this._threadMap.values()) {
 			thread.dispose();
 		}
 		this._threadMap.clear();
+		this._threadLineCount.clear();
 	}
 }
 
@@ -205,11 +237,11 @@ export class CommentManager {
 	public static init(): typeof CommentManager {
 		this._disposables.add(
 			workspace.onDidCloseTextDocument((doc) => {
-				const meta = FileProvider.tryGetFileMeta(doc.uri);
+				const meta = FileMetaWithSide.tryFrom(doc.uri);
 				if (!meta) {
 					return;
 				}
-				const key = FileProvider.fileMetaToKey(meta);
+				const key = meta.toKey();
 				if (this._commentManagers.has(key)) {
 					this._commentManagers.get(key)!.dispose();
 					this._commentManagers.delete(key);
@@ -219,7 +251,7 @@ export class CommentManager {
 		this._commentController.commentingRangeProvider = {
 			provideCommentingRanges: (document) => {
 				// TODO: maybe do this when checked out as well?
-				const meta = FileProvider.tryGetFileMeta(document.uri);
+				const meta = FileMetaWithSide.tryFrom(document.uri);
 				if (meta) {
 					const lineCount = document.lineCount;
 					void (async () => {
@@ -227,10 +259,7 @@ export class CommentManager {
 							document.uri,
 							this._commentController
 						);
-						this._commentManagers.set(
-							FileProvider.fileMetaToKey(meta),
-							manager
-						);
+						this._commentManagers.set(meta.toKey(), manager);
 						if (
 							!this._commentManagersByFilePath.has(meta.filePath)
 						) {
@@ -253,7 +282,7 @@ export class CommentManager {
 	}
 
 	public static getFileManagersForUri(uri: Uri): DocumentCommentManager[] {
-		const meta = FileProvider.tryGetFileMeta(uri);
+		const meta = FileMetaWithSide.tryFrom(uri);
 		if (!meta) {
 			return [];
 		}
@@ -267,7 +296,7 @@ export class CommentManager {
 			uri,
 			this._commentController
 		);
-		this._commentManagers.set(FileProvider.fileMetaToKey(meta), manager);
+		this._commentManagers.set(meta.toKey(), manager);
 		return this._commentManagersByFilePath.get(meta.filePath) ?? [];
 	}
 
@@ -300,10 +329,14 @@ async function createComment(
 	isResolved: boolean,
 	parentComment = thread.lastComment
 ): Promise<GerritDraftComment | null> {
-	const meta = FileProvider.getFileMeta(thread.thread.uri);
+	const meta = FileMetaWithSide.tryFrom(thread.thread.uri);
+	if (!meta) {
+		await window.showErrorMessage('Failed to create comment');
+		return null;
+	}
 
 	const newComment = await GerritComment.create({
-		changeId: meta.changeId,
+		changeID: meta.changeID,
 		content: text,
 		filePath: meta.filePath,
 		revision: meta.commit,
@@ -312,8 +345,7 @@ async function createComment(
 		lineOrRange: GerritComment.vsCodeRangeToGerritRange(
 			thread.thread.range
 		),
-		side: meta.side,
-		uri: thread.thread.uri,
+		side: meta.side === 'BOTH' ? undefined : meta.side,
 	});
 	if (!newComment) {
 		await window.showErrorMessage('Failed to create comment');

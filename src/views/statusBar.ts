@@ -7,7 +7,7 @@ import {
 	env,
 	Uri,
 } from 'vscode';
-import { isGerritCommit, getCurrentChangeId, getChangeId } from '../lib/commit';
+import { isGerritCommit, getCurrentChangeID, getChangeID } from '../lib/commit';
 import { GerritChange } from '../lib/gerritAPI/gerritChange';
 import { getGitAPI, onChangeLastCommit } from '../lib/git';
 import { Commit } from '../types/vscode-extension-git';
@@ -15,13 +15,13 @@ import { GerritAPIWith } from '../lib/gerritAPI/api';
 import { getConfiguration } from '../lib/config';
 
 async function onStatusBarClick(): Promise<void> {
-	const changeId = await getCurrentChangeId();
+	const changeID = await getCurrentChangeID();
 	const url = getConfiguration().get('gerrit.url');
-	if (!changeId || !url) {
+	if (!changeID || !url) {
 		return;
 	}
 
-	const change = await GerritChange.getChangeCached(changeId);
+	const change = await GerritChange.getChangeCached(changeID);
 	if (!change) {
 		return;
 	}
@@ -37,13 +37,13 @@ async function updateStatusBarState(
 	if (!isGerritCommit(lastCommit)) {
 		return statusBar.hide();
 	}
-	const changeId = getChangeId(lastCommit);
-	if (!changeId) {
+	const changeID = getChangeID(lastCommit);
+	if (!changeID) {
 		return statusBar.hide();
 	}
 
 	const change = await GerritChange.getChangeCached(
-		changeId,
+		changeID,
 		GerritAPIWith.DETAILED_ACCOUNTS
 	);
 	if (!change) {

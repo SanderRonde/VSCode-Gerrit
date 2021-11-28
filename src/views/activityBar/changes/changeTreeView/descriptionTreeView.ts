@@ -7,10 +7,10 @@ export class DescriptionTreeView implements TreeItemWithoutChildren {
 
 	public getItem(): TreeItem {
 		return {
-			label: 'See in webview',
+			label: 'View in webview',
 			tooltip: `View change #${this.change._number} in webview`,
 			contextValue: 'view-online',
-			iconPath: new ThemeIcon('comment-discussion'),
+			iconPath: new ThemeIcon('globe'),
 		};
 	}
 }

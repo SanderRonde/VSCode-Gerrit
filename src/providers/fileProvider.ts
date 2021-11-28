@@ -9,63 +9,176 @@ import { FileCache } from '../views/activityBar/changes/changeTreeView/file/file
 import { GerritCommentSide } from '../lib/gerritAPI/types';
 import { getAPI } from '../lib/gerritAPI';
 
-export interface FileMeta {
-	project: string;
-	changeId: string;
-	commit: string;
-	filePath: string;
-	side: GerritCommentSide;
-}
-
 export const GERRIT_FILE_SCHEME = 'gerrit-file';
 
-export const EMPTY_FILE_META: Omit<FileMeta, 'side'> = {
-	project: '',
-	commit: '',
-	filePath: '',
-	changeId: '',
-};
+interface FileMetaCreate {
+	project: string;
+	changeID: string;
+	commit: string;
+	filePath: string;
+	isVirtual?: boolean;
+	content?: string;
+}
+
+export class FileMeta {
+	public static PATCHSET_LEVEL = new FileMeta('', '', '', '');
+	public static EMPTY = new FileMeta('', '', '', '');
+
+	protected constructor(
+		public project: string,
+		public changeID: string,
+		public commit: string,
+		public filePath: string,
+		public isVirtual: boolean = false,
+		public content: string = ''
+	) {}
+
+	public static from(uri: Uri): FileMeta {
+		const meta = JSON.parse(uri.query) as {
+			project?: string;
+			changeID?: string;
+			commit?: string;
+			filePath?: string;
+			isVirtual?: boolean;
+			content?: string;
+		};
+		if (
+			typeof meta.project !== 'string' ||
+			typeof meta.changeID !== 'string' ||
+			typeof meta.commit !== 'string' ||
+			typeof meta.filePath !== 'string'
+		) {
+			throw new Error('Invalid file meta');
+		}
+		return new FileMeta(
+			meta.project,
+			meta.changeID,
+			meta.commit,
+			meta.filePath,
+			meta.isVirtual,
+			meta.content
+		);
+	}
+
+	public static tryFrom(uri: Uri): FileMeta | null {
+		try {
+			return this.from(uri);
+		} catch (e) {
+			return null;
+		}
+	}
+
+	public static createFileMeta(options: FileMetaCreate): FileMeta {
+		return new this(
+			options.project,
+			options.changeID,
+			options.commit,
+			options.filePath,
+			options.isVirtual,
+			options.content
+		);
+	}
+
+	protected toObj(): Record<string, string | boolean> {
+		return {
+			project: this.project,
+			changeID: this.changeID,
+			commit: this.commit,
+			filePath: this.filePath,
+			isVirtual: this.isVirtual,
+			content: this.content,
+		};
+	}
+
+	public isEmpty(): boolean {
+		return (
+			this.project === '' &&
+			this.commit === '' &&
+			this.filePath === '' &&
+			this.changeID === ''
+		);
+	}
+
+	public toString(): string {
+		return JSON.stringify(this.toObj());
+	}
+}
+
+export class FileMetaWithSide extends FileMeta {
+	public side!: GerritCommentSide | 'BOTH';
+
+	public static fromFileMeta(
+		fileMeta: FileMeta,
+		side: GerritCommentSide | 'BOTH'
+	): FileMetaWithSide {
+		const meta = new FileMetaWithSide(
+			fileMeta.project,
+			fileMeta.changeID,
+			fileMeta.commit,
+			fileMeta.filePath,
+			fileMeta.isVirtual,
+			fileMeta.content
+		);
+		meta.side = side;
+		return meta;
+	}
+
+	public static override from(uri: Uri): FileMetaWithSide {
+		const meta = JSON.parse(uri.query) as {
+			side?: GerritCommentSide | 'BOTH';
+		};
+		if (typeof meta.side !== 'string') {
+			throw new Error('Invalid file meta');
+		}
+
+		return this.fromFileMeta(FileMeta.from(uri), meta.side);
+	}
+
+	public static createFileMetaWithSide(
+		options: FileMetaCreate,
+		side: GerritCommentSide | 'BOTH'
+	): FileMetaWithSide {
+		return FileMetaWithSide.fromFileMeta(
+			FileMeta.createFileMeta(options),
+			side
+		);
+	}
+
+	public static override tryFrom(uri: Uri): FileMetaWithSide | null {
+		try {
+			return this.from(uri);
+		} catch (e) {
+			return null;
+		}
+	}
+
+	protected override toObj(): Record<string, string | boolean> {
+		return {
+			...super.toObj(),
+			side: this.side,
+		};
+	}
+
+	public toKey(): string {
+		return `${this.project}/${this.changeID}/${this.commit}/${this.filePath}/${this.side}`;
+	}
+}
 
 export class FileProvider implements TextDocumentContentProvider {
 	public constructor(public context: ExtensionContext) {
 		context.subscriptions.push(
 			workspace.onDidCloseTextDocument((doc) => {
 				if (doc.uri.scheme === GERRIT_FILE_SCHEME) {
-					const data = FileProvider.getFileMeta(doc.uri);
-					FileCache.delete(data.project, data.commit, data.filePath);
+					const meta = FileMeta.tryFrom(doc.uri);
+					if (meta) {
+						FileCache.delete(
+							meta.project,
+							meta.commit,
+							meta.filePath
+						);
+					}
 				}
 			})
-		);
-	}
-
-	public static tryGetFileMeta(uri: Uri): FileMeta | null {
-		try {
-			return this.getFileMeta(uri);
-		} catch (e) {
-			return null;
-		}
-	}
-
-	public static getFileMeta(uri: Uri): FileMeta {
-		return JSON.parse(uri.query) as FileMeta;
-	}
-
-	// We put this in a function just so that when the signature
-	// of FileMeta changes, TS notices
-	public static createMeta(meta: FileMeta): string {
-		return JSON.stringify(meta);
-	}
-
-	public static fileMetaToKey(meta: FileMeta): string {
-		return `${meta.project}/${meta.changeId}/${meta.commit}/${meta.filePath}/${meta.side}`;
-	}
-
-	private _isEmptyFile(fileMeta: FileMeta): boolean {
-		return (
-			fileMeta.project === '' &&
-			fileMeta.commit === '' &&
-			fileMeta.filePath === '' &&
-			fileMeta.changeId === ''
 		);
 	}
 
@@ -73,8 +186,16 @@ export class FileProvider implements TextDocumentContentProvider {
 		uri: Uri,
 		token: CancellationToken
 	): Promise<string | null> {
-		const data = FileProvider.getFileMeta(uri);
-		if (this._isEmptyFile(data)) {
+		const meta = FileMeta.tryFrom(uri);
+		if (!meta) {
+			return '';
+		}
+
+		if (meta.isVirtual) {
+			return meta.content;
+		}
+
+		if (meta.isEmpty()) {
 			return '';
 		}
 
@@ -84,10 +205,10 @@ export class FileProvider implements TextDocumentContentProvider {
 		}
 
 		const content = await api.getFileContent(
-			data.project,
-			data.commit,
-			data.changeId,
-			data.filePath
+			meta.project,
+			meta.commit,
+			meta.changeID,
+			meta.filePath
 		);
 
 		if (!content || token.isCancellationRequested) {

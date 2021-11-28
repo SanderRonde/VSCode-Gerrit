@@ -1,7 +1,6 @@
 import {
-	EMPTY_FILE_META,
 	FileMeta,
-	FileProvider,
+	FileMetaWithSide,
 	GERRIT_FILE_SCHEME,
 } from '../../providers/fileProvider';
 import {
@@ -16,13 +15,10 @@ import { GerritAPIWith } from './api';
 import { getAPI } from '../gerritAPI';
 
 export class TextContent {
-	private constructor(
-		public buffer: Buffer,
-		public meta: Omit<FileMeta, 'side'>
-	) {}
+	private constructor(public buffer: Buffer, public meta: FileMeta) {}
 
 	public static from(
-		meta: Omit<FileMeta, 'side'>,
+		meta: FileMeta,
 		content: string,
 		encoding: BufferEncoding
 	): TextContent {
@@ -33,19 +29,16 @@ export class TextContent {
 		return this.buffer.toString('utf8');
 	}
 
-	public toVirtualFile(forSide: GerritCommentSide): Uri {
+	public toVirtualFile(forSide: GerritCommentSide | 'BOTH'): Uri {
 		return Uri.from({
 			scheme: GERRIT_FILE_SCHEME,
 			path: this.meta.filePath,
-			query: FileProvider.createMeta({
-				...this.meta,
-				side: forSide,
-			}),
+			query: FileMetaWithSide.fromFileMeta(this.meta, forSide).toString(),
 		});
 	}
 
 	public isEmpty(): boolean {
-		return this.meta === EMPTY_FILE_META;
+		return this.meta.isEmpty();
 	}
 }
 
@@ -131,13 +124,15 @@ export class GerritFile extends DynamicallyFetchable {
 		const workspaceFolder = workspace.workspaceFolders[0];
 		const filePath = Uri.joinPath(workspaceFolder.uri, this.filePath);
 		return filePath.with({
-			query: FileProvider.createMeta({
-				project: this.change.project,
-				commit: this.currentRevision,
-				filePath: this.filePath,
-				changeId: this.change.id,
-				side: forSide,
-			}),
+			query: FileMetaWithSide.createFileMetaWithSide(
+				{
+					project: this.change.project,
+					commit: this.currentRevision,
+					filePath: this.filePath,
+					changeID: this.change.id,
+				},
+				forSide
+			).toString(),
 		});
 	}
 

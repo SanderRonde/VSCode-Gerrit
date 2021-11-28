@@ -1,3 +1,4 @@
+import { PatchSetLevelCommentsTreeView } from './changeTreeView/patchSetLevelCommentsTreeView';
 import { DescriptionTreeView } from './changeTreeView/descriptionTreeView';
 import { ThemeIcon, TreeItem, TreeItemCollapsibleState } from 'vscode';
 import { GerritChange } from '../../../lib/gerritAPI/gerritChange';
@@ -6,6 +7,7 @@ import { FolderTreeView } from './changeTreeView/folderTreeView';
 import { GerritFile } from '../../../lib/gerritAPI/gerritFile';
 import { FileTreeView } from './changeTreeView/fileTreeView';
 import { GerritAPIWith } from '../../../lib/gerritAPI/api';
+import { optionalArrayEntry } from '../../../lib/util';
 
 export type FileMap = Map<
 	string,
@@ -172,6 +174,10 @@ export class ChangeTreeView implements TreeItemWithChildren {
 
 		return [
 			new DescriptionTreeView(this.change),
+			...optionalArrayEntry(
+				await PatchSetLevelCommentsTreeView.isVisible(this.change),
+				() => new PatchSetLevelCommentsTreeView(this.change)
+			),
 			...ChangeTreeView.getFilesAndFolders(this.change, collapsed),
 		];
 	}

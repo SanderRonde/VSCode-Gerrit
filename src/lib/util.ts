@@ -103,3 +103,51 @@ export function optionalObjectProperty<
 		[K in keyof O]: O[K] extends undefined ? never : O[K];
 	};
 }
+
+export function toArray<V>(value: V | V[]): V[] {
+	if (Array.isArray(value)) {
+		return value;
+	}
+	return [value];
+}
+
+/**
+ * Allows the use of
+ * ```ts
+ * var x = [
+ *     ...optionalArrayEntry(true, [1,2]),
+ *     3, 4
+ * ];
+ * ```
+ * without the need to filter out undefined from the array
+ * or something like that
+ */
+
+export function optionalArrayEntry<V>(
+	condition: boolean,
+	arr: V | V[] | (() => V[] | V)
+): V[];
+export function optionalArrayEntry<V>(
+	condition: boolean,
+	arr: () => Promise<V[] | V>
+): Promise<V[]>;
+export function optionalArrayEntry<V>(
+	condition: boolean,
+	arr: V | V[] | (() => V[] | V) | (() => Promise<V[] | V>)
+): Promise<V[]> | V[] {
+	if (condition) {
+		if (typeof arr !== 'function') {
+			return toArray(arr);
+		}
+		const result = (arr as (() => V[] | V) | (() => Promise<V[] | V>))();
+		if (!('then' in result)) {
+			return toArray(result);
+		}
+		return new Promise<V[]>((resolve, reject) => {
+			result.then((value) => {
+				resolve(toArray(value));
+			}, reject);
+		});
+	}
+	return [] as V[];
+}

@@ -6,6 +6,7 @@ import {
 	GerritUserResponse,
 } from './types';
 import { DefaultChangeFilter, GerritChangeFilter } from './filters';
+import { GerritComment, GerritDraftComment } from './gerritComment';
 import { GerritRevision } from './gerritRevision';
 import { DynamicallyFetchable } from './shared';
 import { getChangeCache } from '../gerritCache';
@@ -14,7 +15,11 @@ import { GerritUser } from './gerritUser';
 import { GerritAPIWith } from './api';
 import { getAPI } from '../gerritAPI';
 
+export type CommentMap = Map<string, (GerritComment | GerritDraftComment)[]>;
+
 export class GerritChange extends DynamicallyFetchable {
+	private static _commentMap: Map<string, CommentMap> = new Map();
+
 	public override changeID: string;
 	public id: string;
 	public project: string;
@@ -104,7 +109,7 @@ export class GerritChange extends DynamicallyFetchable {
 	}
 
 	public static async getChange(
-		changeId: string,
+		changeID: string,
 		...withValues: GerritAPIWith[]
 	): Promise<GerritChange | null> {
 		const api = await getAPI();
@@ -112,19 +117,19 @@ export class GerritChange extends DynamicallyFetchable {
 			return null;
 		}
 
-		return await api.getChange(changeId, ...withValues);
+		return await api.getChange(changeID, ...withValues);
 	}
 
 	public static async getChangeCached(
-		changeId: string,
+		changeID: string,
 		...withValues: GerritAPIWith[]
 	): Promise<GerritChange | null> {
 		const cache = getChangeCache();
-		if (cache.has(changeId, withValues)) {
-			return cache.get(changeId, withValues)!;
+		if (cache.has(changeID, withValues)) {
+			return cache.get(changeID, withValues)!;
 		}
 
-		return this.getChange(changeId, ...withValues);
+		return this.getChange(changeID, ...withValues);
 	}
 
 	public labels(
@@ -211,5 +216,39 @@ export class GerritChange extends DynamicallyFetchable {
 		}
 
 		return await currentRevision.commit();
+	}
+
+	public async getAllComments(): Promise<CommentMap> {
+		const api = await getAPI();
+		if (!api) {
+			return new Map();
+		}
+
+		const [comments, draftComments] = await Promise.all([
+			api.getComments(this.id),
+			api.getDraftComments(this.id),
+		]);
+
+		const mergedMap: Map<string, (GerritComment | GerritDraftComment)[]> =
+			new Map();
+		for (const [key, entries] of [
+			...comments.entries(),
+			...draftComments.entries(),
+		]) {
+			if (!mergedMap.has(key)) {
+				mergedMap.set(key, []);
+			}
+			mergedMap.get(key)!.push(...entries);
+		}
+
+		GerritChange._commentMap.set(this.id, mergedMap);
+		return mergedMap;
+	}
+
+	public async getAllCommentsCached(): Promise<CommentMap> {
+		if (GerritChange._commentMap.has(this.id)) {
+			return GerritChange._commentMap.get(this.id)!;
+		}
+		return this.getAllComments();
 	}
 }

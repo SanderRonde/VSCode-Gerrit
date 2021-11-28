@@ -4,14 +4,14 @@ import { getAPI } from '../gerritAPI';
 export class GerritUser {
 	private static _self: GerritUser | null = null;
 
-	public accountId: number;
+	public accountID: number;
 	public name: string | undefined;
 	public displayName: string | undefined;
 	public email: string | undefined;
 	public username: string | undefined;
 
 	public constructor(response: GerritDetailedUserResponse) {
-		this.accountId = response._account_id;
+		this.accountID = response._account_id;
 		this.name = response.name;
 		this.displayName = response.display_name;
 		this.email = response.email;

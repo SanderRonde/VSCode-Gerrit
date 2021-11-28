@@ -34,7 +34,7 @@
 			[x] Description
 				[ ] Clicking opens inline gerrit webview
 					[ ] Possible future TODO, create custom UI
-			[ ] Do something with comments that aren't inside of a file
+			[x] Do something with comments that aren't inside of a file
 			[x] All changed files by path
 				[ ] Badges:
 					[ ] A (added)

@@ -157,12 +157,12 @@
 			"comments/comment/title": [
 				{
 					"command": "gerrit.ackCommentThread",
-					"when": "commentController == gerrit && comment =~ /allNonDraft/",
+					"when": "commentController == gerrit && comment =~ /quickActionable/",
 					"group": "inline@2"
 				},
 				{
 					"command": "gerrit.doneCommentThread",
-					"when": "commentController == gerrit && comment =~ /allNonDraft/",
+					"when": "commentController == gerrit && comment =~ /quickActionable/",
 					"group": "inline@1"
 				},
 				{

@@ -200,8 +200,8 @@ export class GerritComment extends GerritCommentBase {
 	public getContextValues(): string[] {
 		const values: string[] = [];
 		const thread = this.thread;
-		if (thread?.comments.every((c) => !c.isDraft)) {
-			values.push('allNonDraft');
+		if (!thread?.resolved && thread?.comments.every((c) => !c.isDraft)) {
+			values.push('quickActionable');
 		}
 		return values;
 	}

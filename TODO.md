@@ -12,11 +12,11 @@
 			[ ] Starred changes
 			[ ] Open
 			[ ] Merged
-		[ ] Show patches under headers with following info:
+		[x] Show patches under headers with following info:
 			[x] #ID
 			[x] Subject
 			[x] Owner
-			[ ] V
+			[-] V (not possible)
 			[x] Maybe multiline?
 		[ ] Rightclick on patches:
 			[ ] Checkout

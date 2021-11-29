@@ -5,13 +5,13 @@
 [ ] Visual
 	[ ] Patches pane
 		[ ] ... buttons
+			[ ] Allow changing view. Options:
+				[ ] Dashboard
+				[ ] Draft comments
+				[ ] Starred changes
+				[ ] Open
+				[ ] Merged
 		[ ] Search bar at the top
-		[ ] Allow changing view. Options:
-			[ ] Dashboard
-			[ ] Draft comments
-			[ ] Starred changes
-			[ ] Open
-			[ ] Merged
 		[x] Show patches under headers with following info:
 			[x] #ID
 			[x] Subject
@@ -20,16 +20,14 @@
 			[x] Maybe multiline?
 		[ ] Rightclick on patches:
 			[ ] Checkout
-			[ ] Checkout & stash current
-			[ ] Uncheckout & unstash previous
-			[ ] Start review
-			[ ] Stop review
+				[ ] Offer to stash and unstash
+			[ ] Checkout & Review
+			[ ] Toggle review mode
 			[ ] Open on gerrit
-			[ ] +2 ?
 			[ ] Notify when verified by administrator?
 		[ ] Add "refresh" button
+			[ ] Periodically refresh
 		[ ] Add "fetch more" button
-		[ ] Mark other owner than self
 		[x] Patch expands to:
 			[x] Description
 				[-] Clicking opens inline gerrit webview // Not possible because Gerrit doesn't allow iframes or unauthorized fetching of the HTML. (would also be hard with cookies etc).

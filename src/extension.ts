@@ -40,7 +40,7 @@ export async function activate(context: ExtensionContext): Promise<void> {
 
 	// Register tree views
 	context.subscriptions.push(
-		window.createTreeView('changeExplorer', {
+		window.createTreeView('gerrit:changeExplorer', {
 			treeDataProvider: new ChangesTreeProvider(context),
 			showCollapseAll: true,
 		})

@@ -30,7 +30,7 @@
 		[ ] Add "refresh" button
 		[ ] Add "fetch more" button
 		[ ] Mark other owner than self
-		[ ] Patch expands to:
+		[x] Patch expands to:
 			[x] Description
 				[-] Clicking opens inline gerrit webview // Not possible because Gerrit doesn't allow iframes or unauthorized fetching of the HTML. (would also be hard with cookies etc).
 					[ ] Possible future TODO, create custom UI
@@ -42,11 +42,11 @@
 					[x] D (deleted)
 					[x] Double-check standards here
 				[x] Add comment icon that shows whether you (or someone else) commented
-				[ ] RMB:
-					[ ] Open unmodified
-					[ ] Open modified
-					[ ] Open on gerrit
-					[ ] Mark reviewed
+				[x] RMB:
+					[x] Open unmodified
+					[x] Open modified
+					[x] Open on gerrit
+					[-] Mark reviewed
 				[x] What happens when you click:
 					[x] Diff view
 						[-] Highlighting text and pressing "c" creates comment (not possible in VSCode)

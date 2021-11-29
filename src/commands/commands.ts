@@ -9,6 +9,12 @@ import {
 	doneComment,
 	ackComment,
 } from '../providers/commentProvider';
+
+import {
+	openFileOnline,
+	openModified,
+	openOriginal,
+} from '../views/activityBar/changes/changeTreeView/file/openFile';
 import { enterCredentials } from '../lib/credentials';
 import { commands, ExtensionContext } from 'vscode';
 import { checkConnection } from '../lib/gerritAPI';
@@ -26,6 +32,9 @@ export enum GerritExtensionCommands {
 	RESOLVE_COMMENT = 'gerrit.toggleResolvedOn',
 	UNRESOLVE_COMMENT = 'gerrit.toggleResolvedOff',
 	COLLAPSE_ALL_COMMENTS = 'gerrit.collapseAllComments',
+	FILE_OPEN_ONLINE = 'gerrit.openOnline',
+	FILE_OPEN_MODIFIED = 'gerrit.openModified',
+	FILE_OPEN_ORIGINAL = 'gerrit.openOriginal',
 }
 
 export function registerCommands(context: ExtensionContext): void {
@@ -104,6 +113,26 @@ export function registerCommands(context: ExtensionContext): void {
 		commands.registerCommand(
 			GerritExtensionCommands.ACK_COMMENT_THREAD,
 			ackComment
+		)
+	);
+
+	// Opening file
+	context.subscriptions.push(
+		commands.registerCommand(
+			GerritExtensionCommands.FILE_OPEN_ONLINE,
+			openFileOnline
+		)
+	);
+	context.subscriptions.push(
+		commands.registerCommand(
+			GerritExtensionCommands.FILE_OPEN_MODIFIED,
+			openModified
+		)
+	);
+	context.subscriptions.push(
+		commands.registerCommand(
+			GerritExtensionCommands.FILE_OPEN_ORIGINAL,
+			openOriginal
 		)
 	);
 }

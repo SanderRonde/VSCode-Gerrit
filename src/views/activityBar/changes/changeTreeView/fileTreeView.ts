@@ -90,10 +90,21 @@ export class FileTreeView implements TreeItemWithoutChildren {
 		};
 	}
 
+	private _getContextValue(): string {
+		const values: string[] = ['filechange'];
+		if (
+			this.file.status === GerritRevisionFileStatus.RENAMED ||
+			!this.file.status
+		) {
+			values.push('modified');
+		}
+		return values.join('|');
+	}
+
 	public async getItem(): Promise<TreeItem> {
 		return {
 			label: this.filePath,
-			contextValue: 'view-file',
+			contextValue: this._getContextValue(),
 			resourceUri: (await this._getFileUri(this.file)) ?? undefined,
 			iconPath: ThemeIcon.File,
 			command: (await this._createDiffCommand(this.file)) ?? undefined,

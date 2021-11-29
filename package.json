@@ -62,6 +62,18 @@
 				"command": "gerrit.collapseAllComments",
 				"title": "Collapse All Comments",
 				"icon": "$(collapse-all)"
+			},
+			{
+				"command": "gerrit.openOnline",
+				"title": "Open On Gerrit"
+			},
+			{
+				"command": "gerrit.openModified",
+				"title": "Open Modified File"
+			},
+			{
+				"command": "gerrit.openOriginal",
+				"title": "Open Original File"
 			}
 		],
 		"menus": {
@@ -100,6 +112,18 @@
 				},
 				{
 					"command": "gerrit.toggleResolvedOff",
+					"when": "false"
+				},
+				{
+					"command": "gerrit.openOnline",
+					"when": "false"
+				},
+				{
+					"command": "gerrit.openModified",
+					"when": "false"
+				},
+				{
+					"command": "gerrit.openOriginal",
 					"when": "false"
 				}
 			],
@@ -175,6 +199,23 @@
 					"group": "inline@2",
 					"when": "commentController == gerrit && comment =~ /deletable/"
 				}
+			],
+			"view/item/context": [
+				{
+					"command": "gerrit.openOnline",
+					"when": "view == gerrit:changeExplorer && viewItem =~ /filechange/",
+					"group": "open@1"
+				},
+				{
+					"command": "gerrit.openModified",
+					"when": "view == gerrit:changeExplorer && viewItem =~ /filechange/ && viewItem =~ /modified/",
+					"group": "open@2"
+				},
+				{
+					"command": "gerrit.openOriginal",
+					"when": "view == gerrit:changeExplorer && viewItem =~ /filechange/ && viewItem =~ /modified/",
+					"group": "open@3"
+				}
 			]
 		},
 		"viewsContainers": {
@@ -189,14 +230,14 @@
 		"views": {
 			"gerrit": [
 				{
-					"id": "changeExplorer",
+					"id": "gerrit:changeExplorer",
 					"name": "Changes",
 					"type": "tree",
 					"visibility": "visible",
 					"when": "gerrit.isUsingGerrit"
 				},
 				{
-					"id": "review",
+					"id": "gerrit:review",
 					"name": "Review",
 					"type": "tree",
 					"visibility": "visible",

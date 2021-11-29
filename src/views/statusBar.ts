@@ -12,12 +12,12 @@ import { GerritChange } from '../lib/gerritAPI/gerritChange';
 import { getGitAPI, onChangeLastCommit } from '../lib/git';
 import { Commit } from '../types/vscode-extension-git';
 import { GerritAPIWith } from '../lib/gerritAPI/api';
-import { getConfiguration } from '../lib/config';
+import { getAPI } from '../lib/gerritAPI';
 
 async function onStatusBarClick(): Promise<void> {
 	const changeID = await getCurrentChangeID();
-	const url = getConfiguration().get('gerrit.url');
-	if (!changeID || !url) {
+	const api = await getAPI();
+	if (!changeID || !api) {
 		return;
 	}
 
@@ -26,7 +26,7 @@ async function onStatusBarClick(): Promise<void> {
 		return;
 	}
 	await env.openExternal(
-		Uri.parse(`${url}/c/${change.project}/+/${change._number}`)
+		Uri.parse(api.getURL(`c/${change.project}/+/${change._number}`, false))
 	);
 }
 

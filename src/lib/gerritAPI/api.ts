@@ -279,9 +279,10 @@ export class GerritAPI {
 	 * Gets the path to given URL. Note that the trailing slash
 	 * is included.
 	 */
-	public getURL(path: string): string {
+	public getURL(path: string, auth: boolean = true): string {
 		const trailingSlash = this._url.endsWith('/') ? '' : '/';
-		return `${this._url}${trailingSlash}a/${path}`;
+		const authStr = auth ? 'a/' : '';
+		return `${this._url}${trailingSlash}${authStr}${path}`;
 	}
 
 	public async getChange(

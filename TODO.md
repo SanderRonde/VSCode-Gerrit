@@ -32,7 +32,7 @@
 		[ ] Mark other owner than self
 		[ ] Patch expands to:
 			[x] Description
-				[ ] Clicking opens inline gerrit webview
+				[-] Clicking opens inline gerrit webview // Not possible because Gerrit doesn't allow iframes or unauthorized fetching of the HTML. (would also be hard with cookies etc).
 					[ ] Possible future TODO, create custom UI
 			[x] Do something with comments that aren't inside of a file
 			[x] All changed files by path

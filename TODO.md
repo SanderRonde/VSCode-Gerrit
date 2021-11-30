@@ -5,12 +5,13 @@
 [ ] Visual
 	[ ] Patches pane
 		[ ] ... buttons
-			[ ] Allow changing view. Options:
+			[ ] Allow changing view. Presets:
 				[ ] Dashboard
 				[ ] Draft comments
 				[ ] Starred changes
 				[ ] Open
 				[ ] Merged
+				[ ] Or by just changing config in settings
 		[ ] Search bar at the top
 		[x] Show patches under headers with following info:
 			[x] #ID

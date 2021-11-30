@@ -151,7 +151,7 @@ export class ChangeTreeView implements TreeItemWithChildren {
 	}
 
 	public async getItem(): Promise<TreeItem> {
-		const changeNumber = `#${this.change._number}`;
+		const changeNumber = `#${this.change.number}`;
 
 		const owner = await this.change.detailedOwner();
 

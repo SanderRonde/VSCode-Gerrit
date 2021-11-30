@@ -62,7 +62,7 @@ export class PatchSetLevelCommentsTreeView implements TreeItemWithoutChildren {
 	public async getItem(): Promise<TreeItem> {
 		return {
 			label: 'Patch-level comments',
-			tooltip: `View change #${this.change._number}'s patch-level comments`,
+			tooltip: `View change #${this.change.number}'s patch-level comments`,
 			contextValue: 'view-patch-level',
 			iconPath: new ThemeIcon('comment-discussion'),
 			command: (await this._createCommand()) ?? undefined,

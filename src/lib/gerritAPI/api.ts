@@ -8,11 +8,11 @@ import {
 } from './types';
 import { FileCache } from '../../views/activityBar/changes/changeTreeView/file/fileCache';
 import got, { OptionsOfTextResponseBody, Response } from 'got/dist/source';
+import { optionalArrayEntry, optionalObjectProperty } from '../util';
 import { DefaultChangeFilter, GerritChangeFilter } from './filters';
 import { GerritComment, GerritDraftComment } from './gerritComment';
 import { DEBUG_REQUESTS, READONLY_MODE } from '../constants';
 import { FileMeta } from '../../providers/fileProvider';
-import { optionalObjectProperty } from '../util';
 import { getChangeCache } from '../gerritCache';
 import { GerritChange } from './gerritChange';
 import { getConfiguration } from '../config';
@@ -44,6 +44,11 @@ type WithValue<
 
 interface ResponseWithBody<T> extends Response<T> {
 	strippedBody: string;
+}
+
+export interface ChangesOffsetParams {
+	count?: number;
+	offset?: number;
 }
 
 export class GerritAPI {
@@ -163,6 +168,7 @@ export class GerritAPI {
 		}
 
 		const id = this._createRequestID(url, body);
+		console.log(id);
 		if (this._inFlightRequests.has(id)) {
 			return this._inFlightRequests.get(id)!;
 		}
@@ -329,26 +335,36 @@ export class GerritAPI {
 
 	public async getChanges(
 		filters: (DefaultChangeFilter | GerritChangeFilter)[][],
+		offsetParams: ChangesOffsetParams | undefined,
 		...withValues: never[]
 	): Promise<GerritChange[]>;
 	public async getChanges(
 		filters: (DefaultChangeFilter | GerritChangeFilter)[][],
+		offsetParams: ChangesOffsetParams | undefined,
 		...withValues: GerritAPIWith.LABELS[]
 	): Promise<InstanceType<WithValue<typeof GerritChange, 'labels'>>[]>;
 	public async getChanges(
 		filters: (DefaultChangeFilter | GerritChangeFilter)[][],
+		offsetParams: ChangesOffsetParams | undefined,
 		...withValues: GerritAPIWith.DETAILED_LABELS[]
 	): Promise<
 		InstanceType<WithValue<typeof GerritChange, 'detailedLabels'>>[]
 	>;
 	public async getChanges(
 		filters: (DefaultChangeFilter | GerritChangeFilter)[][],
+		offsetParams: ChangesOffsetParams | undefined,
 		...withValues: GerritAPIWith[]
 	): Promise<GerritChange[]>;
 	public async getChanges(
 		filters: (DefaultChangeFilter | GerritChangeFilter)[][],
+		offsetParams: ChangesOffsetParams | undefined,
 		...withValues: GerritAPIWith[]
 	): Promise<GerritChange[]> {
+		console.log(
+			...filters.map((filter) => {
+				return ['q', filter.join(' ')] as [string, string];
+			})
+		);
 		const response = await this._tryRequest(this.getURL('changes/'), {
 			...this._get,
 			searchParams: new URLSearchParams([
@@ -356,6 +372,18 @@ export class GerritAPI {
 					return ['q', filter.join(' ')] as [string, string];
 				}),
 				...withValues.map((v) => ['o', v] as [string, string]),
+				...optionalArrayEntry(
+					typeof offsetParams?.count === 'number',
+					() => [
+						['n', String(offsetParams!.count)] as [string, string],
+					]
+				),
+				...optionalArrayEntry(
+					typeof offsetParams?.offset === 'number',
+					() => [
+						['S', String(offsetParams!.offset)] as [string, string],
+					]
+				),
 			]),
 		});
 

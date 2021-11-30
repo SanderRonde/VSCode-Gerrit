@@ -23,7 +23,7 @@ export async function openFileOnline(treeView: FileTreeView): Promise<void> {
 	await env.openExternal(
 		Uri.parse(
 			api.getURL(
-				`c/${treeView.change.project}/+/${treeView.change._number}/${revisionNumber}/${treeView.file.filePath}`,
+				`c/${treeView.change.project}/+/${treeView.change.number}/${revisionNumber}/${treeView.file.filePath}`,
 				false
 			)
 		)

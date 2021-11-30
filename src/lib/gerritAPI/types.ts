@@ -126,6 +126,7 @@ export interface GerritChangeResponse {
 	current_revision?: string;
 	revisions?: GerritRevisions;
 	owner: GerritUserResponse | GerritDetailedUserResponse;
+	_more_changes?: boolean;
 }
 
 export enum GerritCommentSide {

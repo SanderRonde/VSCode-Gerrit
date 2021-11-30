@@ -15,7 +15,9 @@ import {
 	openModified,
 	openOriginal,
 } from '../views/activityBar/changes/changeTreeView/file/openFile';
+import { fetchMoreTreeItemEntries } from '../views/activityBar/changes/fetchMoreTreeItem';
 import { enterCredentials } from '../lib/credentials';
+import { onStatusBarClick } from '../views/statusBar';
 import { commands, ExtensionContext } from 'vscode';
 import { checkConnection } from '../lib/gerritAPI';
 
@@ -35,6 +37,8 @@ export enum GerritExtensionCommands {
 	FILE_OPEN_ONLINE = 'gerrit.openOnline',
 	FILE_OPEN_MODIFIED = 'gerrit.openModified',
 	FILE_OPEN_ORIGINAL = 'gerrit.openOriginal',
+	FETCH_MORE = 'gerrit.fetchMore',
+	CLICK_STATUSBAR = 'gerrit.changeStatus',
 }
 
 export function registerCommands(context: ExtensionContext): void {
@@ -133,6 +137,22 @@ export function registerCommands(context: ExtensionContext): void {
 		commands.registerCommand(
 			GerritExtensionCommands.FILE_OPEN_ORIGINAL,
 			openOriginal
+		)
+	);
+
+	// Statusbar
+	context.subscriptions.push(
+		commands.registerCommand(
+			GerritExtensionCommands.CLICK_STATUSBAR,
+			onStatusBarClick
+		)
+	);
+
+	// View (dashboard) actions
+	context.subscriptions.push(
+		commands.registerCommand(
+			GerritExtensionCommands.FETCH_MORE,
+			fetchMoreTreeItemEntries
 		)
 	);
 }

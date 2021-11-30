@@ -10,15 +10,19 @@ import {
 import { ExtensionContext, TreeItem, TreeItemCollapsibleState } from 'vscode';
 import { DashboardGroupContainerLike } from './dashboardGroupContainerLike';
 import { GerritChangesView, getConfiguration } from '../../../lib/config';
+import { TreeItemWithChildren, TreeViewItem } from '../treeTypes';
 import { storageGet, StorageScope } from '../../../lib/storage';
-import { TreeItemWithChildren } from '../treeTypes';
+import { ChangesTreeProvider } from '../changes';
 
 export class RootTreeViewProvider
 	extends DashboardGroupContainerLike
 	implements TreeItemWithChildren
 {
-	public constructor(private readonly _context: ExtensionContext) {
-		super();
+	public constructor(
+		protected override readonly _root: ChangesTreeProvider,
+		private readonly _context: ExtensionContext
+	) {
+		super(_root, true);
 	}
 
 	private _getCollapseState(
@@ -34,6 +38,7 @@ export class RootTreeViewProvider
 	private _getDashboard(): DashboardGroupContainer[] {
 		return [
 			new DashboardGroupContainer(
+				this._root,
 				DashboardGroupContainerGroup.YOUR_TURN,
 				this._getCollapseState(
 					storageGet(
@@ -45,6 +50,7 @@ export class RootTreeViewProvider
 				)
 			),
 			new DashboardGroupContainer(
+				this._root,
 				DashboardGroupContainerGroup.WIP,
 				this._getCollapseState(
 					storageGet(
@@ -56,6 +62,7 @@ export class RootTreeViewProvider
 				)
 			),
 			new DashboardGroupContainer(
+				this._root,
 				DashboardGroupContainerGroup.OUTGOING_REVIEWS,
 				this._getCollapseState(
 					storageGet(
@@ -67,6 +74,7 @@ export class RootTreeViewProvider
 				)
 			),
 			new DashboardGroupContainer(
+				this._root,
 				DashboardGroupContainerGroup.INCOMING_REVIEWS,
 				this._getCollapseState(
 					storageGet(
@@ -78,6 +86,7 @@ export class RootTreeViewProvider
 				)
 			),
 			new DashboardGroupContainer(
+				this._root,
 				DashboardGroupContainerGroup.CCED_ON,
 				this._getCollapseState(
 					storageGet(
@@ -89,6 +98,7 @@ export class RootTreeViewProvider
 				)
 			),
 			new DashboardGroupContainer(
+				this._root,
 				DashboardGroupContainerGroup.RECENTLY_CLOSED,
 				this._getCollapseState(
 					storageGet(
@@ -137,7 +147,7 @@ export class RootTreeViewProvider
 		return [];
 	}
 
-	public override async getChildren(): Promise<TreeItemWithChildren[]> {
+	public override async getChildren(): Promise<TreeViewItem[]> {
 		const config = getConfiguration().get(
 			'gerrit.changesView',
 			GerritChangesView.DASHBOARD

@@ -7,12 +7,12 @@ import {
 } from './types';
 import { DefaultChangeFilter, GerritChangeFilter } from './filters';
 import { GerritComment, GerritDraftComment } from './gerritComment';
+import { ChangesOffsetParams, GerritAPIWith } from './api';
 import { GerritRevision } from './gerritRevision';
 import { DynamicallyFetchable } from './shared';
 import { getChangeCache } from '../gerritCache';
 import { GerritCommit } from './gerritCommit';
 import { GerritUser } from './gerritUser';
-import { GerritAPIWith } from './api';
 import { getAPI } from '../gerritAPI';
 
 export type CommentMap = Map<string, (GerritComment | GerritDraftComment)[]>;
@@ -32,9 +32,10 @@ export class GerritChange extends DynamicallyFetchable {
 	public mergeable: boolean;
 	public insertions: number;
 	public deletions: number;
-	public _number: number;
-	public work_in_progress?: boolean;
+	public number: number;
+	public workInProgress?: boolean;
 	public owner: GerritUserResponse;
+	public moreChanges: boolean;
 
 	// Ideally this would be private but in order to make the typing
 	// below work we use public
@@ -58,9 +59,10 @@ export class GerritChange extends DynamicallyFetchable {
 		this.mergeable = response.mergeable;
 		this.insertions = response.insertions;
 		this.deletions = response.deletions;
-		this._number = response._number;
-		this.work_in_progress = response.work_in_progress;
+		this.number = response._number;
+		this.workInProgress = response.work_in_progress;
 		this.owner = response.owner;
+		this.moreChanges = response._more_changes ?? false;
 		this._currentRevision = response.current_revision ?? null;
 
 		if (response.labels) {
@@ -134,6 +136,7 @@ export class GerritChange extends DynamicallyFetchable {
 	 */
 	public static async getChanges(
 		filters: (DefaultChangeFilter | GerritChangeFilter)[][],
+		offset: ChangesOffsetParams,
 		...withValues: GerritAPIWith[]
 	): Promise<GerritChange[]> {
 		const api = await getAPI();
@@ -141,7 +144,7 @@ export class GerritChange extends DynamicallyFetchable {
 			return [] as GerritChange[];
 		}
 
-		return await api.getChanges(filters, ...withValues);
+		return await api.getChanges(filters, offset, ...withValues);
 	}
 
 	public static async getChange(

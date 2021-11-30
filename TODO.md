@@ -27,7 +27,7 @@
 			[ ] Notify when verified by administrator?
 		[ ] Add "refresh" button
 			[ ] Periodically refresh
-		[ ] Add "fetch more" button
+		[x] Add "fetch more" button
 		[x] Patch expands to:
 			[x] Description
 				[-] Clicking opens inline gerrit webview // Not possible because Gerrit doesn't allow iframes or unauthorized fetching of the HTML. (would also be hard with cookies etc).

@@ -74,6 +74,10 @@
 			{
 				"command": "gerrit.openOriginal",
 				"title": "Open Original File"
+			},
+			{
+				"command": "gerrit.fetchMore",
+				"title": "Fetch More"
 			}
 		],
 		"menus": {
@@ -124,6 +128,10 @@
 				},
 				{
 					"command": "gerrit.openOriginal",
+					"when": "false"
+				},
+				{
+					"command": "gerrit.fetchMore",
 					"when": "false"
 				}
 			],

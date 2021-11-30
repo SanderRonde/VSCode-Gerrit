@@ -1,13 +1,12 @@
 import {
-	age,
 	DefaultChangeFilter,
 	filterOr,
 	GerritChangeFilter,
-	invert,
 } from '../../../lib/gerritAPI/filters';
 import { DashboardGroupContainerLike } from './dashboardGroupContainerLike';
 import { TreeItem, TreeItemCollapsibleState } from 'vscode';
 import { TreeItemWithChildren } from '../treeTypes';
+import { ChangesTreeProvider } from '../changes';
 
 export enum DashboardGroupContainerGroup {
 	YOUR_TURN = 'Your Turn',
@@ -23,10 +22,11 @@ export class DashboardGroupContainer
 	implements TreeItemWithChildren
 {
 	public constructor(
+		root: ChangesTreeProvider,
 		private readonly _groupName: DashboardGroupContainerGroup,
 		private readonly _collapsibleState: TreeItemCollapsibleState
 	) {
-		super();
+		super(root, false);
 	}
 
 	protected getDefaultLimit(): number {
@@ -84,7 +84,6 @@ export class DashboardGroupContainer
 						DefaultChangeFilter.ASSIGNEE_SELF,
 						DefaultChangeFilter.CC_SELF
 					),
-					invert(age('4w')),
 				];
 		}
 	}

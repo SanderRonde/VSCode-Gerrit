@@ -1,9 +1,22 @@
-import { ExtensionContext, TreeDataProvider, TreeItem } from 'vscode';
+import {
+	Event,
+	EventEmitter,
+	ExtensionContext,
+	TreeDataProvider,
+	TreeItem,
+} from 'vscode';
 import { RootTreeViewProvider } from './changes/rootTreeView';
 import { TreeViewItem } from './treeTypes';
 
 export class ChangesTreeProvider implements TreeDataProvider<TreeViewItem> {
-	private _rootViewProvider = new RootTreeViewProvider(this._context);
+	private _rootViewProvider = new RootTreeViewProvider(this, this._context);
+
+	public onDidChangeTreeDataEmitter: EventEmitter<
+		TreeViewItem | undefined | null | void
+	> = new EventEmitter<TreeViewItem | undefined | null | void>();
+	public readonly onDidChangeTreeData: Event<
+		TreeViewItem | undefined | null | void
+	> = this.onDidChangeTreeDataEmitter.event;
 
 	public constructor(private readonly _context: ExtensionContext) {}
 

@@ -1,6 +1,5 @@
 import {
 	ExtensionContext,
-	commands,
 	window,
 	StatusBarAlignment,
 	StatusBarItem,
@@ -8,13 +7,14 @@ import {
 	Uri,
 } from 'vscode';
 import { isGerritCommit, getCurrentChangeID, getChangeID } from '../lib/commit';
+import { GerritExtensionCommands } from '../commands/commands';
 import { GerritChange } from '../lib/gerritAPI/gerritChange';
 import { getGitAPI, onChangeLastCommit } from '../lib/git';
 import { Commit } from '../types/vscode-extension-git';
 import { GerritAPIWith } from '../lib/gerritAPI/api';
 import { getAPI } from '../lib/gerritAPI';
 
-async function onStatusBarClick(): Promise<void> {
+export async function onStatusBarClick(): Promise<void> {
 	const changeID = await getCurrentChangeID();
 	const api = await getAPI();
 	if (!changeID || !api) {
@@ -26,7 +26,7 @@ async function onStatusBarClick(): Promise<void> {
 		return;
 	}
 	await env.openExternal(
-		Uri.parse(api.getURL(`c/${change.project}/+/${change._number}`, false))
+		Uri.parse(api.getURL(`c/${change.project}/+/${change.number}`, false))
 	);
 }
 
@@ -52,8 +52,8 @@ async function updateStatusBarState(
 
 	const owner = await change.detailedOwner();
 	const ownerName = owner?.getName();
-	statusBar.text = `$(git-commit) #${change._number}`;
-	statusBar.tooltip = `#${change._number}: ${change.subject}\n${
+	statusBar.text = `$(git-commit) #${change.number}`;
+	statusBar.tooltip = `#${change.number}: ${change.subject}\n${
 		ownerName ? `By ${ownerName} - ` : ''
 	}Click to view online`;
 	statusBar.show();
@@ -62,13 +62,8 @@ async function updateStatusBarState(
 export async function showStatusBarIcon(
 	context: ExtensionContext
 ): Promise<void> {
-	const statusBarCommand = 'gerrit.changeStatus';
-	context.subscriptions.push(
-		commands.registerCommand(statusBarCommand, onStatusBarClick)
-	);
-
 	const statusBar = window.createStatusBarItem(StatusBarAlignment.Left);
-	statusBar.command = statusBarCommand;
+	statusBar.command = GerritExtensionCommands.CLICK_STATUSBAR;
 
 	const gitAPI = getGitAPI();
 	if (!gitAPI) {

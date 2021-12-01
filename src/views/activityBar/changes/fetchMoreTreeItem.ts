@@ -1,7 +1,7 @@
-import { DashboardGroupContainerLike } from './dashboardGroupContainerLike';
 import { GerritExtensionCommands } from '../../../commands/commands';
 import { TreeItemWithoutChildren } from '../treeTypes';
 import { Command, ThemeIcon, TreeItem } from 'vscode';
+import { ViewPanel } from './viewPanel';
 
 export enum DashboardGroupContainerGroup {
 	YOUR_TURN = 'Your Turn',
@@ -12,15 +12,12 @@ export enum DashboardGroupContainerGroup {
 	RECENTLY_CLOSED = 'Recently closed',
 }
 
-export function fetchMoreTreeItemEntries(
-	group: DashboardGroupContainerLike
-): void {
-	console.log('fetching more');
+export function fetchMoreTreeItemEntries(group: ViewPanel): void {
 	group.fetchMore();
 }
 
 export class FetchMoreTreeItem implements TreeItemWithoutChildren {
-	public constructor(private readonly _parent: DashboardGroupContainerLike) {}
+	public constructor(private readonly _parent: ViewPanel) {}
 
 	private _getCommand(): Command {
 		return {

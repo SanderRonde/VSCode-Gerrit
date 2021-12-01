@@ -15,6 +15,10 @@ import {
 	openModified,
 	openOriginal,
 } from '../views/activityBar/changes/changeTreeView/file/openFile';
+import {
+	configureChangeLists,
+	refreshChanges,
+} from '../views/activityBar/changes/changeCommands';
 import { fetchMoreTreeItemEntries } from '../views/activityBar/changes/fetchMoreTreeItem';
 import { enterCredentials } from '../lib/credentials';
 import { onStatusBarClick } from '../views/statusBar';
@@ -39,6 +43,8 @@ export enum GerritExtensionCommands {
 	FILE_OPEN_ORIGINAL = 'gerrit.openOriginal',
 	FETCH_MORE = 'gerrit.fetchMore',
 	CLICK_STATUSBAR = 'gerrit.changeStatus',
+	REFRESH_CHANGES = 'gerrit.refreshChanges',
+	CONFIGURE_CHANGE_LIST = 'gerrit.configureChangeList',
 }
 
 export function registerCommands(context: ExtensionContext): void {
@@ -153,6 +159,18 @@ export function registerCommands(context: ExtensionContext): void {
 		commands.registerCommand(
 			GerritExtensionCommands.FETCH_MORE,
 			fetchMoreTreeItemEntries
+		)
+	);
+	context.subscriptions.push(
+		commands.registerCommand(
+			GerritExtensionCommands.REFRESH_CHANGES,
+			refreshChanges
+		)
+	);
+	context.subscriptions.push(
+		commands.registerCommand(
+			GerritExtensionCommands.CONFIGURE_CHANGE_LIST,
+			configureChangeLists
 		)
 	);
 }

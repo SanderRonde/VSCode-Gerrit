@@ -15,7 +15,7 @@ import { storageInit } from './lib/storage';
 
 export async function activate(context: ExtensionContext): Promise<void> {
 	// Initially hide icon
-	await setContextProp('gerrit.isUsingGerrit', false);
+	await setContextProp('gerrit:isUsingGerrit', false);
 
 	// Init storage
 	storageInit(context);
@@ -30,7 +30,7 @@ export async function activate(context: ExtensionContext): Promise<void> {
 	const usesGerrit = await isUsingGerrit();
 
 	// Set context to show/hide icon
-	await setContextProp('gerrit.isUsingGerrit', usesGerrit);
+	await setContextProp('gerrit:isUsingGerrit', usesGerrit);
 	if (!usesGerrit) {
 		return;
 	}
@@ -41,7 +41,7 @@ export async function activate(context: ExtensionContext): Promise<void> {
 	// Register tree views
 	context.subscriptions.push(
 		window.createTreeView('gerrit:changeExplorer', {
-			treeDataProvider: new ChangesTreeProvider(context),
+			treeDataProvider: new ChangesTreeProvider(),
 			showCollapseAll: true,
 		})
 	);

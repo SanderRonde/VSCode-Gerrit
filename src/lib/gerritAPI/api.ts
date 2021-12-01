@@ -168,7 +168,6 @@ export class GerritAPI {
 		}
 
 		const id = this._createRequestID(url, body);
-		console.log(id);
 		if (this._inFlightRequests.has(id)) {
 			return this._inFlightRequests.get(id)!;
 		}
@@ -182,7 +181,8 @@ export class GerritAPI {
 
 	private async _tryRequest(
 		url: string,
-		body?: OptionsOfTextResponseBody
+		body?: OptionsOfTextResponseBody,
+		onError?: (code: number, body: string) => void | Promise<void>
 	): Promise<(Response<string> & { strippedBody: string }) | null> {
 		if (READONLY_MODE && body?.method !== 'GET') {
 			await window.showErrorMessage(
@@ -199,16 +199,26 @@ export class GerritAPI {
 			response.strippedBody = this._stripMagicPrefix(response.body);
 			return response;
 		} catch (e) {
+			const err = e as {
+				response: {
+					body: string;
+					statusCode: number;
+				};
+			};
 			if (DEBUG_REQUESTS) {
 				console.log(
-					e,
-					(e as { response: string }).response,
-					(e as { response?: { body: string } }).response?.body
+					err.response.statusCode,
+					err.response,
+					err.response.body
 				);
 			}
-			await window.showErrorMessage(
-				`Gerrit request to "${url}" failed. Please check your settings and/or connection`
-			);
+			if (onError) {
+				await onError(err.response.statusCode, err.response.body);
+			} else {
+				await window.showErrorMessage(
+					`Gerrit request to "${url}" failed. Please check your settings and/or connection`
+				);
+			}
 			return null;
 		}
 	}
@@ -336,16 +346,25 @@ export class GerritAPI {
 	public async getChanges(
 		filters: (DefaultChangeFilter | GerritChangeFilter)[][],
 		offsetParams: ChangesOffsetParams | undefined,
+		onError:
+			| undefined
+			| ((code: number, body: string) => void | Promise<void>),
 		...withValues: never[]
 	): Promise<GerritChange[]>;
 	public async getChanges(
 		filters: (DefaultChangeFilter | GerritChangeFilter)[][],
 		offsetParams: ChangesOffsetParams | undefined,
+		onError:
+			| undefined
+			| ((code: number, body: string) => void | Promise<void>),
 		...withValues: GerritAPIWith.LABELS[]
 	): Promise<InstanceType<WithValue<typeof GerritChange, 'labels'>>[]>;
 	public async getChanges(
 		filters: (DefaultChangeFilter | GerritChangeFilter)[][],
 		offsetParams: ChangesOffsetParams | undefined,
+		onError:
+			| undefined
+			| ((code: number, body: string) => void | Promise<void>),
 		...withValues: GerritAPIWith.DETAILED_LABELS[]
 	): Promise<
 		InstanceType<WithValue<typeof GerritChange, 'detailedLabels'>>[]
@@ -353,39 +372,50 @@ export class GerritAPI {
 	public async getChanges(
 		filters: (DefaultChangeFilter | GerritChangeFilter)[][],
 		offsetParams: ChangesOffsetParams | undefined,
+		onError:
+			| undefined
+			| ((code: number, body: string) => void | Promise<void>),
 		...withValues: GerritAPIWith[]
 	): Promise<GerritChange[]>;
 	public async getChanges(
 		filters: (DefaultChangeFilter | GerritChangeFilter)[][],
 		offsetParams: ChangesOffsetParams | undefined,
+		onError:
+			| undefined
+			| ((code: number, body: string) => void | Promise<void>),
 		...withValues: GerritAPIWith[]
 	): Promise<GerritChange[]> {
-		console.log(
-			...filters.map((filter) => {
-				return ['q', filter.join(' ')] as [string, string];
-			})
+		const response = await this._tryRequest(
+			this.getURL('changes/'),
+			{
+				...this._get,
+				searchParams: new URLSearchParams([
+					...filters.map((filter) => {
+						return ['q', filter.join(' ')] as [string, string];
+					}),
+					...withValues.map((v) => ['o', v] as [string, string]),
+					...optionalArrayEntry(
+						typeof offsetParams?.count === 'number',
+						() => [
+							['n', String(offsetParams!.count)] as [
+								string,
+								string
+							],
+						]
+					),
+					...optionalArrayEntry(
+						typeof offsetParams?.offset === 'number',
+						() => [
+							['S', String(offsetParams!.offset)] as [
+								string,
+								string
+							],
+						]
+					),
+				]),
+			},
+			onError
 		);
-		const response = await this._tryRequest(this.getURL('changes/'), {
-			...this._get,
-			searchParams: new URLSearchParams([
-				...filters.map((filter) => {
-					return ['q', filter.join(' ')] as [string, string];
-				}),
-				...withValues.map((v) => ['o', v] as [string, string]),
-				...optionalArrayEntry(
-					typeof offsetParams?.count === 'number',
-					() => [
-						['n', String(offsetParams!.count)] as [string, string],
-					]
-				),
-				...optionalArrayEntry(
-					typeof offsetParams?.offset === 'number',
-					() => [
-						['S', String(offsetParams!.offset)] as [string, string],
-					]
-				),
-			]),
-		});
 
 		const json = this._handleResponse<GerritChangeResponse[]>(response);
 		if (!json) {

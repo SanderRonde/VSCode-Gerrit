@@ -9,7 +9,7 @@ export async function enterCredentials(): Promise<void> {
 	const urlStep = new MultiStepEntry({
 		placeHolder: 'http://gerrithost.com',
 		prompt: 'Enter the URL of your Gerrit server',
-		value: config.get('gerrit.url'),
+		value: config.get('gerrit.auth.url'),
 		validate: async (url: string) => {
 			try {
 				await got(url);
@@ -25,7 +25,7 @@ export async function enterCredentials(): Promise<void> {
 	const usernameStep = new MultiStepEntry({
 		placeHolder: 'myuser',
 		prompt: 'Enter your Gerrit username',
-		value: config.get('gerrit.username'),
+		value: config.get('gerrit.auth.username'),
 	});
 	const passwordStep = new MultiStepEntry({
 		placeHolder: 'password',
@@ -33,7 +33,7 @@ export async function enterCredentials(): Promise<void> {
 			`Enter your Gerrit password (see ${
 				stepper.values[0] ?? 'www.yourgerrithost.com'
 			}/settings/#HTTPCredentials)`,
-		value: config.get('gerrit.password'),
+		value: config.get('gerrit.auth.password'),
 		isPassword: true,
 		validate: async (password, stepper) => {
 			const [url, username] = stepper.values;
@@ -74,8 +74,16 @@ export async function enterCredentials(): Promise<void> {
 
 	const [url, username, password] = result;
 	await Promise.all([
-		config.update('gerrit.url', url, ConfigurationTarget.Global),
-		config.update('gerrit.username', username, ConfigurationTarget.Global),
-		config.update('gerrit.password', password, ConfigurationTarget.Global),
+		config.update('gerrit.auth.url', url, ConfigurationTarget.Global),
+		config.update(
+			'gerrit.auth.username',
+			username,
+			ConfigurationTarget.Global
+		),
+		config.update(
+			'gerrit.auth.password',
+			password,
+			ConfigurationTarget.Global
+		),
 	]);
 }

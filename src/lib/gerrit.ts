@@ -21,16 +21,16 @@ export async function isUsingGerrit(): Promise<boolean> {
 
 	const repo = gitAPI.repositories[0];
 
-	// Get the last commit and check if it's a gerrit one
-	const lastCommit = (await repo.log({ maxEntries: 1 }))[0];
+	// Get the last 2 commits and check there's it's a gerrit one
+	const lastCommit = await repo.log({ maxEntries: 2 });
 
-	if (!lastCommit) {
+	if (lastCommit.length === 0) {
 		log('No commits found, exiting.');
 		return false;
 	}
 
-	if (!isGerritCommit(lastCommit)) {
-		log('Last commit is not a gerrit commit, exiting.');
+	if (lastCommit.some((c) => !isGerritCommit(c))) {
+		log('No gerrit commits found in last 2 commits, exiting.');
 		return false;
 	}
 

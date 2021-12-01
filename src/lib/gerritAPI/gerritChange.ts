@@ -137,6 +137,9 @@ export class GerritChange extends DynamicallyFetchable {
 	public static async getChanges(
 		filters: (DefaultChangeFilter | GerritChangeFilter)[][],
 		offset: ChangesOffsetParams,
+		onError:
+			| undefined
+			| ((code: number, body: string) => void | Promise<void>),
 		...withValues: GerritAPIWith[]
 	): Promise<GerritChange[]> {
 		const api = await getAPI();
@@ -144,7 +147,7 @@ export class GerritChange extends DynamicallyFetchable {
 			return [] as GerritChange[];
 		}
 
-		return await api.getChanges(filters, offset, ...withValues);
+		return await api.getChanges(filters, offset, onError, ...withValues);
 	}
 
 	public static async getChange(

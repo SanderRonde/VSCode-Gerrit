@@ -21,7 +21,6 @@ import { DateSortDirection, DateTime } from '../lib/dateTime';
 import { GerritChange } from '../lib/gerritAPI/gerritChange';
 import { GerritCommentSide } from '../lib/gerritAPI/types';
 import { GerritCommentThread } from './comments/thread';
-import { OnceDisposable } from '../lib/onceDisposable';
 import { FileMetaWithSide } from './fileProvider';
 import { uniqueComplex } from '../lib/util';
 
@@ -40,18 +39,14 @@ interface GerritCommentThreadProps {
 	comments: GerritCommentBase[];
 }
 
-export class DocumentCommentManager extends OnceDisposable {
-	public static _lastThreadID = 0;
-
+export class DocumentCommentManager {
 	private _threadMap: Map<string, GerritCommentThread> = new Map();
 	private _threadLineCount: Map<number, number> = new Map();
 
 	public constructor(
 		private readonly document: Uri,
 		private readonly commentController: CommentController
-	) {
-		super();
-	}
+	) {}
 
 	public static getCommentRange(
 		comment: Readonly<GerritCommentBase>
@@ -150,10 +145,7 @@ export class DocumentCommentManager extends OnceDisposable {
 			);
 		}
 		for (const thread of threads) {
-			const commentThread = this.createCommentThread(thread);
-			if (commentThread) {
-				this.registerComments(commentThread, ...comments);
-			}
+			this.createCommentThread(thread);
 		}
 		return this;
 	}
@@ -165,12 +157,6 @@ export class DocumentCommentManager extends OnceDisposable {
 		for (const comment of comments) {
 			this._threadMap.set(comment.id, thread);
 			comment.thread = thread;
-		}
-	}
-
-	public registerNewThread(thread: GerritCommentThread): void {
-		for (const comment of thread.comments) {
-			this._threadMap.set(comment.id, thread);
 		}
 	}
 
@@ -206,10 +192,7 @@ export class DocumentCommentManager extends OnceDisposable {
 		[...this._threadMap.values()].forEach((thread) => thread.collapse());
 	}
 
-	public override dispose(): void {
-		if (!super.dispose()) {
-			return;
-		}
+	public dispose(): void {
 		for (const thread of this._threadMap.values()) {
 			thread.dispose();
 		}
@@ -242,12 +225,12 @@ export class CommentManager {
 				if (this._commentManagers.has(key)) {
 					this._commentManagers.get(key)!.dispose();
 					this._commentManagers.delete(key);
+					this._commentManagersByFilePath.delete(meta.filePath);
 				}
 			})
 		);
 		this._commentController.commentingRangeProvider = {
 			provideCommentingRanges: (document) => {
-				// TODO: maybe do this when checked out as well?
 				const meta = FileMetaWithSide.tryFrom(document.uri);
 				if (meta) {
 					const lineCount = document.lineCount;

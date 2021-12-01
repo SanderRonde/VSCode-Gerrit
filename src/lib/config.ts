@@ -13,11 +13,26 @@ export enum GerritChangesView {
 	STARRED = 'starred',
 }
 
+export interface ChangesPanel {
+	title: string;
+	refreshInterval?: number;
+	defaultCollapsed?: boolean;
+	initialFetchCount?: number;
+	extraEntriesFetchCount?: number;
+	filters: string[];
+}
+
+export interface ChangesView {
+	title: string;
+	panels: ChangesPanel[];
+}
+
 interface ConfigSettings {
-	'gerrit.url': string;
-	'gerrit.username': string;
-	'gerrit.password': string;
-	'gerrit.changesView': GerritChangesView;
+	'gerrit.auth.url': string;
+	'gerrit.auth.username': string;
+	'gerrit.auth.password': string;
+	'gerrit.selectedView': string;
+	'gerrit.changesViews': ChangesView[];
 	'gerrit.allowInvalidSSLCerts': boolean;
 }
 

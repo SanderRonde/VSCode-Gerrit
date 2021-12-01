@@ -5,14 +5,8 @@ export enum StorageScope {
 	GLOBAL,
 }
 
-interface StorageObj {
-	'activityBar.changes.yourTurn.collapsed': boolean;
-	'activityBar.changes.wip.collapsed': boolean;
-	'activityBar.changes.outgoing.collapsed': boolean;
-	'activityBar.changes.incoming.collapsed': boolean;
-	'activityBar.changes.cced.collapsed': boolean;
-	'activityBar.changes.recentlyClosed.collapsed': boolean;
-}
+// eslint-disable-next-line @typescript-eslint/no-empty-interface
+interface StorageObj {}
 
 const SYNC_KEYS: (keyof StorageObj)[] = [] as (keyof StorageObj)[];
 

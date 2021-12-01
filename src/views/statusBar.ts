@@ -39,7 +39,9 @@ async function updateStatusBarState(
 	}
 	const changeID = getChangeID(lastCommit);
 	if (!changeID) {
-		return statusBar.hide();
+		statusBar.text = '$(git-commit) unpublished change';
+		statusBar.tooltip = 'Unpublished gerrit change, no ChangeID set';
+		return statusBar.show();
 	}
 
 	const change = await GerritChange.getChangeCached(

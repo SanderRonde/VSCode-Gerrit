@@ -78,6 +78,16 @@
 			{
 				"command": "gerrit.fetchMore",
 				"title": "Fetch More"
+			},
+			{
+				"command": "gerrit.refreshChanges",
+				"title": "Refresh changes",
+				"icon": "$(refresh)"
+			},
+			{
+				"command": "gerrit.configureChangeList",
+				"title": "Configure filters",
+				"icon": "$(gear)"
 			}
 		],
 		"menus": {
@@ -133,6 +143,14 @@
 				{
 					"command": "gerrit.fetchMore",
 					"when": "false"
+				},
+				{
+					"command": "gerrit.refreshChanges",
+					"when": "gerrit:connected"
+				},
+				{
+					"command": "gerrit.configureChangeList",
+					"when": "true"
 				}
 			],
 			"comments/comment/context": [
@@ -224,6 +242,18 @@
 					"when": "view == gerrit:changeExplorer && viewItem =~ /filechange/ && viewItem =~ /modified/",
 					"group": "open@3"
 				}
+			],
+			"view/title": [
+				{
+					"command": "gerrit.refreshChanges",
+					"when": "gerrit:connected && view == gerrit:changeExplorer",
+					"group": "navigation@2"
+				},
+				{
+					"command": "gerrit.configureChangeList",
+					"when": "view == gerrit:changeExplorer",
+					"group": "navigation@1"
+				}
 			]
 		},
 		"viewsContainers": {
@@ -242,14 +272,14 @@
 					"name": "Changes",
 					"type": "tree",
 					"visibility": "visible",
-					"when": "gerrit.isUsingGerrit"
+					"when": "gerrit:isUsingGerrit"
 				},
 				{
 					"id": "gerrit:review",
 					"name": "Review",
 					"type": "tree",
 					"visibility": "visible",
-					"when": "gerrit.isUsingGerrit && (gerrit.changes.checkedOut || gerrit.changes.reviewing)"
+					"when": "gerrit:isUsingGerrit && (gerrit.changes.checkedOut || gerrit.changes.reviewing)"
 				}
 			]
 		},
@@ -257,29 +287,321 @@
 			"type": "object",
 			"title": "Gerrit configuration",
 			"properties": {
-				"gerrit.username": {
+				"gerrit.auth.username": {
 					"type": "string",
 					"title": "Gerrit username"
 				},
-				"gerrit.password": {
+				"gerrit.auth.password": {
 					"type": "string",
 					"title": "Gerrit password (see https://{your_gerit_host}/settings/#HTTPCredentials)"
 				},
-				"gerrit.url": {
+				"gerrit.auth.url": {
 					"type": "string",
 					"title": "URL of the gerrit server to use"
 				},
-				"gerrit.changesView": {
+				"gerrit.selectedView": {
 					"type": "string",
-					"enum": [
-						"dashboard",
-						"my changes",
-						"draft",
-						"watched",
-						"starred"
-					],
 					"title": "Active changes view",
-					"default": "dashboard"
+					"description": "Active changes view, one of the titles in \"gerrit.changesViews\"",
+					"default": "Dashboard"
+				},
+				"gerrit.changesViews": {
+					"type": "array",
+					"title": "Changes views",
+					"description": "A set of changes views. You can choose the currently selected view in the CHANGES view",
+					"minItems": 1,
+					"items": {
+						"type": "object",
+						"title": "View",
+						"description": "A single changes view similar to your Gerrit dashboard",
+						"required": [
+							"title",
+							"panels"
+						],
+						"properties": {
+							"title": {
+								"type": "string",
+								"description": "Name of this view"
+							},
+							"panels": {
+								"type": "array",
+								"title": "Panels",
+								"description": "Panels in a changes view",
+								"items": {
+									"type": "object",
+									"title": "Pane",
+									"description": "One pane in the changes view. These can be collapsed or expanded",
+									"required": [
+										"title",
+										"filters"
+									],
+									"properties": {
+										"title": {
+											"type": "string",
+											"title": "Title of the pane"
+										},
+										"refreshInterval": {
+											"type": "number",
+											"title": "Refresh interval (in seconds)",
+											"description": "Interval at which the entire pane is refreshed. Use 0 for no auto-refreshing",
+											"default": 300
+										},
+										"defaultCollapsed": {
+											"type": "boolean",
+											"title": "Whether this pane should be collapsed by default",
+											"default": false
+										},
+										"initialFetchCount": {
+											"type": "number",
+											"title": "Fetch count",
+											"description": "How many entries to fetch initially",
+											"default": 25
+										},
+										"extraEntriesFetchCount": {
+											"type": "number",
+											"title": "Extra entries to fetch",
+											"description": "Extra entries to fetch on clicking \"fetch more\"",
+											"default": 25
+										},
+										"filters": {
+											"type": "array",
+											"title": "Filters",
+											"description": "Filters to apply to the search, see [Gerrit docs](https://gerrit-review.googlesource.com/Documentation/user-search.html)",
+											"minItems": 1,
+											"items": {
+												"type": "string",
+												"title": "Filter",
+												"description": "Gerrit filter to use. See [Gerrit docs](https://gerrit-review.googlesource.com/Documentation/user-search.html)"
+											},
+											"default": [
+												"is:open",
+												"owner:self"
+											]
+										}
+									},
+									"examples": [
+										{
+											"title": "Your Turn",
+											"refreshInterval": 300,
+											"defaultCollapsed": false,
+											"initialFetchCount": 25,
+											"extraEntriesFetchCount": 25,
+											"filters": [
+												"attention:self"
+											]
+										},
+										{
+											"title": "Work In Progress",
+											"refreshInterval": 300,
+											"defaultCollapsed": false,
+											"initialFetchCount": 25,
+											"extraEntriesFetchCount": 25,
+											"filters": [
+												"is:open",
+												"owner:self",
+												"is:wip"
+											]
+										},
+										{
+											"title": "Outgoing Reviews",
+											"refreshInterval": 300,
+											"defaultCollapsed": false,
+											"initialFetchCount": 25,
+											"extraEntriesFetchCount": 25,
+											"filters": [
+												"is:open",
+												"owner:self",
+												"-is:wip",
+												"-is:ignored"
+											]
+										},
+										{
+											"title": "Incoming Reviews",
+											"refreshInterval": 300,
+											"defaultCollapsed": false,
+											"initialFetchCount": 25,
+											"extraEntriesFetchCount": 25,
+											"filters": [
+												"is:open",
+												"-owner:self",
+												"-is:wip",
+												"-is:ignored",
+												"reviewer:self OR assignee:self"
+											]
+										},
+										{
+											"title": "CCed on",
+											"refreshInterval": 300,
+											"defaultCollapsed": false,
+											"initialFetchCount": 25,
+											"extraEntriesFetchCount": 25,
+											"filters": [
+												"is:open",
+												"-is:ignored",
+												"cc:self"
+											]
+										},
+										{
+											"title": "Recently Closed",
+											"refreshInterval": 1500,
+											"defaultCollapsed": true,
+											"initialFetchCount": 10,
+											"extraEntriesFetchCount": 25,
+											"filters": [
+												"is:closed",
+												"-is:ignored",
+												"-is:wip OR owner:self",
+												"owner:self OR reviewer:self OR assignee:self OR cc:self"
+											]
+										}
+									]
+								}
+							}
+						}
+					},
+					"default": [
+						{
+							"title": "Dashboard",
+							"panels": [
+								{
+									"title": "Your Turn",
+									"refreshInterval": 300,
+									"defaultCollapsed": false,
+									"initialFetchCount": 25,
+									"extraEntriesFetchCount": 25,
+									"filters": [
+										"attention:self"
+									]
+								},
+								{
+									"title": "Work In Progress",
+									"refreshInterval": 300,
+									"defaultCollapsed": false,
+									"initialFetchCount": 25,
+									"extraEntriesFetchCount": 25,
+									"filters": [
+										"is:open",
+										"owner:self",
+										"is:wip"
+									]
+								},
+								{
+									"title": "Outgoing Reviews",
+									"refreshInterval": 300,
+									"defaultCollapsed": false,
+									"initialFetchCount": 25,
+									"extraEntriesFetchCount": 25,
+									"filters": [
+										"is:open",
+										"owner:self",
+										"-is:wip",
+										"-is:ignored"
+									]
+								},
+								{
+									"title": "Incoming Reviews",
+									"refreshInterval": 300,
+									"defaultCollapsed": false,
+									"initialFetchCount": 25,
+									"extraEntriesFetchCount": 25,
+									"filters": [
+										"is:open",
+										"-owner:self",
+										"-is:wip",
+										"-is:ignored",
+										"reviewer:self OR assignee:self"
+									]
+								},
+								{
+									"title": "CCed on",
+									"refreshInterval": 300,
+									"defaultCollapsed": false,
+									"initialFetchCount": 25,
+									"extraEntriesFetchCount": 25,
+									"filters": [
+										"is:open",
+										"-is:ignored",
+										"cc:self"
+									]
+								},
+								{
+									"title": "Recently Closed",
+									"refreshInterval": 1500,
+									"defaultCollapsed": true,
+									"initialFetchCount": 10,
+									"extraEntriesFetchCount": 25,
+									"filters": [
+										"is:closed",
+										"-is:ignored",
+										"-is:wip OR owner:self",
+										"owner:self OR reviewer:self OR assignee:self OR cc:self"
+									]
+								}
+							]
+						},
+						{
+							"title": "Starred",
+							"panels": [
+								{
+									"title": "Starred",
+									"refreshInterval": 500,
+									"defaultCollapsed": false,
+									"initialFetchCount": 25,
+									"extraEntriesFetchCount": 25,
+									"filters": [
+										"is:starred"
+									]
+								}
+							]
+						},
+						{
+							"title": "Watched",
+							"panels": [
+								{
+									"title": "Watched",
+									"refreshInterval": 500,
+									"defaultCollapsed": false,
+									"initialFetchCount": 25,
+									"extraEntriesFetchCount": 25,
+									"filters": [
+										"is:watched",
+										"is:open"
+									]
+								}
+							]
+						},
+						{
+							"title": "Draft",
+							"panels": [
+								{
+									"title": "Draft",
+									"refreshInterval": 500,
+									"defaultCollapsed": false,
+									"initialFetchCount": 25,
+									"extraEntriesFetchCount": 25,
+									"filters": [
+										"has:draft"
+									]
+								}
+							]
+						},
+						{
+							"title": "My Changes",
+							"panels": [
+								{
+									"title": "My Changes",
+									"refreshInterval": 500,
+									"defaultCollapsed": false,
+									"initialFetchCount": 25,
+									"extraEntriesFetchCount": 25,
+									"filters": [
+										"is:open",
+										"owner:self"
+									]
+								}
+							]
+						}
+					]
 				},
 				"gerrit.allowInvalidSSLCerts": {
 					"type": "boolean",
@@ -314,13 +636,13 @@
 		"eslint-plugin-unused-imports": "^2.0.0",
 		"glob": "^7.1.7",
 		"gts": "^3.1.0",
+		"husky": "^7.0.0",
 		"husky-init": "^7.0.0",
 		"mocha": "^9.1.3",
 		"prettier": "^2.5.0",
 		"prettier-plugin-sort-imports": "^1.0.1",
 		"pretty-quick": "^3.1.2",
-		"typescript": "^4.4.4",
-		"husky": "^7.0.0"
+		"typescript": "^4.5.2"
 	},
 	"dependencies": {
 		"eslint-plugin-prettier": "^4.0.0",

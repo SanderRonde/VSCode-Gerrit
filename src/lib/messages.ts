@@ -1,4 +1,5 @@
 import { GerritExtensionCommands } from '../commands/commands';
+import { EXTENSION_ID } from './constants';
 import { commands, window } from 'vscode';
 
 export async function showInvalidSettingsMessage(
@@ -10,7 +11,10 @@ export async function showInvalidSettingsMessage(
 		.showErrorMessage(message, openSettingsFileOption, launchCommandOption)
 		.then(async (selection) => {
 			if (selection === openSettingsFileOption) {
-				await commands.executeCommand('workbench.action.openSettings');
+				await commands.executeCommand(
+					'workbench.action.openSettings',
+					`@ext:${EXTENSION_ID} auth`
+				);
 			} else if (selection === launchCommandOption) {
 				await commands.executeCommand(
 					GerritExtensionCommands.ENTER_CREDENTIALS

@@ -1,5 +1,5 @@
 import { API, Commit, GitExtension } from '../types/vscode-extension-git';
-import { PERIODICAL_FETCH_INTERVAL } from './constants';
+import { PERIODICAL_GIT_FETCH_INTERVAL } from './constants';
 import { createAwaitingInterval } from './util';
 import { Disposable, extensions } from 'vscode';
 
@@ -57,7 +57,7 @@ export async function onChangeLastCommit(
 			currentLastCommit = newLastCommit;
 			await handler(currentLastCommit);
 		}
-	}, PERIODICAL_FETCH_INTERVAL);
+	}, PERIODICAL_GIT_FETCH_INTERVAL);
 
 	return interval;
 }

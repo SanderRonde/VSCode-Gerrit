@@ -1,15 +1,20 @@
 import {
+	Disposable,
 	Event,
 	EventEmitter,
-	ExtensionContext,
 	TreeDataProvider,
 	TreeItem,
 } from 'vscode';
+import { PERIODICAL_CHANGE_FETCH_INTERVAL } from '../../lib/constants';
 import { RootTreeViewProvider } from './changes/rootTreeView';
 import { TreeViewItem } from './treeTypes';
 
-export class ChangesTreeProvider implements TreeDataProvider<TreeViewItem> {
-	private _rootViewProvider = new RootTreeViewProvider(this, this._context);
+export class ChangesTreeProvider
+	implements TreeDataProvider<TreeViewItem>, Disposable
+{
+	private static _instances: Set<ChangesTreeProvider> = new Set();
+	private _disposables: Disposable[] = [];
+	private _rootViewProvider = new RootTreeViewProvider(this);
 
 	public onDidChangeTreeDataEmitter: EventEmitter<
 		TreeViewItem | undefined | null | void
@@ -18,7 +23,23 @@ export class ChangesTreeProvider implements TreeDataProvider<TreeViewItem> {
 		TreeViewItem | undefined | null | void
 	> = this.onDidChangeTreeDataEmitter.event;
 
-	public constructor(private readonly _context: ExtensionContext) {}
+	public constructor() {
+		ChangesTreeProvider._instances.add(this);
+		const interval = setTimeout(() => {
+			this.refresh();
+		}, PERIODICAL_CHANGE_FETCH_INTERVAL);
+		this._disposables.push({
+			dispose: () => clearInterval(interval),
+		});
+	}
+
+	public static refesh(): void {
+		this._instances.forEach((i) => i.refresh());
+	}
+
+	public refresh(): void {
+		this.onDidChangeTreeDataEmitter.fire();
+	}
 
 	public async getChildren(element?: TreeViewItem): Promise<TreeViewItem[]> {
 		if (!element) {
@@ -29,5 +50,10 @@ export class ChangesTreeProvider implements TreeDataProvider<TreeViewItem> {
 
 	public async getTreeItem(element: TreeViewItem): Promise<TreeItem> {
 		return await element.getItem();
+	}
+
+	public dispose(): void {
+		ChangesTreeProvider._instances.delete(this);
+		this._disposables.forEach((d) => void d.dispose());
 	}
 }

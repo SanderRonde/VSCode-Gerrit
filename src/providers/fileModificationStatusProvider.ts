@@ -74,7 +74,7 @@ export class FileModificationStatusProvider implements FileDecorationProvider {
 		}
 
 		const meta = FileMeta.tryFrom(uri);
-		if (!meta) {
+		if (!meta || meta.isEmpty()) {
 			return;
 		}
 

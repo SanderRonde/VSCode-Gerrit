@@ -3,33 +3,33 @@
 	[x] Implement gerrit API
 	[x] Caching?
 [ ] Visual
-	[ ] Patches pane
-		[ ] ... buttons
-			[ ] Allow changing view. Presets:
-				[ ] Dashboard
-				[ ] Draft comments
-				[ ] Starred changes
-				[ ] Open
-				[ ] Merged
-				[ ] Or by just changing config in settings
+	[ ] Changes pane
+		[x] ... buttons
+			[x] Allow changing view. Presets:
+				[x] Dashboard
+				[x] Draft comments
+				[x] Starred changes
+				[x] Open
+				[x] Merged
+				[x] Or by just changing config in settings
 		[ ] Search bar at the top
-		[x] Show patches under headers with following info:
+		[x] Show changes under headers with following info:
 			[x] #ID
 			[x] Subject
 			[x] Owner
 			[-] V (not possible)
 			[x] Maybe multiline?
-		[ ] Rightclick on patches:
+		[ ] Rightclick on changes:
 			[ ] Checkout
 				[ ] Offer to stash and unstash
 			[ ] Checkout & Review
 			[ ] Toggle review mode
 			[ ] Open on gerrit
 			[ ] Notify when verified by administrator?
-		[ ] Add "refresh" button
-			[ ] Periodically refresh
+		[x] Add "refresh" button
+			[x] Periodically refresh
 		[x] Add "fetch more" button
-		[x] Patch expands to:
+		[x] Change expands to:
 			[x] Description
 				[-] Clicking opens inline gerrit webview // Not possible because Gerrit doesn't allow iframes or unauthorized fetching of the HTML. (would also be hard with cookies etc).
 					[ ] Possible future TODO, create custom UI
@@ -70,13 +70,13 @@
 			[ ] Attention set modifier
 			[ ] if WIP, show "start review"
 			[ ] Show cancel (reset) button
-		[ ] Shows this data for the currently checked-out patch
-			[ ] If clicking "review" instead of "checkout & review" in patches, show it as well. Shows the reviewing patch in the bottom bar. Can click that to stop reviewing (or the patch itself).
+		[ ] Shows this data for the currently checked-out change
+			[ ] If clicking "review" instead of "checkout & review" in changes, show it as well. Shows the reviewing change in the bottom bar. Can click that to stop reviewing (or the change itself).
 				[ ] Also a "stop reviewing X" button below reply button.
 	[ ] Add "review" button in source control
 		[ ] If first patchset, automatically open reply pane
 			 [ ] Allow disabling this in settings
-	[x] Add bottom bar showing currently checked-out patch
+	[x] Add bottom bar showing currently checked-out change
 		[-] Rightclicking:
 			[-] Uncheckout
 			[-] Uncheckout & unstash previous

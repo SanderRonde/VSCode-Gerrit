@@ -89,7 +89,7 @@ class CommentDecorationProvider implements FileDecorationProvider {
 			return;
 		}
 		const meta = FileMeta.tryFrom(uri);
-		if (!meta) {
+		if (!meta || meta.isEmpty()) {
 			return;
 		}
 		const storedCount = this._getStoredCommentCount(meta);

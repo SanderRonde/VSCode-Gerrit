@@ -1,5 +1,6 @@
-import { API, Commit, GitExtension } from '../types/vscode-extension-git';
+import { API, GitExtension } from '../types/vscode-extension-git';
 import { PERIODICAL_GIT_FETCH_INTERVAL } from './constants';
+import { getLastCommits, GitCommit } from './gitCLI';
 import { createAwaitingInterval } from './util';
 import { Disposable, extensions } from 'vscode';
 
@@ -11,24 +12,8 @@ export function getGitAPI(): API | null {
 	return extension?.exports.getAPI(1);
 }
 
-export async function getLastCommit(): Promise<Commit | null> {
-	const api = getGitAPI();
-
-	if (!api || api.repositories.length !== 1) {
-		return null;
-	}
-
-	return (
-		(
-			await api.repositories[0].log({
-				maxEntries: 1,
-			})
-		)[0] ?? null
-	);
-}
-
 export async function onChangeLastCommit(
-	handler: (lastCommit: Commit) => void | Promise<void>,
+	handler: (lastCommit: GitCommit) => void | Promise<void>,
 	callInitial = false
 ): Promise<Disposable> {
 	const gitAPI = getGitAPI();
@@ -36,12 +21,12 @@ export async function onChangeLastCommit(
 		return { dispose: () => {} };
 	}
 
-	let currentLastCommit = await getLastCommit();
+	let currentLastCommit = (await getLastCommits(1))[0];
 	if (callInitial && currentLastCommit) {
 		await handler(currentLastCommit);
 	}
 	const interval = createAwaitingInterval(async () => {
-		const newLastCommit = await getLastCommit();
+		const newLastCommit = (await getLastCommits(1))[0];
 		if (!newLastCommit) {
 			return;
 		}

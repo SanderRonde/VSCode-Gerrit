@@ -10,8 +10,8 @@ import { isGerritCommit, getCurrentChangeID, getChangeID } from '../lib/commit';
 import { GerritExtensionCommands } from '../commands/commands';
 import { GerritChange } from '../lib/gerritAPI/gerritChange';
 import { getGitAPI, onChangeLastCommit } from '../lib/git';
-import { Commit } from '../types/vscode-extension-git';
 import { GerritAPIWith } from '../lib/gerritAPI/api';
+import { GitCommit } from '../lib/gitCLI';
 import { getAPI } from '../lib/gerritAPI';
 
 export async function onStatusBarClick(): Promise<void> {
@@ -32,7 +32,7 @@ export async function onStatusBarClick(): Promise<void> {
 
 async function updateStatusBarState(
 	statusBar: StatusBarItem,
-	lastCommit: Commit
+	lastCommit: GitCommit
 ): Promise<void> {
 	if (!isGerritCommit(lastCommit)) {
 		return statusBar.hide();

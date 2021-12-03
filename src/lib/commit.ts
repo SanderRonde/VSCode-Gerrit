@@ -1,15 +1,14 @@
-import { Commit } from '../types/vscode-extension-git';
-import { getLastCommit } from './git';
+import { getLastCommits, GitCommit } from './gitCLI';
 
 const gerritChangeIDRegex = /Change-Id: (([a-zA-Z0-9])?([a-z0-9]{40}))/;
 
-export function getChangeID(commit: Commit): string | null {
+export function getChangeID(commit: GitCommit): string | null {
 	const msg = commit.message;
 	return gerritChangeIDRegex.exec(msg)?.[1] ?? null;
 }
 
 export async function getCurrentChangeID(): Promise<string | null> {
-	const lastCommit = await getLastCommit();
+	const lastCommit = (await getLastCommits(1))[0];
 	if (!lastCommit || !isGerritCommit(lastCommit)) {
 		return null;
 	}
@@ -17,6 +16,6 @@ export async function getCurrentChangeID(): Promise<string | null> {
 	return getChangeID(lastCommit);
 }
 
-export function isGerritCommit(commit: Commit): boolean {
+export function isGerritCommit(commit: GitCommit): boolean {
 	return !!getChangeID(commit);
 }

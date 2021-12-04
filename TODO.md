@@ -2,7 +2,7 @@
 	[x] "gerrit credentials" command
 	[x] Implement gerrit API
 	[x] Caching?
-	[ ] Infer URL, port, project from `.gitreview` file
+	[x] Infer URL, port, project from `.gitreview` file
 [ ] Visual
 	[ ] Changes pane
 		[x] ... buttons

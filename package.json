@@ -328,11 +328,11 @@
 				},
 				"gerrit.auth.password": {
 					"type": "string",
-					"title": "Gerrit password (see https://{your_gerit_host}/settings/#HTTPCredentials)"
+					"description": "Gerrit password (see https://{your_gerit_host}/settings/#HTTPCredentials)"
 				},
 				"gerrit.auth.url": {
 					"type": "string",
-					"title": "URL of the gerrit server to use (inferred from `.gitreview` if not provided)"
+					"description": "URL of the gerrit server to use (inferred from `.gitreview` if not provided). Uses HTTPS if no scheme is provided"
 				},
 				"gerrit.selectedView": {
 					"type": "string",

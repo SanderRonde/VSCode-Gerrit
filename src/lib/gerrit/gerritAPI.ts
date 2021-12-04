@@ -1,4 +1,5 @@
 import { showInvalidSettingsMessage } from '../vscode/messages';
+import { getGerritURL } from '../credentials/credentials';
 import { getConfiguration } from '../vscode/config';
 import { setContextProp } from '../vscode/context';
 import { GerritAPI } from './gerritAPI/api';
@@ -26,7 +27,7 @@ function hasSameConfig(
 
 export async function checkConnection(): Promise<void> {
 	const config = getConfiguration();
-	const url = config.get('gerrit.auth.url');
+	const url = await getGerritURL();
 	const username = config.get('gerrit.auth.username');
 	const password = config.get('gerrit.auth.password');
 
@@ -50,13 +51,13 @@ export async function checkConnection(): Promise<void> {
 
 export async function createAPI(): Promise<GerritAPI | null> {
 	const config = getConfiguration();
-	const url = config.get('gerrit.auth.url');
+	const url = await getGerritURL();
 	const username = config.get('gerrit.auth.username');
 	const password = config.get('gerrit.auth.password');
 
 	if (!url || !username || !password) {
 		await setContextProp('gerrit:connected', false);
-		if (!hasSameConfig(url, username, password)) {
+		if (!hasSameConfig(url ?? undefined, username, password)) {
 			log(
 				'Missing URL, username or password. Please set them in your settings. (gerrit.auth.{url|username|password})'
 			);
@@ -65,7 +66,7 @@ export async function createAPI(): Promise<GerritAPI | null> {
 			);
 		}
 		lastConfig = {
-			url,
+			url: url ?? undefined,
 			username,
 			password,
 		};

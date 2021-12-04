@@ -1,15 +1,50 @@
 import { MultiStepEntry, MultiStepper } from '../vscode/multiStep';
+import { getGitReviewFileCached } from './gitReviewFile';
 import { getConfiguration } from '../vscode/config';
 import { GerritAPI } from '../gerrit/gerritAPI/api';
+import { optionalArrayEntry } from '../util/util';
 import { ConfigurationTarget } from 'vscode';
 import got from 'got/dist/source';
 
+function applyTrailingSlashFix(url: string): string {
+	if (url.endsWith('/')) {
+		return url.substring(0, url.length - 1);
+	}
+	return url;
+}
+
+function applySchemeFix(url: string): string {
+	if (!url.includes('://')) {
+		return `https://${url}`;
+	}
+
+	return url;
+}
+
+function sanitizeURL(url: string): string {
+	return applySchemeFix(applyTrailingSlashFix(url));
+}
+
+export async function getGerritURL(): Promise<string | null> {
+	const config = getConfiguration();
+	const configuredValue = config.get('gerrit.auth.url');
+	if (configuredValue) {
+		return sanitizeURL(configuredValue);
+	}
+	const gitReviewFile = await getGitReviewFileCached();
+	if (gitReviewFile) {
+		return sanitizeURL(gitReviewFile.host);
+	}
+	return null;
+}
+
 export async function enterCredentials(): Promise<void> {
 	const config = getConfiguration();
+	const initialURLValue = await getGerritURL();
 	const urlStep = new MultiStepEntry({
-		placeHolder: 'http://gerrithost.com',
+		placeHolder: 'https://gerrithost.com',
 		prompt: 'Enter the URL of your Gerrit server',
-		value: config.get('gerrit.auth.url'),
+		value: initialURLValue ?? undefined,
 		validate: async (url: string) => {
 			try {
 				await got(url);
@@ -74,7 +109,9 @@ export async function enterCredentials(): Promise<void> {
 
 	const [url, username, password] = result;
 	await Promise.all([
-		config.update('gerrit.auth.url', url, ConfigurationTarget.Global),
+		...optionalArrayEntry(url !== initialURLValue, () =>
+			config.update('gerrit.auth.url', url, ConfigurationTarget.Global)
+		),
 		config.update(
 			'gerrit.auth.username',
 			username,

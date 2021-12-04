@@ -13,7 +13,7 @@ import { DynamicallyFetchable } from './shared';
 import { getChangeCache } from '../gerritCache';
 import { GerritCommit } from './gerritCommit';
 import { GerritUser } from './gerritUser';
-import { getAPI } from '.';
+import { getAPI } from '../gerritAPI';
 
 export type CommentMap = Map<string, (GerritComment | GerritDraftComment)[]>;
 

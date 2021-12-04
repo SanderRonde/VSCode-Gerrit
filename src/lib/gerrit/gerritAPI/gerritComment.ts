@@ -17,7 +17,7 @@ import { GerritCommentThread } from '../../../providers/comments/thread';
 import { DynamicallyFetchable } from './shared';
 import { DateTime } from '../../util/dateTime';
 import { GerritUser } from './gerritUser';
-import { getAPI } from '.';
+import { getAPI } from '../gerritAPI';
 
 export abstract class GerritCommentBase
 	extends DynamicallyFetchable

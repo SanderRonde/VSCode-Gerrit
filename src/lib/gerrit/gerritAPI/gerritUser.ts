@@ -1,5 +1,5 @@
 import { GerritDetailedUserResponse } from './types';
-import { getAPI } from '.';
+import { getAPI } from '../gerritAPI';
 
 export class GerritUser {
 	private static _self: GerritUser | null = null;

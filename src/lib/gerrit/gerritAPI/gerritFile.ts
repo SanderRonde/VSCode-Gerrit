@@ -12,7 +12,7 @@ import { DynamicallyFetchable } from './shared';
 import { GerritChange } from './gerritChange';
 import { Uri, workspace } from 'vscode';
 import { GerritAPIWith } from './api';
-import { getAPI } from '.';
+import { getAPI } from '../gerritAPI';
 
 export class TextContent {
 	private constructor(public buffer: Buffer, public meta: FileMeta) {}

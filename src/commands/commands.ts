@@ -20,6 +20,7 @@ import {
 	refreshChanges,
 } from '../views/activityBar/changes/changeCommands';
 import { fetchMoreTreeItemEntries } from '../views/activityBar/changes/fetchMoreTreeItem';
+import { clearSearchResults, search } from '../lib/search';
 import { enterCredentials } from '../lib/credentials';
 import { onStatusBarClick } from '../views/statusBar';
 import { commands, ExtensionContext } from 'vscode';
@@ -45,6 +46,8 @@ export enum GerritExtensionCommands {
 	CLICK_STATUSBAR = 'gerrit.changeStatus',
 	REFRESH_CHANGES = 'gerrit.refreshChanges',
 	CONFIGURE_CHANGE_LIST = 'gerrit.configureChangeList',
+	SEARCH = 'gerrit.search',
+	CLEAR_SEARCH_RESULTS = 'gerrit.clearSearchResults',
 }
 
 export function registerCommands(context: ExtensionContext): void {
@@ -171,6 +174,17 @@ export function registerCommands(context: ExtensionContext): void {
 		commands.registerCommand(
 			GerritExtensionCommands.CONFIGURE_CHANGE_LIST,
 			configureChangeLists
+		)
+	);
+
+	// Search
+	context.subscriptions.push(
+		commands.registerCommand(GerritExtensionCommands.SEARCH, search)
+	);
+	context.subscriptions.push(
+		commands.registerCommand(
+			GerritExtensionCommands.CLEAR_SEARCH_RESULTS,
+			clearSearchResults
 		)
 	);
 }

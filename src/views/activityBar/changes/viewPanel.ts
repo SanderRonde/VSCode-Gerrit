@@ -2,6 +2,7 @@ import {
 	DefaultChangeFilter,
 	GerritChangeFilter,
 } from '../../../lib/gerritAPI/filters';
+import { CanFetchMoreTreeProvider } from '../shared/canFetchMoreTreeProvider';
 import { Disposable, TreeItem, TreeItemCollapsibleState } from 'vscode';
 import { GerritChange } from '../../../lib/gerritAPI/gerritChange';
 import { TreeItemWithChildren, TreeViewItem } from '../treeTypes';
@@ -10,7 +11,6 @@ import { FetchMoreTreeItem } from './fetchMoreTreeItem';
 import { optionalArrayEntry } from '../../../lib/util';
 import { RootTreeViewProvider } from './rootTreeView';
 import { ChangesPanel } from '../../../lib/config';
-import { ChangeTreeView } from './changeTreeView';
 import { ChangesTreeProvider } from '../changes';
 import { log } from '../../../lib/log';
 
@@ -23,17 +23,21 @@ export enum DashboardGroupContainerGroup {
 	RECENTLY_CLOSED = 'Recently closed',
 }
 
-export class ViewPanel implements TreeItemWithChildren, Disposable {
+export class ViewPanel
+	extends CanFetchMoreTreeProvider
+	implements TreeItemWithChildren, Disposable
+{
 	private _disposables: Disposable[] = [];
 
-	private _cursor = 0;
-	private _limit: number = this._getDefaultLimit();
-	private _fetchedChildren: Map<number, ChangeTreeView> = new Map();
+	protected _initialLimit: number = this._getDefaultLimit();
+	protected _fetchMoreCount: number =
+		this._panel.extraEntriesFetchCount ?? 25;
 
 	public constructor(
 		private readonly _root: ChangesTreeProvider,
 		private readonly _panel: ChangesPanel
 	) {
+		super();
 		if (this._panel.refreshInterval) {
 			const interval = setInterval(() => {
 				this.refresh();
@@ -44,7 +48,18 @@ export class ViewPanel implements TreeItemWithChildren, Disposable {
 		}
 	}
 
-	private _tryGetChanges(): Promise<GerritChange[]> {
+	private _getDefaultLimit(): number {
+		return this._panel.initialFetchCount ?? 25;
+	}
+
+	private _getFilters(): string[] {
+		return this._panel.filters;
+	}
+
+	protected _getChanges(
+		offset: number,
+		count: number
+	): Promise<GerritChange[]> {
 		return GerritChange.getChanges(
 			[
 				this._getFilters() as (
@@ -53,12 +68,12 @@ export class ViewPanel implements TreeItemWithChildren, Disposable {
 				)[],
 			],
 			{
-				offset: this._cursor,
-				count: this._limit - this._cursor,
+				offset,
+				count,
 			},
 			async (code, body): Promise<void> => {
 				log(
-					`Failed to fetch changs with filters for panel "${this._panel.title}"`,
+					`Failed to fetch changes with filters for panel "${this._panel.title}"`,
 					`Status code = ${code}`,
 					`response body = "${body}"`
 				);
@@ -70,45 +85,7 @@ export class ViewPanel implements TreeItemWithChildren, Disposable {
 		);
 	}
 
-	private async _fetch(): Promise<ChangeTreeView[]> {
-		const gerritChanges = await this._tryGetChanges();
-		if (!gerritChanges) {
-			return [];
-		}
-
-		const changeViews = gerritChanges.map(
-			(change) => new ChangeTreeView(change)
-		);
-		for (let i = this._cursor; i < this._limit; i++) {
-			this._fetchedChildren.set(i, changeViews[i - this._cursor]);
-		}
-
-		this._cursor += changeViews.length;
-		const entries: ChangeTreeView[] = [];
-		for (let i = 0; i < this._limit; i++) {
-			const entry = this._fetchedChildren.get(i);
-			if (entry) {
-				entries.push(entry);
-			}
-		}
-		return entries;
-	}
-
-	private _getDefaultLimit(): number {
-		return this._panel.initialFetchCount ?? 25;
-	}
-
-	private _getFilters(): string[] {
-		return this._panel.filters;
-	}
-
 	public refresh(): void {
-		this._root.onDidChangeTreeDataEmitter.fire(this);
-	}
-
-	public fetchMore(): void {
-		this._limit += this._panel.extraEntriesFetchCount ?? 25;
-
 		this._root.onDidChangeTreeDataEmitter.fire(this);
 	}
 

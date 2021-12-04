@@ -274,12 +274,12 @@
 				},
 				{
 					"command": "gerrit.search",
-					"when": "view == gerrit:changeExplorer",
+					"when": "view == gerrit:changeExplorer || view == gerrit:searchResults",
 					"group": "navigation@2"
 				},
 				{
 					"command": "gerrit.clearSearchResults",
-					"when": "view == gerrit:changeExplorer && gerrit:searchQuery",
+					"when": "view == gerrit:searchResults && gerrit:searchQuery",
 					"group": "navigation@1"
 				}
 			]
@@ -296,18 +296,18 @@
 		"views": {
 			"gerrit": [
 				{
-					"id": "gerrit:searchResults",
-					"name": "Search Results",
-					"type": "tree",
-					"visibility": "visible",
-					"when": "gerrit:searchQuery"
-				},
-				{
 					"id": "gerrit:changeExplorer",
 					"name": "Changes",
 					"type": "tree",
 					"visibility": "visible",
 					"when": "gerrit:isUsingGerrit"
+				},
+				{
+					"id": "gerrit:searchResults",
+					"name": "Search Results",
+					"type": "tree",
+					"visibility": "visible",
+					"when": "gerrit:searchQuery"
 				},
 				{
 					"id": "gerrit:review",

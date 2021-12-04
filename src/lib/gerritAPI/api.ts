@@ -5,6 +5,8 @@ import {
 	GerritCommentSide,
 	GerritCommentsResponse,
 	GerritDetailedUserResponse,
+	GerritGroupsResponse,
+	GerritProjectsResponse,
 } from './types';
 import { FileCache } from '../../views/activityBar/changes/changeTreeView/file/fileCache';
 import got, { OptionsOfTextResponseBody, Response } from 'got/dist/source';
@@ -13,10 +15,12 @@ import { DefaultChangeFilter, GerritChangeFilter } from './filters';
 import { GerritComment, GerritDraftComment } from './gerritComment';
 import { FileMeta } from '../../providers/fileProvider';
 import { getChangeCache } from '../gerritCache';
+import { GerritProject } from './gerritProject';
 import { GerritChange } from './gerritChange';
 import { shouldDebugRequests } from '../dev';
 import { getConfiguration } from '../config';
 import { READONLY_MODE } from '../constants';
+import { GerritGroup } from './gerritGroup';
 import { TextContent } from './gerritFile';
 import { GerritUser } from './gerritUser';
 import { URLSearchParams } from 'url';
@@ -52,7 +56,84 @@ export interface ChangesOffsetParams {
 	offset?: number;
 }
 
+/**
+ * A bit overengineered but hey who cares
+ */
+type UserCacheMap = Map<
+	string,
+	{
+		map: UserCacheMap;
+	} & (
+		| {
+				complete: boolean;
+				entries: GerritUser[];
+		  }
+		| {
+				entries?: undefined;
+		  }
+	)
+>;
+
+// Try to find out whether any cache enties have queries
+// that contain the current query. For example searching for
+// "s" will return what searching for "sa" returns and some more.
+// So if we search for "sa" we want to use the cache for "s" and
+// leave filtering to the caller. Note that this doesn't always hold.
+// If the API only sends us 10 out of 100 entries, not all entries that
+// match the "sa" query will be in there. So we also need to check whether
+// the cache entries is "complete" in the sense that the API sent us back
+// every match. We do this by checking the `_more_accounts` or `hasMore`
+// field on the last match. If this is set, the server didn't send us
+// everything and we can't use that entry.
+class UserCache {
+	private static readonly _userCache: UserCacheMap = new Map();
+
+	public static get(query: string): GerritUser[] | null {
+		let currentMap = this._userCache;
+		for (let i = 0; i < query.length - 1; i++) {
+			const char = query[i];
+			if (!currentMap.has(char)) {
+				return null;
+			}
+			const currentEntry = currentMap.get(char)!;
+			if (currentEntry.entries && currentEntry.complete) {
+				return currentEntry.entries;
+			}
+			currentMap = currentEntry.map;
+		}
+
+		const lastEntry = currentMap.get(query[query.length - 1]);
+		if (!lastEntry) {
+			return null;
+		}
+
+		// Return regardless of whether they're complete since this is the
+		// same result we'd get if we perfored the query again
+		return lastEntry.entries ?? null;
+	}
+
+	public static set(query: string, users: GerritUser[]): void {
+		let currentMap = this._userCache;
+		for (let i = 0; i < query.length - 1; i++) {
+			const char = query[i];
+			if (!currentMap.has(char)) {
+				currentMap.set(char, {
+					map: new Map(),
+				});
+			}
+			currentMap = currentMap.get(char)!.map;
+		}
+		currentMap.set(query[query.length - 1], {
+			entries: users,
+			complete: users.length === 0 || !users[users.length - 1].hasMore,
+			map: new Map(),
+		});
+	}
+}
+
 export class GerritAPI {
+	private static _groups: GerritGroup[] | null = null;
+	private static _projects: GerritProject[] | null = null;
 	private readonly _MAGIC_PREFIX = ")]}'";
 	private _inFlightRequests: Map<string, Promise<ResponseWithBody<string>>> =
 		new Map();
@@ -431,6 +512,57 @@ export class GerritAPI {
 		return changes;
 	}
 
+	public async searchChanges(
+		query: string,
+		offsetParams: ChangesOffsetParams | undefined,
+		onError:
+			| undefined
+			| ((code: number, body: string) => void | Promise<void>),
+		...withValues: GerritAPIWith[]
+	): Promise<GerritChange[]> {
+		const response = await this._tryRequest(
+			this.getURL('changes/'),
+			{
+				...this._get,
+				searchParams: new URLSearchParams([
+					['q', query],
+					...withValues.map((v) => ['o', v] as [string, string]),
+					...optionalArrayEntry(
+						typeof offsetParams?.count === 'number',
+						() => [
+							['n', String(offsetParams!.count)] as [
+								string,
+								string
+							],
+						]
+					),
+					...optionalArrayEntry(
+						typeof offsetParams?.offset === 'number',
+						() => [
+							['S', String(offsetParams!.offset)] as [
+								string,
+								string
+							],
+						]
+					),
+				]),
+			},
+			onError
+		);
+
+		const json = this._handleResponse<GerritChangeResponse[]>(response);
+		if (!json) {
+			return [];
+		}
+
+		const changes = json.map((p) => new GerritChange(p));
+		const cache = getChangeCache();
+		changes.forEach((change) =>
+			cache.set(change.change_id, withValues, change)
+		);
+		return changes;
+	}
+
 	public async getComments(
 		changeID: string
 	): Promise<Map<string, GerritComment[]>> {
@@ -678,5 +810,94 @@ export class GerritAPI {
 		}
 
 		return new GerritUser(json);
+	}
+
+	public async getUsers(
+		query: string,
+		maxCount: number = 10
+	): Promise<GerritUser[]> {
+		const response = await this._tryRequest(this.getURL('accounts/'), {
+			searchParams: new URLSearchParams([
+				['suggest', ''],
+				['q', query],
+				['n', maxCount.toString()],
+			]),
+			...this._get,
+		});
+
+		const json =
+			this._handleResponse<GerritDetailedUserResponse[]>(response);
+		if (!json) {
+			return [];
+		}
+
+		return json.map((userJson) => new GerritUser(userJson));
+	}
+
+	public async getUsersCached(
+		query: string,
+		maxCount: number = 10
+	): Promise<GerritUser[]> {
+		const cached = UserCache.get(query);
+		if (cached) {
+			return cached;
+		}
+
+		const users = await this.getUsers(query, maxCount);
+		UserCache.set(query, users);
+		return users;
+	}
+
+	public async getGroups(): Promise<GerritGroup[]> {
+		const response = await this._tryRequest(
+			this.getURL('groups/'),
+			this._get
+		);
+
+		const json = this._handleResponse<GerritGroupsResponse>(response);
+		if (!json) {
+			return [];
+		}
+
+		const groups = Object.entries(json).map(
+			([groupName, groupJson]) => new GerritGroup(groupName, groupJson)
+		);
+		GerritAPI._groups = groups;
+		return groups;
+	}
+
+	public async getGroupsCached(): Promise<GerritGroup[]> {
+		if (GerritAPI._groups) {
+			return GerritAPI._groups;
+		}
+
+		return this.getGroups();
+	}
+
+	public async getProjects(): Promise<GerritProject[]> {
+		const response = await this._tryRequest(this.getURL('projects/'), {
+			searchParams: new URLSearchParams([['d', '']]),
+			...this._get,
+		});
+
+		const json = this._handleResponse<GerritProjectsResponse>(response);
+		if (!json) {
+			return [];
+		}
+
+		const projects = Object.entries(json).map(
+			([projectName, projectJson]) =>
+				new GerritProject(projectName, projectJson)
+		);
+		GerritAPI._projects = projects;
+		return projects;
+	}
+
+	public async getProjectsCached(): Promise<GerritProject[]> {
+		if (GerritAPI._projects) {
+			return GerritAPI._projects;
+		}
+
+		return this.getGroups();
 	}
 }

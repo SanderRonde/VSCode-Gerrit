@@ -9,6 +9,7 @@ export class GerritUser {
 	public displayName: string | undefined;
 	public email: string | undefined;
 	public username: string | undefined;
+	public hasMore: boolean;
 
 	public constructor(response: GerritDetailedUserResponse) {
 		this.accountID = response._account_id;
@@ -16,6 +17,8 @@ export class GerritUser {
 		this.displayName = response.display_name;
 		this.email = response.email;
 		this.username = response.username;
+
+		this.hasMore = response._more_accounts ?? false;
 	}
 
 	public static async getSelf(): Promise<GerritUser | null> {

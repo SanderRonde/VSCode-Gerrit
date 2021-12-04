@@ -34,6 +34,7 @@ export type GerritChangeLabels = Record<string, GerritChangeLabel>;
 
 export interface GerritUserResponse {
 	_account_id: number;
+	_more_accounts?: boolean;
 }
 
 export interface GerritDetailedUserResponse extends GerritUserResponse {
@@ -163,5 +164,25 @@ export type GerritCommentResponse = {
 	}[];
 	source_content_type?: string;
 };
+
+export type GerritGroupResponse = {
+	id: string;
+	url: string;
+	options: Record<string, unknown>;
+	description: string;
+	group_id: number;
+	owner: string;
+	owner_id: string;
+	created_on: string;
+};
+
+export type GerritGroupsResponse = Record<string, GerritGroupResponse>;
+
+export type GerritProjectResponse = {
+	id: string;
+	description: string;
+};
+
+export type GerritProjectsResponse = Record<string, GerritProjectResponse>;
 
 export type GerritCommentsResponse = Record<string, GerritCommentResponse[]>;

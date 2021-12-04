@@ -151,3 +151,9 @@ export function optionalArrayEntry<V>(
 	}
 	return [] as V[];
 }
+
+export function wait(ms: number): Promise<void> {
+	return new Promise((resolve) => {
+		setTimeout(resolve, ms);
+	});
+}

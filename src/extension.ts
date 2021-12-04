@@ -1,7 +1,9 @@
 import { FileModificationStatusProvider } from './providers/fileModificationStatusProvider';
 import { FileCache } from './views/activityBar/changes/changeTreeView/file/fileCache';
 import { commentDecorationProvider } from './providers/commentDecorationProvider';
+import { SearchResultsTreeProvider } from './views/activityBar/searchResults';
 import { FileProvider, GERRIT_FILE_SCHEME } from './providers/fileProvider';
+import { setContextProp, setDefaultContexts } from './lib/context';
 import { ChangesTreeProvider } from './views/activityBar/changes';
 import { ExtensionContext, window, workspace } from 'vscode';
 import { CommentManager } from './providers/commentProvider';
@@ -9,7 +11,6 @@ import { GerritUser } from './lib/gerritAPI/gerritUser';
 import { registerCommands } from './commands/commands';
 import { showStatusBarIcon } from './views/statusBar';
 import { createOutputChannel } from './lib/log';
-import { setContextProp } from './lib/context';
 import { isUsingGerrit } from './lib/gerrit';
 import { storageInit } from './lib/storage';
 import { setDevContext } from './lib/dev';
@@ -18,8 +19,8 @@ export async function activate(context: ExtensionContext): Promise<void> {
 	// Set context so we know whether we're in dev mode or not
 	setDevContext(context);
 
-	// Initially hide icon
-	await setContextProp('gerrit:isUsingGerrit', false);
+	// set a bunch of default states
+	await setDefaultContexts();
 
 	// Init storage
 	storageInit(context);
@@ -48,6 +49,17 @@ export async function activate(context: ExtensionContext): Promise<void> {
 			treeDataProvider: new ChangesTreeProvider(),
 			showCollapseAll: true,
 		})
+	);
+	context.subscriptions.push(
+		(() => {
+			const searchResultsTreeProvider = new SearchResultsTreeProvider();
+			const treeView = window.createTreeView('gerrit:searchResults', {
+				treeDataProvider: searchResultsTreeProvider,
+				showCollapseAll: true,
+			});
+			searchResultsTreeProvider.treeView = treeView;
+			return treeView;
+		})()
 	);
 
 	// Register file provider

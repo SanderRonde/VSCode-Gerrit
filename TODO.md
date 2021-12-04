@@ -2,6 +2,7 @@
 	[x] "gerrit credentials" command
 	[x] Implement gerrit API
 	[x] Caching?
+	[ ] Infer URL, port, project from `.gitreview` file
 [ ] Visual
 	[ ] Changes pane
 		[x] ... buttons
@@ -12,7 +13,7 @@
 				[x] Open
 				[x] Merged
 				[x] Or by just changing config in settings
-		[ ] Search bar at the top
+		[x] Search bar at the top // Search bar in treeview is not possible (see https://github.com/Microsoft/vscode-extension-samples/issues/113). Instead we use a search icon
 		[x] Show changes under headers with following info:
 			[x] #ID
 			[x] Subject

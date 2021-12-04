@@ -54,7 +54,6 @@ export class GerritCommentThread extends OnceDisposable {
 		super();
 		this._threadID = GerritCommentThread._setThreadID(thread, this);
 		this._thread = thread as CommentThreadWithGerritComments;
-		console.log('new thread created', this._thread.comments[0].id);
 		const meta = FileMeta.tryFrom(thread.uri);
 		if (meta) {
 			this._filePath = meta.filePath;
@@ -241,7 +240,6 @@ export class GerritCommentThread extends OnceDisposable {
 	}
 
 	public override dispose(): void {
-		console.log('disposing of', this._thread.comments[0].id);
 		if (!super.dispose()) {
 			return;
 		}

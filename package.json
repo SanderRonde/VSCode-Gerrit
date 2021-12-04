@@ -81,13 +81,23 @@
 			},
 			{
 				"command": "gerrit.refreshChanges",
-				"title": "Refresh changes",
-				"icon": "$(refresh)"
+				"icon": "$(refresh)",
+				"title": "Refresh changes"
 			},
 			{
 				"command": "gerrit.configureChangeList",
 				"title": "Configure filters",
 				"icon": "$(gear)"
+			},
+			{
+				"command": "gerrit.search",
+				"title": "Search",
+				"icon": "$(search)"
+			},
+			{
+				"command": "gerrit.clearSearchResults",
+				"title": "Clear search results",
+				"icon": "$(clear-all)"
 			}
 		],
 		"menus": {
@@ -151,6 +161,14 @@
 				{
 					"command": "gerrit.configureChangeList",
 					"when": "true"
+				},
+				{
+					"command": "gerrit.search",
+					"when": "true"
+				},
+				{
+					"command": "gerrit.clearSearchResults",
+					"when": "gerrit:searchQuery"
 				}
 			],
 			"comments/comment/context": [
@@ -247,11 +265,21 @@
 				{
 					"command": "gerrit.refreshChanges",
 					"when": "gerrit:connected && view == gerrit:changeExplorer",
-					"group": "navigation@2"
+					"group": "navigation@4"
 				},
 				{
 					"command": "gerrit.configureChangeList",
 					"when": "view == gerrit:changeExplorer",
+					"group": "navigation@3"
+				},
+				{
+					"command": "gerrit.search",
+					"when": "view == gerrit:changeExplorer",
+					"group": "navigation@2"
+				},
+				{
+					"command": "gerrit.clearSearchResults",
+					"when": "view == gerrit:changeExplorer && gerrit:searchQuery",
 					"group": "navigation@1"
 				}
 			]
@@ -267,6 +295,13 @@
 		},
 		"views": {
 			"gerrit": [
+				{
+					"id": "gerrit:searchResults",
+					"name": "Search Results",
+					"type": "tree",
+					"visibility": "visible",
+					"when": "gerrit:searchQuery"
+				},
 				{
 					"id": "gerrit:changeExplorer",
 					"name": "Changes",
@@ -619,8 +654,7 @@
 		"pretest": "yarn run compile && yarn run lint",
 		"lint": "eslint src --ext ts",
 		"test": "node ./out/test/runTest.js",
-		"format": "prettier --write src/",
-		"prepare": "husky install"
+		"format": "prettier --write src/"
 	},
 	"devDependencies": {
 		"@types/glob": "^7.1.4",
@@ -636,8 +670,6 @@
 		"eslint-plugin-unused-imports": "^2.0.0",
 		"glob": "^7.1.7",
 		"gts": "^3.1.0",
-		"husky": "^7.0.0",
-		"husky-init": "^7.0.0",
 		"mocha": "^9.1.3",
 		"prettier": "^2.5.0",
 		"prettier-plugin-sort-imports": "^1.0.1",

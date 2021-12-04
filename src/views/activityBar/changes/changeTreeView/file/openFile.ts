@@ -1,8 +1,8 @@
+import { GerritCommentSide } from '../../../../../lib/gerrit/gerritAPI/types';
 import { commands, env, TextDocumentShowOptions, Uri, window } from 'vscode';
-import { GerritCommentSide } from '../../../../../lib/gerritAPI/types';
 import { FileTreeView } from '../fileTreeView';
 import path = require('path');
-import { getAPI } from '../../../../../lib/gerritAPI';
+import { getAPI } from '../../../../../lib/gerrit/gerritAPI';
 
 export async function openFileOnline(treeView: FileTreeView): Promise<void> {
 	const api = await getAPI();

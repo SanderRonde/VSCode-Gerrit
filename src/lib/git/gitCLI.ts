@@ -1,6 +1,6 @@
 import { exec, ExecOptions } from 'child_process';
 import { getGitAPI } from './git';
-import { log } from './log';
+import { log } from '../util/log';
 
 export interface GitCommit {
 	hash: string;

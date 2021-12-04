@@ -1,7 +1,7 @@
-import { MultiStepEntry, MultiStepper } from './multiStep';
+import { MultiStepEntry, MultiStepper } from '../vscode/multiStep';
+import { getConfiguration } from '../vscode/config';
+import { GerritAPI } from '../gerrit/gerritAPI/api';
 import { ConfigurationTarget } from 'vscode';
-import { getConfiguration } from './config';
-import { GerritAPI } from './gerritAPI/api';
 import got from 'got/dist/source';
 
 export async function enterCredentials(): Promise<void> {

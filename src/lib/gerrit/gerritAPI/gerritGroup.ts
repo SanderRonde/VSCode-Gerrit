@@ -1,5 +1,5 @@
+import { DateTime } from '../../util/dateTime';
 import { GerritGroupResponse } from './types';
-import { DateTime } from '../dateTime';
 
 export class GerritGroup {
 	public id: string;

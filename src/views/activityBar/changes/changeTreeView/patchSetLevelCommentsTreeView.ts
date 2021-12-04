@@ -1,6 +1,6 @@
 import { Command, TextDocumentShowOptions, ThemeIcon, TreeItem } from 'vscode';
-import { GerritChange } from '../../../../lib/gerritAPI/gerritChange';
-import { TextContent } from '../../../../lib/gerritAPI/gerritFile';
+import { GerritChange } from '../../../../lib/gerrit/gerritAPI/gerritChange';
+import { TextContent } from '../../../../lib/gerrit/gerritAPI/gerritFile';
 import { FileMeta } from '../../../../providers/fileProvider';
 import { TreeItemWithoutChildren } from '../../treeTypes';
 

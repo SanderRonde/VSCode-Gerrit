@@ -1,6 +1,6 @@
+import { GerritChange } from '../../../../lib/gerrit/gerritAPI/gerritChange';
 import { TreeItemWithoutChildren, TreeViewItem } from '../../treeTypes';
 import { ThemeIcon, TreeItem, TreeItemCollapsibleState } from 'vscode';
-import { GerritChange } from '../../../../lib/gerritAPI/gerritChange';
 import { ChangeTreeView, FileMap } from '../changeTreeView';
 
 export class FolderTreeView implements TreeItemWithoutChildren {

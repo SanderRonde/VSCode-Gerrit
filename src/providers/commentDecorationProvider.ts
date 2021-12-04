@@ -5,8 +5,8 @@ import {
 	FileDecorationProvider,
 	Uri,
 } from 'vscode';
+import { GerritChange } from '../lib/gerrit/gerritAPI/gerritChange';
 import { FileMeta, GERRIT_FILE_SCHEME } from './fileProvider';
-import { GerritChange } from '../lib/gerritAPI/gerritChange';
 import { DocumentCommentManager } from './commentProvider';
 
 class CommentDecorationProvider implements FileDecorationProvider {

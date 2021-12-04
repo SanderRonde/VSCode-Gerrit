@@ -1,4 +1,4 @@
-import { EXTENSION_ID } from '../../../lib/constants';
+import { EXTENSION_ID } from '../../../lib/util/constants';
 import { ChangesTreeProvider } from '../changes';
 import { commands } from 'vscode';
 

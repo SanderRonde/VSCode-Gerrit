@@ -1,4 +1,4 @@
-import { PATCHSET_LEVEL_KEY } from '../../views/activityBar/changes/changeTreeView/patchSetLevelCommentsTreeView';
+import { PATCHSET_LEVEL_KEY } from '../../../views/activityBar/changes/changeTreeView/patchSetLevelCommentsTreeView';
 import {
 	Comment,
 	CommentAuthorInformation,
@@ -12,12 +12,12 @@ import {
 	GerritCommentResponse,
 	GerritCommentSide,
 } from './types';
-import { commentDecorationProvider } from '../../providers/commentDecorationProvider';
-import { GerritCommentThread } from '../../providers/comments/thread';
+import { commentDecorationProvider } from '../../../providers/commentDecorationProvider';
+import { GerritCommentThread } from '../../../providers/comments/thread';
 import { DynamicallyFetchable } from './shared';
+import { DateTime } from '../../util/dateTime';
 import { GerritUser } from './gerritUser';
-import { DateTime } from '../dateTime';
-import { getAPI } from '../gerritAPI';
+import { getAPI } from '.';
 
 export abstract class GerritCommentBase
 	extends DynamicallyFetchable

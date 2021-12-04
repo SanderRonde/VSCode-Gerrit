@@ -1,18 +1,18 @@
 import {
 	DefaultChangeFilter,
 	GerritChangeFilter,
-} from '../../../lib/gerritAPI/filters';
+} from '../../../lib/gerrit/gerritAPI/filters';
 import { CanFetchMoreTreeProvider } from '../shared/canFetchMoreTreeProvider';
+import { GerritChange } from '../../../lib/gerrit/gerritAPI/gerritChange';
 import { Disposable, TreeItem, TreeItemCollapsibleState } from 'vscode';
-import { GerritChange } from '../../../lib/gerritAPI/gerritChange';
 import { TreeItemWithChildren, TreeViewItem } from '../treeTypes';
-import { GerritAPIWith } from '../../../lib/gerritAPI/api';
+import { GerritAPIWith } from '../../../lib/gerrit/gerritAPI/api';
+import { optionalArrayEntry } from '../../../lib/util/util';
+import { ChangesPanel } from '../../../lib/vscode/config';
 import { FetchMoreTreeItem } from './fetchMoreTreeItem';
-import { optionalArrayEntry } from '../../../lib/util';
 import { RootTreeViewProvider } from './rootTreeView';
-import { ChangesPanel } from '../../../lib/config';
 import { ChangesTreeProvider } from '../changes';
-import { log } from '../../../lib/log';
+import { log } from '../../../lib/util/log';
 
 export enum DashboardGroupContainerGroup {
 	YOUR_TURN = 'Your Turn',

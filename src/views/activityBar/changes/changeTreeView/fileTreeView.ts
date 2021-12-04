@@ -1,7 +1,7 @@
 import {
 	GerritCommentSide,
 	GerritRevisionFileStatus,
-} from '../../../../lib/gerritAPI/types';
+} from '../../../../lib/gerrit/gerritAPI/types';
 import {
 	Command,
 	TextDocumentShowOptions,
@@ -9,10 +9,13 @@ import {
 	TreeItem,
 	Uri,
 } from 'vscode';
-import { GerritFile, TextContent } from '../../../../lib/gerritAPI/gerritFile';
-import { GerritChange } from '../../../../lib/gerritAPI/gerritChange';
+import {
+	GerritFile,
+	TextContent,
+} from '../../../../lib/gerrit/gerritAPI/gerritFile';
+import { GerritChange } from '../../../../lib/gerrit/gerritAPI/gerritChange';
+import { tertiaryWithFallback } from '../../../../lib/util/util';
 import { FileMeta } from '../../../../providers/fileProvider';
-import { tertiaryWithFallback } from '../../../../lib/util';
 import { TreeItemWithoutChildren } from '../../treeTypes';
 import * as path from 'path';
 

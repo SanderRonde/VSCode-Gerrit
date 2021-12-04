@@ -1,4 +1,4 @@
-import { TextContent } from '../../../../../lib/gerritAPI/gerritFile';
+import { TextContent } from '../../../../../lib/gerrit/gerritAPI/gerritFile';
 
 export class FileCache {
 	private static _fileContentCache: Map<string, TextContent> = new Map();

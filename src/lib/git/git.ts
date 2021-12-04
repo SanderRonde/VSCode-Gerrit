@@ -1,7 +1,7 @@
-import { API, GitExtension } from '../types/vscode-extension-git';
-import { PERIODICAL_GIT_FETCH_INTERVAL } from './constants';
+import { API, GitExtension } from '../../types/vscode-extension-git';
+import { PERIODICAL_GIT_FETCH_INTERVAL } from '../util/constants';
+import { createAwaitingInterval } from '../util/util';
 import { getLastCommits, GitCommit } from './gitCLI';
-import { createAwaitingInterval } from './util';
 import { Disposable, extensions } from 'vscode';
 
 export function getGitAPI(): API | null {

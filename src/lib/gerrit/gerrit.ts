@@ -1,6 +1,6 @@
-import { isGerritCommit } from './commit';
-import { getGitAPI } from './git';
-import { log } from './log';
+import { isGerritCommit } from '../git/commit';
+import { getGitAPI } from '../git/git';
+import { log } from '../util/log';
 
 export async function isUsingGerrit(): Promise<boolean> {
 	const gitAPI = getGitAPI();

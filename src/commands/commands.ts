@@ -20,11 +20,11 @@ import {
 	refreshChanges,
 } from '../views/activityBar/changes/changeCommands';
 import { fetchMoreTreeItemEntries } from '../views/activityBar/changes/fetchMoreTreeItem';
-import { clearSearchResults, search } from '../lib/search';
-import { enterCredentials } from '../lib/credentials';
+import { clearSearchResults, search } from '../views/activityBar/search/search';
+import { enterCredentials } from '../lib/credentials/credentials';
+import { checkConnection } from '../lib/gerrit/gerritAPI';
 import { onStatusBarClick } from '../views/statusBar';
 import { commands, ExtensionContext } from 'vscode';
-import { checkConnection } from '../lib/gerritAPI';
 
 export enum GerritExtensionCommands {
 	CREATE_COMMENT_RESOLVED = 'gerrit.createCommentResolved',

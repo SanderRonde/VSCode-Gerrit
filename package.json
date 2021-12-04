@@ -332,7 +332,7 @@
 				},
 				"gerrit.auth.url": {
 					"type": "string",
-					"title": "URL of the gerrit server to use"
+					"title": "URL of the gerrit server to use (inferred from `.gitreview` if not provided)"
 				},
 				"gerrit.selectedView": {
 					"type": "string",

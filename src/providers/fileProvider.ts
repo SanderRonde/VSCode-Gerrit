@@ -6,8 +6,8 @@ import {
 	workspace,
 } from 'vscode';
 import { FileCache } from '../views/activityBar/changes/changeTreeView/file/fileCache';
-import { GerritCommentSide } from '../lib/gerritAPI/types';
-import { getAPI } from '../lib/gerritAPI';
+import { GerritCommentSide } from '../lib/gerrit/gerritAPI/types';
+import { getAPI } from '../lib/gerrit/gerritAPI';
 
 export const GERRIT_FILE_SCHEME = 'gerrit-file';
 

@@ -4,10 +4,6 @@ import { GerritAPIWith } from './gerritAPI/api';
 export class GerritChangeCache {
 	private _cache: Map<string, Map<GerritAPIWith[], GerritChange>> = new Map();
 
-	private _withValuesToString(withValues: GerritAPIWith[]): string {
-		return withValues.sort().join('.');
-	}
-
 	private _withsSatisfyContraints(
 		expected: GerritAPIWith[],
 		actual: GerritAPIWith[]

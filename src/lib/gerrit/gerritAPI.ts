@@ -1,9 +1,9 @@
-import { showInvalidSettingsMessage } from './messages';
-import { getConfiguration } from './config';
+import { showInvalidSettingsMessage } from '../vscode/messages';
+import { getConfiguration } from '../vscode/config';
+import { setContextProp } from '../vscode/context';
 import { GerritAPI } from './gerritAPI/api';
-import { setContextProp } from './context';
+import { log } from '../util/log';
 import { window } from 'vscode';
-import { log } from './log';
 
 let api: GerritAPI | null = null;
 let lastConfig: {

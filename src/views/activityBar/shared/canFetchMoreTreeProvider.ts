@@ -1,24 +1,28 @@
-import { GerritChange } from "../../../lib/gerritAPI/gerritChange";
-import { ChangeTreeView } from "../changes/changeTreeView";
-import { Refreshable } from "./refreshable";
+import { GerritChange } from '../../../lib/gerrit/gerritAPI/gerritChange';
+import { ChangeTreeView } from '../changes/changeTreeView';
+import { Refreshable } from './refreshable';
 
 export abstract class CanFetchMoreTreeProvider implements Refreshable {
-	protected _fetchedChildren: Map<number, ChangeTreeView> = new Map();
 	private _cursor = 0;
-	private _limit :number|null = null;
-	protected abstract _initialLimit: number;
-	protected abstract _fetchMoreCount: number;
+	private _limit: number | null = null;
+	protected _fetchedChildren: Map<number, ChangeTreeView> = new Map();
+	protected abstract get _initialLimit(): number;
+	protected abstract get _fetchMoreCount(): number;
 
-	public abstract refresh(): void
-
-	protected abstract _getChanges(offset: number, count: number): Promise<GerritChange[]>
+	protected abstract _getChanges(
+		offset: number,
+		count: number
+	): Promise<GerritChange[]>;
 
 	protected async _fetch(): Promise<ChangeTreeView[]> {
 		if (this._limit === null) {
 			this._limit = this._initialLimit;
 		}
 
-		const changes = await this._getChanges(this._cursor, this._limit - this._cursor);
+		const changes = await this._getChanges(
+			this._cursor,
+			this._limit - this._cursor
+		);
 
 		const changeViews = changes.map((change) => new ChangeTreeView(change));
 		for (let i = this._cursor; i < this._limit; i++) {
@@ -35,14 +39,16 @@ export abstract class CanFetchMoreTreeProvider implements Refreshable {
 		}
 		return entries;
 	}
-	
-	protected _reset() {
+
+	protected _reset(): void {
 		this._cursor = 0;
-		this._limit = this._initialLimit
+		this._limit = this._initialLimit;
 		this._fetchedChildren.clear();
 	}
 
-	fetchMore(): void {
+	public abstract refresh(): void;
+
+	public fetchMore(): void {
 		this._limit ??= 0;
 		this._limit += this._fetchMoreCount;
 

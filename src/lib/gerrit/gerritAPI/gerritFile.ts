@@ -2,7 +2,7 @@ import {
 	FileMeta,
 	FileMetaWithSide,
 	GERRIT_FILE_SCHEME,
-} from '../../providers/fileProvider';
+} from '../../../providers/fileProvider';
 import {
 	GerritCommentSide,
 	GerritRevisionFile,
@@ -12,7 +12,7 @@ import { DynamicallyFetchable } from './shared';
 import { GerritChange } from './gerritChange';
 import { Uri, workspace } from 'vscode';
 import { GerritAPIWith } from './api';
-import { getAPI } from '../gerritAPI';
+import { getAPI } from '.';
 
 export class TextContent {
 	private constructor(public buffer: Buffer, public meta: FileMeta) {}

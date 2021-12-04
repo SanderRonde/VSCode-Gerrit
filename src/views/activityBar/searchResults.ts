@@ -8,18 +8,18 @@ import {
 	window,
 } from 'vscode';
 import { CanFetchMoreTreeProvider } from './shared/canFetchMoreTreeProvider';
-import { showInvalidSettingsMessage } from '../../lib/messages';
+import { showInvalidSettingsMessage } from '../../lib/vscode/messages';
+import { GerritChange } from '../../lib/gerrit/gerritAPI/gerritChange';
 import { FetchMoreTreeItem } from './changes/fetchMoreTreeItem';
-import { GerritChange } from '../../lib/gerritAPI/gerritChange';
-import { GerritAPIWith } from '../../lib/gerritAPI/api';
-import { optionalArrayEntry } from '../../lib/util';
-import { getContextProp } from '../../lib/context';
+import { GerritAPIWith } from '../../lib/gerrit/gerritAPI/api';
+import { getContextProp } from '../../lib/vscode/context';
+import { optionalArrayEntry } from '../../lib/util/util';
+import { getAPI } from '../../lib/gerrit/gerritAPI';
 import { Refreshable } from './shared/refreshable';
 import { Focusable } from './shared/focusable';
 import { Clearable } from './shared/clearable';
-import { getAPI } from '../../lib/gerritAPI';
 import { TreeViewItem } from './treeTypes';
-import { log } from '../../lib/log';
+import { log } from '../../lib/util/log';
 
 export class SearchResultsTreeProvider
 	extends CanFetchMoreTreeProvider

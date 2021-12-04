@@ -1,6 +1,6 @@
 import { TreeItemWithChildren, TreeViewItem } from '../treeTypes';
+import { getConfiguration } from '../../../lib/vscode/config';
 import { configureChangeLists } from './changeCommands';
-import { getConfiguration } from '../../../lib/config';
 import { ChangesTreeProvider } from '../changes';
 import { TreeItem, window } from 'vscode';
 import { ViewPanel } from './viewPanel';

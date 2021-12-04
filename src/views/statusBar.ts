@@ -6,13 +6,17 @@ import {
 	env,
 	Uri,
 } from 'vscode';
-import { isGerritCommit, getCurrentChangeID, getChangeID } from '../lib/commit';
+import {
+	isGerritCommit,
+	getCurrentChangeID,
+	getChangeID,
+} from '../lib/git/commit';
+import { GerritChange } from '../lib/gerrit/gerritAPI/gerritChange';
+import { getGitAPI, onChangeLastCommit } from '../lib/git/git';
 import { GerritExtensionCommands } from '../commands/commands';
-import { GerritChange } from '../lib/gerritAPI/gerritChange';
-import { getGitAPI, onChangeLastCommit } from '../lib/git';
-import { GerritAPIWith } from '../lib/gerritAPI/api';
-import { GitCommit } from '../lib/gitCLI';
-import { getAPI } from '../lib/gerritAPI';
+import { GerritAPIWith } from '../lib/gerrit/gerritAPI/api';
+import { getAPI } from '../lib/gerrit/gerritAPI';
+import { GitCommit } from '../lib/git/gitCLI';
 
 export async function onStatusBarClick(): Promise<void> {
 	const changeID = await getCurrentChangeID();

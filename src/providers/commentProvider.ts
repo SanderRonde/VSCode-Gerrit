@@ -11,18 +11,18 @@ import {
 	window,
 	workspace,
 } from 'vscode';
-import { PATCHSET_LEVEL_KEY } from '../views/activityBar/changes/changeTreeView/patchSetLevelCommentsTreeView';
 import {
 	GerritComment,
 	GerritCommentBase,
 	GerritDraftComment,
-} from '../lib/gerritAPI/gerritComment';
-import { DateSortDirection, DateTime } from '../lib/dateTime';
-import { GerritChange } from '../lib/gerritAPI/gerritChange';
-import { GerritCommentSide } from '../lib/gerritAPI/types';
+} from '../lib/gerrit/gerritAPI/gerritComment';
+import { PATCHSET_LEVEL_KEY } from '../views/activityBar/changes/changeTreeView/patchSetLevelCommentsTreeView';
+import { GerritChange } from '../lib/gerrit/gerritAPI/gerritChange';
+import { DateSortDirection, DateTime } from '../lib/util/dateTime';
+import { GerritCommentSide } from '../lib/gerrit/gerritAPI/types';
 import { GerritCommentThread } from './comments/thread';
 import { FileMetaWithSide } from './fileProvider';
-import { uniqueComplex } from '../lib/util';
+import { uniqueComplex } from '../lib/util/util';
 
 export interface GerritCommentReply {
 	text: string;

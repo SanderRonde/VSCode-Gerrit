@@ -1,8 +1,8 @@
-import { SearchResultsTreeProvider } from '../views/activityBar/searchResults';
 import { Disposable, QuickPickItem, ThemeIcon, window } from 'vscode';
-import { setContextProp } from './context';
-import { getAPI } from './gerritAPI';
-import { wait } from './util';
+import { SearchResultsTreeProvider } from '../searchResults';
+import { setContextProp } from '../../../lib/vscode/context';
+import { getAPI } from '../../../lib/gerrit/gerritAPI';
+import { wait } from '../../../lib/util/util';
 
 type ValueOrFunction<T> = T | ((currentQuery: string) => T | Promise<T>);
 

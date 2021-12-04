@@ -1,5 +1,5 @@
-import { GerritExtensionCommands } from '../commands/commands';
-import { EXTENSION_ID } from './constants';
+import { GerritExtensionCommands } from '../../commands/commands';
+import { EXTENSION_ID } from '../util/constants';
 import { commands, window } from 'vscode';
 
 export async function showInvalidSettingsMessage(

@@ -2,10 +2,10 @@ import { PATCHSET_LEVEL_KEY } from '../../views/activityBar/changes/changeTreeVi
 import {
 	GerritCommentBase,
 	GerritDraftComment,
-} from '../../lib/gerritAPI/gerritComment';
+} from '../../lib/gerrit/gerritAPI/gerritComment';
 import { CommentManager, DocumentCommentManager } from '../commentProvider';
 import { CommentThread, CommentThreadCollapsibleState } from 'vscode';
-import { OnceDisposable } from '../../lib/onceDisposable';
+import { OnceDisposable } from '../../lib/classes/onceDisposable';
 import { FileMeta } from '../fileProvider';
 
 interface CommentThreadWithGerritComments

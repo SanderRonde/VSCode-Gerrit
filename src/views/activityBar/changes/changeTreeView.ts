@@ -1,12 +1,12 @@
 import { PatchSetLevelCommentsTreeView } from './changeTreeView/patchSetLevelCommentsTreeView';
+import { GerritChange } from '../../../lib/gerrit/gerritAPI/gerritChange';
 import { ThemeIcon, TreeItem, TreeItemCollapsibleState } from 'vscode';
-import { GerritChange } from '../../../lib/gerritAPI/gerritChange';
+import { GerritFile } from '../../../lib/gerrit/gerritAPI/gerritFile';
 import { TreeItemWithChildren, TreeViewItem } from '../treeTypes';
+import { GerritAPIWith } from '../../../lib/gerrit/gerritAPI/api';
 import { FolderTreeView } from './changeTreeView/folderTreeView';
-import { GerritFile } from '../../../lib/gerritAPI/gerritFile';
 import { FileTreeView } from './changeTreeView/fileTreeView';
-import { GerritAPIWith } from '../../../lib/gerritAPI/api';
-import { optionalArrayEntry } from '../../../lib/util';
+import { optionalArrayEntry } from '../../../lib/util/util';
 
 export type FileMap = Map<
 	string,

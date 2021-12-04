@@ -3,17 +3,17 @@ import { FileCache } from './views/activityBar/changes/changeTreeView/file/fileC
 import { commentDecorationProvider } from './providers/commentDecorationProvider';
 import { SearchResultsTreeProvider } from './views/activityBar/searchResults';
 import { FileProvider, GERRIT_FILE_SCHEME } from './providers/fileProvider';
-import { setContextProp, setDefaultContexts } from './lib/context';
+import { setContextProp, setDefaultContexts } from './lib/vscode/context';
 import { ChangesTreeProvider } from './views/activityBar/changes';
+import { GerritUser } from './lib/gerrit/gerritAPI/gerritUser';
 import { ExtensionContext, window, workspace } from 'vscode';
 import { CommentManager } from './providers/commentProvider';
-import { GerritUser } from './lib/gerritAPI/gerritUser';
 import { registerCommands } from './commands/commands';
 import { showStatusBarIcon } from './views/statusBar';
-import { createOutputChannel } from './lib/log';
-import { isUsingGerrit } from './lib/gerrit';
-import { storageInit } from './lib/storage';
-import { setDevContext } from './lib/dev';
+import { createOutputChannel } from './lib/util/log';
+import { isUsingGerrit } from './lib/gerrit/gerrit';
+import { storageInit } from './lib/vscode/storage';
+import { setDevContext } from './lib/util/dev';
 
 export async function activate(context: ExtensionContext): Promise<void> {
 	// Set context so we know whether we're in dev mode or not

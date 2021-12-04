@@ -8,24 +8,24 @@ import {
 	GerritGroupsResponse,
 	GerritProjectsResponse,
 } from './types';
-import { FileCache } from '../../views/activityBar/changes/changeTreeView/file/fileCache';
+import { FileCache } from '../../../views/activityBar/changes/changeTreeView/file/fileCache';
+import { optionalArrayEntry, optionalObjectProperty } from '../../util/util';
 import got, { OptionsOfTextResponseBody, Response } from 'got/dist/source';
-import { optionalArrayEntry, optionalObjectProperty } from '../util';
 import { DefaultChangeFilter, GerritChangeFilter } from './filters';
 import { GerritComment, GerritDraftComment } from './gerritComment';
-import { FileMeta } from '../../providers/fileProvider';
+import { FileMeta } from '../../../providers/fileProvider';
+import { getConfiguration } from '../../vscode/config';
+import { shouldDebugRequests } from '../../util/dev';
+import { READONLY_MODE } from '../../util/constants';
 import { getChangeCache } from '../gerritCache';
 import { GerritProject } from './gerritProject';
 import { GerritChange } from './gerritChange';
-import { shouldDebugRequests } from '../dev';
-import { getConfiguration } from '../config';
-import { READONLY_MODE } from '../constants';
 import { GerritGroup } from './gerritGroup';
 import { TextContent } from './gerritFile';
 import { GerritUser } from './gerritUser';
 import { URLSearchParams } from 'url';
+import { log } from '../../util/log';
 import { window } from 'vscode';
-import { log } from '../log';
 
 export enum GerritAPIWith {
 	LABELS = 'LABELS',

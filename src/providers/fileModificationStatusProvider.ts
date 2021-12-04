@@ -5,10 +5,10 @@ import {
 	ThemeColor,
 	Uri,
 } from 'vscode';
-import { GerritRevisionFileStatus } from '../lib/gerritAPI/types';
+import { GerritRevisionFileStatus } from '../lib/gerrit/gerritAPI/types';
+import { GerritChange } from '../lib/gerrit/gerritAPI/gerritChange';
+import { GerritFile } from '../lib/gerrit/gerritAPI/gerritFile';
 import { FileMeta, GERRIT_FILE_SCHEME } from './fileProvider';
-import { GerritChange } from '../lib/gerritAPI/gerritChange';
-import { GerritFile } from '../lib/gerritAPI/gerritFile';
 
 export class FileModificationStatusProvider implements FileDecorationProvider {
 	private _formatFilePath(filePath: string): string {

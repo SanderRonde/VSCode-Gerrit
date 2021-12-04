@@ -4,6 +4,6 @@
 	"tabWidth": 4,
 	"singleQuote": true,
 	"arrowParens": "always",
-	"jsxBracketSameLine": false,
+	"bracketSameLine": false,
 	"printWidth": 80
 }

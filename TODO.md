@@ -1,84 +1,84 @@
-[x] "Backend"
-	[x] "gerrit credentials" command
-	[x] Implement gerrit API
-	[x] Caching?
-	[x] Infer URL, port, project from `.gitreview` file
-[ ] Visual
-	[ ] Changes pane
-		[x] ... buttons
-			[x] Allow changing view. Presets:
-				[x] Dashboard
-				[x] Draft comments
-				[x] Starred changes
-				[x] Open
-				[x] Merged
-				[x] Or by just changing config in settings
-		[x] Search bar at the top // Search bar in treeview is not possible (see https://github.com/Microsoft/vscode-extension-samples/issues/113). Instead we use a search icon
-		[x] Show changes under headers with following info:
-			[x] #ID
-			[x] Subject
-			[x] Owner
-			[-] V (not possible)
-			[x] Maybe multiline?
-		[ ] Rightclick on changes:
-			[ ] Checkout
-				[ ] Offer to stash and unstash
-			[ ] Checkout & Review
-			[ ] Toggle review mode
-			[ ] Open on gerrit
-			[ ] Notify when verified by administrator?
-		[x] Add "refresh" button
-			[x] Periodically refresh
-		[x] Add "fetch more" button
-		[x] Change expands to:
-			[x] Description
-				[-] Clicking opens inline gerrit webview // Not possible because Gerrit doesn't allow iframes or unauthorized fetching of the HTML. (would also be hard with cookies etc).
-					[ ] Possible future TODO, create custom UI
-			[x] Do something with comments that aren't inside of a file
-			[x] All changed files by path
-				[x] Badges:
-					[x] A (added)
-					[x] M (modified)
-					[x] D (deleted)
-					[x] Double-check standards here
-				[x] Add comment icon that shows whether you (or someone else) commented
-				[x] RMB:
-					[x] Open unmodified
-					[x] Open modified
-					[x] Open on gerrit
-					[-] Mark reviewed
-				[x] What happens when you click:
-					[x] Diff view
-						[-] Highlighting text and pressing "c" creates comment (not possible in VSCode)
-							[-] Or right-click "create comment" (same as above)
-						[x] Add line on the left that allows creating comments
-							[x] If text highlighted when creating commnt, use that text
-					[x] Show comments
-						[x] Default-expand unresolved, collapse resolved
-						[x] Add the magic buttons (done etc)
-						[x] Inline text field etc
-							[x] Cancel, save, resolved
-	[ ] Reply pane
-		[ ] Contains everything under the "reply" button and some more:
-			[ ] Reviewers
-			[ ] CC
-			[ ] Main textfield
-				[ ] Checkbox [resolved]
-			[ ] All scores
-				[ ] Code-review
-				[ ] Others
-			[ ] Checkbox [publish X drafts]
-			[ ] Attention set modifier
-			[ ] if WIP, show "start review"
-			[ ] Show cancel (reset) button
-		[ ] Shows this data for the currently checked-out change
-			[ ] If clicking "review" instead of "checkout & review" in changes, show it as well. Shows the reviewing change in the bottom bar. Can click that to stop reviewing (or the change itself).
-				[ ] Also a "stop reviewing X" button below reply button.
-	[ ] Add "review" button in source control
-		[ ] If first patchset, automatically open reply pane
-			 [ ] Allow disabling this in settings
-	[x] Add bottom bar showing currently checked-out change
-		[-] Rightclicking:
-			[-] Uncheckout
-			[-] Uncheckout & unstash previous
-			[-] Cancel review (if just reviewing)
+-   [x] "Backend"
+    -   [x] "gerrit credentials" command
+    -   [x] Implement gerrit API
+    -   [x] Caching?
+    -   [x] Infer URL, port, project from `.gitreview` file
+-   [ ] Visual
+    -   [ ] Changes pane
+        -   [x] ... buttons
+            -   [x] Allow changing view. Presets:
+                -   [x] Dashboard
+                -   [x] Draft comments
+                -   [x] Starred changes
+                -   [x] Open
+                -   [x] Merged
+                -   [x] Or by just changing config in settings
+        -   [x] Search bar at the top // Search bar in treeview is not possible (see https://github.com/Microsoft/vscode-extension-samples/issues/113). Instead we use a search icon
+        -   [x] Show changes under headers with following info:
+            -   [x] #ID
+            -   [x] Subject
+            -   [x] Owner
+            -   [-] V (not possible)
+            -   [x] Maybe multiline?
+        -   [ ] Rightclick on changes:
+            -   [ ] Checkout
+                -   [ ] Offer to stash and unstash
+            -   [ ] Checkout & Review
+            -   [ ] Toggle review mode
+            -   [ ] Open on gerrit
+            -   [ ] Notify when verified by administrator?
+        -   [x] Add "refresh" button
+            -   [x] Periodically refresh
+        -   [x] Add "fetch more" button
+        -   [x] Change expands to:
+            -   [x] Description
+                -   [-] Clicking opens inline gerrit webview // Not possible because Gerrit doesn't allow iframes or unauthorized fetching of the HTML. (would also be hard with cookies etc).
+                    -   [ ] Possible future TODO, create custom UI
+            -   [x] Do something with comments that aren't inside of a file
+            -   [x] All changed files by path
+                -   [x] Badges:
+                    -   [x] A (added)
+                    -   [x] M (modified)
+                    -   [x] D (deleted)
+                    -   [x] Double-check standards here
+                -   [x] Add comment icon that shows whether you (or someone else) commented
+                -   [x] RMB:
+                    -   [x] Open unmodified
+                    -   [x] Open modified
+                    -   [x] Open on gerrit
+                    -   [-] Mark reviewed
+                -   [x] What happens when you click:
+                    -   [x] Diff view
+                        -   [-] Highlighting text and pressing "c" creates comment (not possible in VSCode)
+                            -   [-] Or right-click "create comment" (same as above)
+                        -   [x] Add line on the left that allows creating comments
+                            -   [x] If text highlighted when creating commnt, use that text
+                    -   [x] Show comments
+                        -   [x] Default-expand unresolved, collapse resolved
+                        -   [x] Add the magic buttons (done etc)
+                        -   [x] Inline text field etc
+                            -   [x] Cancel, save, resolved
+    -   [ ] Reply pane
+        -   [ ] Contains everything under the "reply" button and some more:
+            -   [ ] Reviewers
+            -   [ ] CC
+            -   [ ] Main textfield
+                -   [ ] Checkbox [resolved]
+            -   [ ] All scores
+                -   [ ] Code-review
+                -   [ ] Others
+            -   [ ] Checkbox [publish X drafts]
+            -   [ ] Attention set modifier
+            -   [ ] if WIP, show "start review"
+            -   [ ] Show cancel (reset) button
+        -   [ ] Shows this data for the currently checked-out change
+            -   [ ] If clicking "review" instead of "checkout & review" in changes, show it as well. Shows the reviewing change in the bottom bar. Can click that to stop reviewing (or the change itself).
+                -   [ ] Also a "stop reviewing X" button below reply button.
+    -   [ ] Add "review" button in source control
+        -   [ ] If first patchset, automatically open reply pane
+            -   [ ] Allow disabling this in settings
+    -   [x] Add bottom bar showing currently checked-out change
+        -   [-] Rightclicking:
+            -   [-] Uncheckout
+            -   [-] Uncheckout & unstash previous
+            -   [-] Cancel review (if just reviewing)

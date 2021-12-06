@@ -6,3 +6,4 @@
 -   [VSCode codicons](https://microsoft.github.io/vscode-codicons/dist/codicon.html)
 -   [VSCode treeview API docs](https://code.visualstudio.com/api/extension-guides/tree-view)
 -   [VSCode webview API docs](https://code.visualstudio.com/api/extension-guides/webview)
+-   [VSCode theme color reference](https://code.visualstudio.com/api/references/theme-color)

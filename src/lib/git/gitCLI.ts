@@ -7,7 +7,10 @@ export interface GitCommit {
 	message: string;
 }
 
-async function execAsync(cmd: string, options?: ExecOptions): Promise<string> {
+export async function execAsync(
+	cmd: string,
+	options?: ExecOptions
+): Promise<string> {
 	return new Promise<string>((resolve, reject) => {
 		exec(cmd, options, (err, stdout, stderr) => {
 			if (err) {

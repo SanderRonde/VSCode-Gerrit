@@ -1,6 +1,8 @@
 import { commands, ConfigurationTarget, Disposable, window } from 'vscode';
 import { getConfiguration } from '../../../lib/vscode/config';
 import { EXTENSION_ID } from '../../../lib/util/constants';
+import { gitCheckoutRemote } from '../../../lib/git/git';
+import { ChangeTreeView } from './changeTreeView';
 import { ChangesTreeProvider } from '../changes';
 
 export function refreshChanges(): void {
@@ -50,4 +52,10 @@ export function selectActiveView(): void {
 	);
 
 	quickPick.show();
+}
+
+export async function checkoutBranch(
+	changeTreeView: ChangeTreeView
+): Promise<void> {
+	await gitCheckoutRemote(changeTreeView.change.number);
 }

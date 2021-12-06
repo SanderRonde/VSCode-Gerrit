@@ -20,6 +20,10 @@
 	"contributes": {
 		"commands": [
 			{
+				"command": "gerrit.checkoutBranch",
+				"title": "Checkout Patch"
+			},
+			{
 				"command": "gerrit.createCommentResolved",
 				"title": "Save (resolved)",
 				"enablement": "!commentIsEmpty"
@@ -123,6 +127,10 @@
 		],
 		"menus": {
 			"commandPalette": [
+				{
+					"command": "gerrit.checkoutBranch",
+					"when": "false"
+				},
 				{
 					"command": "gerrit.createCommentResolved",
 					"when": "false"
@@ -301,6 +309,11 @@
 					"command": "gerrit.openInReview",
 					"when": "view == gerrit:changeExplorer && viewItem =~ /gerritchange/",
 					"group": "change@1"
+				},
+				{
+					"command": "gerrit.checkoutBranch",
+					"when": "view == gerrit:changeExplorer && viewItem =~ /gerritchange/",
+					"group": "achange@1"
 				},
 				{
 					"command": "gerrit.openPatchsetSelector",

@@ -20,3 +20,5 @@
     -   [ ] Investigate "notify when passes checks". Can we do hooks?
     -   [ ] In-editor webview of a change. Stripped-down, prettier :)
     -   [ ] Check out performance, memory leaks, optimize API requests? Especially interesting when we change the extension to start on-editor-boot (instead of on-loading-done)
+    -   [ ] Rebasen
+        -   [ ] Include parents chain in rebase

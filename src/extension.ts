@@ -1,6 +1,6 @@
 import { FileModificationStatusProvider } from './providers/fileModificationStatusProvider';
 import { FileCache } from './views/activityBar/changes/changeTreeView/file/fileCache';
-import { commentDecorationProvider } from './providers/commentDecorationProvider';
+import { getCommentDecorationProvider } from './providers/commentDecorationProvider';
 import { SearchResultsTreeProvider } from './views/activityBar/searchResults';
 import { FileProvider, GERRIT_FILE_SCHEME } from './providers/fileProvider';
 import { setContextProp, setDefaultContexts } from './lib/vscode/context';
@@ -75,7 +75,7 @@ export async function activate(context: ExtensionContext): Promise<void> {
 
 	// Register comment decoration provider (comment bubbles)
 	context.subscriptions.push(
-		window.registerFileDecorationProvider(commentDecorationProvider)
+		window.registerFileDecorationProvider(getCommentDecorationProvider())
 	);
 
 	// Register filetype decoration provider

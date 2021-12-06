@@ -7,12 +7,12 @@ import {
 	Range,
 	Uri,
 } from 'vscode';
+import { getCommentDecorationProvider } from '../../../providers/commentDecorationProvider';
 import {
 	GerritCommentRange,
 	GerritCommentResponse,
 	GerritCommentSide,
 } from './types';
-import { commentDecorationProvider } from '../../../providers/commentDecorationProvider';
 import { GerritCommentThread } from '../../../providers/comments/thread';
 import { DynamicallyFetchable } from './shared';
 import { DateTime } from '../../util/dateTime';
@@ -214,7 +214,7 @@ export class GerritDraftComment extends GerritCommentBase implements Comment {
 	}
 
 	public static async refreshComments(uri: Uri): Promise<void> {
-		await commentDecorationProvider.refreshFileComments(uri);
+		await getCommentDecorationProvider().refreshFileComments(uri);
 	}
 
 	public getContextValues(): string[] {

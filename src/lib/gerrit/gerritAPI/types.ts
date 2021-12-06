@@ -176,6 +176,8 @@ export type GerritGroupResponse = {
 	created_on: string;
 };
 
+export type GerritTopicResponse = string | '';
+
 export type GerritGroupsResponse = Record<string, GerritGroupResponse>;
 
 export type GerritProjectResponse = {

@@ -38,6 +38,15 @@ export async function getGerritURL(): Promise<string | null> {
 	return null;
 }
 
+export async function getLocalRepoUri(): Promise<string | null> {
+	const config = getConfiguration();
+	const localUri = config.get('gerrit.localGitRepoUri');
+	if (!localUri) {
+		return null;
+	}
+	return localUri;
+}
+
 export async function enterCredentials(): Promise<void> {
 	const config = getConfiguration();
 	const initialURLValue = await getGerritURL();

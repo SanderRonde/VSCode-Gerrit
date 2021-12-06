@@ -7,6 +7,7 @@ import {
 	GerritDetailedUserResponse,
 	GerritGroupsResponse,
 	GerritProjectsResponse,
+	GerritTopicResponse,
 } from './types';
 import { FileCache } from '../../../views/activityBar/changes/changeTreeView/file/fileCache';
 import { optionalArrayEntry, optionalObjectProperty } from '../../util/util';
@@ -606,6 +607,18 @@ export class GerritAPI {
 			);
 		}
 		return map;
+	}
+
+	public async getTopic(
+		changeID: string
+	): Promise<GerritTopicResponse | null> {
+		const response = await this._tryRequest(
+			this.getURL(
+				`changes/${changeID}/topic`
+			),
+			this._get
+		);
+		return this._handleResponse<GerritTopicResponse>(response);
 	}
 
 	public async getFileContent({

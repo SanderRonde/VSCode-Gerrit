@@ -18,6 +18,7 @@ import {
 import {
 	configureChangeLists,
 	refreshChanges,
+	checkoutBranch,
 } from '../views/activityBar/changes/changeCommands';
 import { fetchMoreTreeItemEntries } from '../views/activityBar/changes/fetchMoreTreeItem';
 import { clearSearchResults, search } from '../views/activityBar/search/search';
@@ -48,6 +49,7 @@ export enum GerritExtensionCommands {
 	CONFIGURE_CHANGE_LIST = 'gerrit.configureChangeList',
 	SEARCH = 'gerrit.search',
 	CLEAR_SEARCH_RESULTS = 'gerrit.clearSearchResults',
+	CHECKOUT_BRANCH = 'gerrit.checkoutBranch',
 }
 
 export function registerCommands(context: ExtensionContext): void {
@@ -185,6 +187,14 @@ export function registerCommands(context: ExtensionContext): void {
 		commands.registerCommand(
 			GerritExtensionCommands.CLEAR_SEARCH_RESULTS,
 			clearSearchResults
+		)
+	);
+
+	// git
+	context.subscriptions.push(
+		commands.registerCommand(
+			GerritExtensionCommands.CHECKOUT_BRANCH,
+			checkoutBranch
 		)
 	);
 }

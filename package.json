@@ -17,6 +17,10 @@
 	"contributes": {
 		"commands": [
 			{
+				"command": "gerrit.checkoutBranch",
+				"title": "Checkout branch"
+			},
+			{
 				"command": "gerrit.createCommentResolved",
 				"title": "Save (resolved)",
 				"enablement": "!commentIsEmpty"
@@ -259,6 +263,11 @@
 					"command": "gerrit.openOriginal",
 					"when": "view == gerrit:changeExplorer && viewItem =~ /filechange/ && viewItem =~ /modified/",
 					"group": "open@3"
+				},
+				{
+					"command": "gerrit.checkoutBranch",
+					"when": "view == gerrit:changeExplorer && viewItem =~ /change/",
+					"group": "change@1"
 				}
 			],
 			"view/title": [
@@ -322,6 +331,10 @@
 			"type": "object",
 			"title": "Gerrit configuration",
 			"properties": {
+				"gerrit.localGitRepoUri": {
+					"type": "string",
+					"title": "Local git repository uri"
+				},
 				"gerrit.auth.username": {
 					"type": "string",
 					"title": "Gerrit username"

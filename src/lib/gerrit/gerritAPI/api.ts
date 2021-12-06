@@ -9,7 +9,11 @@ import {
 	GerritProjectsResponse,
 } from './types';
 import { FileCache } from '../../../views/activityBar/changes/changeTreeView/file/fileCache';
-import { optionalArrayEntry, optionalObjectProperty } from '../../util/util';
+import {
+	optionalArrayEntry,
+	optionalObjectProperty,
+	wait,
+} from '../../util/util';
 import got, { OptionsOfTextResponseBody, Response } from 'got/dist/source';
 import { DefaultChangeFilter, GerritChangeFilter } from './filters';
 import { GerritComment, GerritDraftComment } from './gerritComment';
@@ -400,28 +404,10 @@ export class GerritAPI {
 		changeID: string,
 		...withValues: GerritAPIWith[]
 	): Promise<GerritChange | null>;
-	public async getChange(
-		changeID: string,
-		...withValues: GerritAPIWith[]
-	): Promise<GerritChange | null> {
-		const response = await this._tryRequest(
-			this.getURL(`changes/${changeID}/detail/`),
-			{
-				...this._get,
-				searchParams: new URLSearchParams(
-					withValues.map((v) => ['o', v] as [string, string])
-				),
-			}
-		);
-
-		const json = this._handleResponse<GerritChangeResponse>(response);
-		if (!json) {
-			return null;
-		}
-
-		const change = new GerritChange(json);
-		getChangeCache().set(changeID, withValues, change);
-		return change;
+	public async getChange(): Promise<GerritChange | null> {
+		console.log('no more changes!');
+		await wait(1000);
+		return null;
 	}
 
 	public async getChanges(

@@ -287,13 +287,12 @@ export class GerritAPI {
 					statusCode: number;
 				};
 			};
-			if (shouldDebugRequests()) {
-				console.log(
-					err.response.statusCode,
-					err.response,
-					err.response.body
-				);
-			}
+			log(
+				err.toString(),
+				err?.response.statusCode.toString(),
+				err?.response.toString(),
+				err?.response.body.toString()
+			);
 			if (onError) {
 				await onError(err.response.statusCode, err.response.body);
 			} else {

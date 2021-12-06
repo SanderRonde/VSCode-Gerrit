@@ -312,9 +312,9 @@
 				{
 					"id": "gerrit:review",
 					"name": "Review",
-					"type": "tree",
+					"type": "webview",
 					"visibility": "visible",
-					"when": "gerrit:isUsingGerrit && (gerrit.changes.checkedOut || gerrit.changes.reviewing)"
+					"when": "gerrit:isUsingGerrit"
 				}
 			]
 		},
@@ -648,9 +648,10 @@
 		}
 	},
 	"scripts": {
-		"vscode:prepublish": "yarn run compile",
-		"compile": "tsc -p ./",
-		"watch": "tsc -watch -p ./",
+		"vscode:prepublish": "yarn run build && yarn run compile",
+		"compile": "tsc -p ./ && tsc -p src/views/activityBar/review/html/src/tsconfig.json",
+		"watch": "npm-run-all -p \"yarn run build --watch\" \"tsc -watch -p ./\"",
+		"build": "esbuild --bundle --outfile=src/views/activityBar/review/html/dist/index.js src/views/activityBar/review/html/src/index.tsx --minify",
 		"pretest": "yarn run compile && yarn run lint",
 		"lint": "eslint src --ext ts",
 		"test": "node ./out/test/runTest.js",
@@ -660,20 +661,27 @@
 		"@types/glob": "^7.1.4",
 		"@types/mocha": "^9.0.0",
 		"@types/node": "14.x",
+		"@types/react": "^17.0.37",
+		"@types/react-dom": "^17.0.11",
 		"@types/vscode": "^1.62.0",
 		"@typescript-eslint/eslint-plugin": "^5.1.0",
 		"@typescript-eslint/parser": "^5.4.0",
 		"@vscode/test-electron": "^1.6.2",
+		"esbuild": "^0.14.2",
 		"eslint": "^8.3.0",
 		"eslint-config-prettier": "^8.3.0",
 		"eslint-plugin-node": "^11.1.0",
+		"eslint-plugin-react": "^7.27.1",
 		"eslint-plugin-unused-imports": "^2.0.0",
 		"glob": "^7.1.7",
 		"gts": "^3.1.0",
 		"mocha": "^9.1.3",
+		"npm-run-all": "^4.1.5",
 		"prettier": "^2.5.0",
 		"prettier-plugin-sort-imports": "^1.0.1",
 		"pretty-quick": "^3.1.2",
+		"react": "^17.0.2",
+		"react-dom": "^17.0.2",
 		"typescript": "^4.5.2"
 	},
 	"dependencies": {

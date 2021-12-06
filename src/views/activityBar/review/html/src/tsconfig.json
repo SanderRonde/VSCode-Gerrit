@@ -1,0 +1,9 @@
+{
+	"extends": "../../../../../../tsconfig.json",
+	"compilerOptions": {
+		"jsx": "react",
+		"lib": ["DOM"]
+	},
+	"include": ["./*"],
+	"exclude": ["./tsconfig.json"]
+}

@@ -4,6 +4,7 @@ import { getCommentDecorationProvider } from './providers/commentDecorationProvi
 import { SearchResultsTreeProvider } from './views/activityBar/searchResults';
 import { FileProvider, GERRIT_FILE_SCHEME } from './providers/fileProvider';
 import { setContextProp, setDefaultContexts } from './lib/vscode/context';
+import { ReviewWebviewProvider } from './views/activityBar/review';
 import { ChangesTreeProvider } from './views/activityBar/changes';
 import { GerritUser } from './lib/gerrit/gerritAPI/gerritUser';
 import { ExtensionContext, window, workspace } from 'vscode';
@@ -49,6 +50,12 @@ export async function activate(context: ExtensionContext): Promise<void> {
 			treeDataProvider: new ChangesTreeProvider(),
 			showCollapseAll: true,
 		})
+	);
+	context.subscriptions.push(
+		window.registerWebviewViewProvider(
+			'gerrit:review',
+			new ReviewWebviewProvider(context)
+		)
 	);
 	context.subscriptions.push(
 		(() => {

@@ -1,4 +1,4 @@
-import { TreeItemWithChildren, TreeViewItem } from '../treeTypes';
+import { TreeItemWithChildren, TreeViewItem } from '../shared/treeTypes';
 import { getConfiguration } from '../../../lib/vscode/config';
 import { configureChangeLists } from './changeCommands';
 import { ChangesTreeProvider } from '../changes';

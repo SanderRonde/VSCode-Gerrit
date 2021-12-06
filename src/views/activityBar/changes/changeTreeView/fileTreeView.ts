@@ -14,9 +14,9 @@ import {
 	TextContent,
 } from '../../../../lib/gerrit/gerritAPI/gerritFile';
 import { GerritChange } from '../../../../lib/gerrit/gerritAPI/gerritChange';
+import { TreeItemWithoutChildren } from '../../shared/treeTypes';
 import { tertiaryWithFallback } from '../../../../lib/util/util';
 import { FileMeta } from '../../../../providers/fileProvider';
-import { TreeItemWithoutChildren } from '../../treeTypes';
 import * as path from 'path';
 
 export class FileTreeView implements TreeItemWithoutChildren {

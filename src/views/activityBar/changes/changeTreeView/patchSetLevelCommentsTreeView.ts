@@ -1,8 +1,8 @@
 import { Command, TextDocumentShowOptions, ThemeIcon, TreeItem } from 'vscode';
 import { GerritChange } from '../../../../lib/gerrit/gerritAPI/gerritChange';
 import { TextContent } from '../../../../lib/gerrit/gerritAPI/gerritFile';
+import { TreeItemWithoutChildren } from '../../shared/treeTypes';
 import { FileMeta } from '../../../../providers/fileProvider';
-import { TreeItemWithoutChildren } from '../../treeTypes';
 
 export const PATCHSET_LEVEL_KEY = '/PATCHSET_LEVEL';
 

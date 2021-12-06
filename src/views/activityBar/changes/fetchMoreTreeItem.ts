@@ -1,6 +1,6 @@
 import { CanFetchMoreTreeProvider } from '../shared/canFetchMoreTreeProvider';
 import { GerritExtensionCommands } from '../../../commands/commands';
-import { TreeItemWithoutChildren } from '../treeTypes';
+import { TreeItemWithoutChildren } from '../shared/treeTypes';
 import { Command, ThemeIcon, TreeItem } from 'vscode';
 
 export enum DashboardGroupContainerGroup {

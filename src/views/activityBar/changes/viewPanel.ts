@@ -4,8 +4,8 @@ import {
 } from '../../../lib/gerrit/gerritAPI/filters';
 import { CanFetchMoreTreeProvider } from '../shared/canFetchMoreTreeProvider';
 import { GerritChange } from '../../../lib/gerrit/gerritAPI/gerritChange';
+import { TreeItemWithChildren, TreeViewItem } from '../shared/treeTypes';
 import { Disposable, TreeItem, TreeItemCollapsibleState } from 'vscode';
-import { TreeItemWithChildren, TreeViewItem } from '../treeTypes';
 import { GerritAPIWith } from '../../../lib/gerrit/gerritAPI/api';
 import { optionalArrayEntry } from '../../../lib/util/util';
 import { ChangesPanel } from '../../../lib/vscode/config';

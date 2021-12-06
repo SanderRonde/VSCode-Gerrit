@@ -16,9 +16,9 @@ import { getContextProp } from '../../lib/vscode/context';
 import { optionalArrayEntry } from '../../lib/util/util';
 import { getAPI } from '../../lib/gerrit/gerritAPI';
 import { Refreshable } from './shared/refreshable';
+import { TreeViewItem } from './shared/treeTypes';
 import { Focusable } from './shared/focusable';
 import { Clearable } from './shared/clearable';
-import { TreeViewItem } from './treeTypes';
 import { log } from '../../lib/util/log';
 
 export class SearchResultsTreeProvider

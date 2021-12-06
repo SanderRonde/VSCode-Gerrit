@@ -1,8 +1,8 @@
 import { PatchSetLevelCommentsTreeView } from './changeTreeView/patchSetLevelCommentsTreeView';
 import { GerritChange } from '../../../lib/gerrit/gerritAPI/gerritChange';
+import { TreeItemWithChildren, TreeViewItem } from '../shared/treeTypes';
 import { ThemeIcon, TreeItem, TreeItemCollapsibleState } from 'vscode';
 import { GerritFile } from '../../../lib/gerrit/gerritAPI/gerritFile';
-import { TreeItemWithChildren, TreeViewItem } from '../treeTypes';
 import { GerritAPIWith } from '../../../lib/gerrit/gerritAPI/api';
 import { FolderTreeView } from './changeTreeView/folderTreeView';
 import { FileTreeView } from './changeTreeView/fileTreeView';

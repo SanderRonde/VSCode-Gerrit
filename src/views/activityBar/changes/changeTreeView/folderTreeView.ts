@@ -1,5 +1,5 @@
+import { TreeItemWithoutChildren, TreeViewItem } from '../../shared/treeTypes';
 import { GerritChange } from '../../../../lib/gerrit/gerritAPI/gerritChange';
-import { TreeItemWithoutChildren, TreeViewItem } from '../../treeTypes';
 import { ThemeIcon, TreeItem, TreeItemCollapsibleState } from 'vscode';
 import { ChangeTreeView, FileMap } from '../changeTreeView';
 

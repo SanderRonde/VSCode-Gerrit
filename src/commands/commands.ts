@@ -15,10 +15,12 @@ import {
 	openModified,
 	openOriginal,
 } from '../views/activityBar/changes/changeTreeView/file/openFile';
+
 import {
 	configureChangeLists,
 	refreshChanges,
 	selectActiveView,
+	checkoutBranch,
 } from '../views/activityBar/changes/changeCommands';
 import { fetchMoreTreeItemEntries } from '../views/activityBar/changes/fetchMoreTreeItem';
 import { clearSearchResults, search } from '../views/activityBar/search/search';
@@ -54,6 +56,7 @@ export enum GerritExtensionCommands {
 	OPEN_PATCHSET_SELECTOR = 'gerrit.openPatchsetSelector',
 	RESET_PATCHSET_SELECTOR = 'gerrit.resetPatchsetSelection',
 	SELECT_ACTIVE_VIEW = 'gerrit.selectActiveView',
+	CHECKOUT_BRANCH = 'gerrit.checkoutBranch',
 }
 
 export function registerCommands(context: ExtensionContext): void {
@@ -219,6 +222,13 @@ export function registerCommands(context: ExtensionContext): void {
 		commands.registerCommand(
 			GerritExtensionCommands.RESET_PATCHSET_SELECTOR,
 			(e: ChangeTreeView) => e.resetPatchsetSelector()
+		)
+	);
+	// git
+	context.subscriptions.push(
+		commands.registerCommand(
+			GerritExtensionCommands.CHECKOUT_BRANCH,
+			checkoutBranch
 		)
 	);
 }

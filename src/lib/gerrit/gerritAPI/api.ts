@@ -10,6 +10,7 @@ import {
 	GerritGroupsResponse,
 	GerritProjectsResponse,
 	GerritSuggestedReviewerResponse,
+	GerritTopicResponse,
 } from './types';
 import { PATCHSET_LEVEL_KEY } from '../../../views/activityBar/changes/changeTreeView/patchSetLevelCommentsTreeView';
 import { FilesCache } from '../../../views/activityBar/changes/changeTreeView/file/filesCache';
@@ -802,6 +803,16 @@ export class GerritAPI {
 		});
 		FilesCache.set(change.project, change.changeID, revision, files);
 		return files;
+	}
+
+	public async getTopic(
+		changeID: string
+	): Promise<GerritTopicResponse | null> {
+		const response = await this._tryRequest(
+			this.getURL(`changes/${changeID}/topic`),
+			this._get
+		);
+		return this._handleResponse<GerritTopicResponse>(response);
 	}
 
 	public async getFileContent({

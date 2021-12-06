@@ -1,8 +1,8 @@
 import { API, GitExtension } from '../../types/vscode-extension-git';
 import { PERIODICAL_GIT_FETCH_INTERVAL } from '../util/constants';
+import { getLastCommits, GitCommit, execAsync } from './gitCLI';
+import { window, Disposable, extensions } from 'vscode';
 import { createAwaitingInterval } from '../util/util';
-import { getLastCommits, GitCommit } from './gitCLI';
-import { Disposable, extensions } from 'vscode';
 
 export function getGitAPI(): API | null {
 	const extension = extensions.getExtension<GitExtension>('vscode.git');
@@ -45,4 +45,17 @@ export async function onChangeLastCommit(
 	}, PERIODICAL_GIT_FETCH_INTERVAL);
 
 	return interval;
+}
+
+export async function gitCheckoutRemote(patchNumber: number): Promise<void> {
+	const api = getGitAPI();
+	if (!api || !api.repositories.length) {
+		return;
+	}
+
+	const uri = api.repositories[0].rootUri.fsPath;
+	const stdout = await execAsync(`git-review -d ${String(patchNumber)}`, {
+		cwd: uri,
+	});
+	await window.showInformationMessage(stdout);
 }

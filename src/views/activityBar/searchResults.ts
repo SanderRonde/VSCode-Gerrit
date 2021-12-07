@@ -93,7 +93,7 @@ export class SearchResultsTreeProvider
 				const queryFailMsg = `Failed to perform search with query "${query}"`;
 				log(
 					queryFailMsg,
-					`Status code = ${code}`,
+					`Status code = ${code ?? '?'}`,
 					`response body = "${body}"`
 				);
 				await window.showErrorMessage(queryFailMsg);

@@ -3,6 +3,7 @@
     -   [x] Implement gerrit API
     -   [x] Caching?
     -   [x] Infer URL, port, project from `.gitreview` file
+    -   [ ] Join requests
 -   [ ] Visual
     -   [ ] Changes pane
         -   [x] ... buttons

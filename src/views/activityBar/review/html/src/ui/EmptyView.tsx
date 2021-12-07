@@ -1,5 +1,5 @@
 import { globalStyles } from '../lib/styles';
-import { createStyle } from '../lib/style';
+import { createStyles } from '../lib/style';
 import * as React from 'react';
 
 export const EmptyView: React.VFC = () => {
@@ -14,7 +14,7 @@ export const EmptyView: React.VFC = () => {
 	);
 };
 
-const styles = createStyle({
+const styles = createStyles({
 	header: {
 		fontSize: '1.5em',
 		fontWeight: 'bold',

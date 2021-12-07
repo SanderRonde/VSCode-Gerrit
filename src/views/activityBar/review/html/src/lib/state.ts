@@ -1,5 +1,5 @@
 import { ChangeState, ReviewWebviewState } from '../../../state';
-import { messageUpdateCounter } from './messageHandler';
+import { messageListeners } from './messageHandler';
 import * as React from 'react';
 import { getAPI } from './api';
 
@@ -8,15 +8,21 @@ export function getState(): ReviewWebviewState {
 }
 
 export function useGerritState(): ReviewWebviewState {
-	return React.useMemo(() => getState(), [messageUpdateCounter]);
+	const [updateCounter, updateState] = React.useState<number>(0);
+	const forceUpdate = React.useCallback(() => updateState((s) => s + 1), []);
+
+	React.useEffect(() => {
+		messageListeners.add(forceUpdate);
+		return () => {
+			messageListeners.delete(forceUpdate);
+		};
+	}, [forceUpdate]);
+
+	// eslint-disable-next-line react-hooks/exhaustive-deps
+	return React.useMemo(() => getState(), [updateCounter]);
 }
 
 export function useCurrentChangeState(): ChangeState | null {
-	return React.useMemo(() => {
-		const state = getState();
-		if (!state.changes || !state.currentChange) {
-			return null;
-		}
-		return state.changes[state.currentChange] ?? null;
-	}, [messageUpdateCounter]);
+	const state = useGerritState();
+	return state.overriddenChange ?? state.currentChange ?? null;
 }

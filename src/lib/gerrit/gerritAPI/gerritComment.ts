@@ -13,6 +13,7 @@ import {
 	GerritCommentResponse,
 	GerritCommentSide,
 } from './types';
+import { getReviewWebviewProvider } from '../../../views/activityBar/review';
 import { GerritCommentThread } from '../../../providers/comments/thread';
 import { DynamicallyFetchable } from './shared';
 import { DateTime } from '../../util/dateTime';
@@ -215,6 +216,7 @@ export class GerritDraftComment extends GerritCommentBase implements Comment {
 
 	public static async refreshComments(uri: Uri): Promise<void> {
 		await getCommentDecorationProvider().refreshFileComments(uri);
+		await getReviewWebviewProvider()?.updateAllStates();
 	}
 
 	public getContextValues(): string[] {

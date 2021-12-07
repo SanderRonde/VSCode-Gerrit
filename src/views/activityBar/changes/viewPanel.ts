@@ -74,7 +74,7 @@ export class ViewPanel
 			async (code, body): Promise<void> => {
 				log(
 					`Failed to fetch changes with filters for panel "${this._panel.title}"`,
-					`Status code = ${code}`,
+					`Status code = ${code ?? '?'}`,
 					`response body = "${body}"`
 				);
 				await RootTreeViewProvider.openConfigSettingsMessage(

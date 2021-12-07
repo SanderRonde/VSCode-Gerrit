@@ -2,7 +2,8 @@
 	"extends": "../../../../../../tsconfig.json",
 	"compilerOptions": {
 		"jsx": "react",
-		"lib": ["DOM"]
+		"lib": ["DOM"],
+		"esModuleInterop": true
 	},
 	"include": ["./*"],
 	"exclude": ["./tsconfig.json"]

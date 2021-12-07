@@ -1,6 +1,6 @@
 import * as React from 'react';
 
-export function createStyle<S extends Record<string, React.CSSProperties>>(
+export function createStyles<S extends Record<string, React.CSSProperties>>(
 	style: S
 ): {
 	[K in keyof S]: React.CSSProperties;
@@ -9,7 +9,12 @@ export function createStyle<S extends Record<string, React.CSSProperties>>(
 }
 
 export function useJoinedStyles(
-	...styles: React.CSSProperties[]
+	...styles: (React.CSSProperties | undefined)[]
 ): React.CSSProperties {
-	return React.useMemo(() => Object.assign({}, ...styles), styles);
+	// eslint-disable-next-line @typescript-eslint/no-unsafe-return
+	return React.useMemo(() => {
+		// eslint-disable-next-line @typescript-eslint/no-unsafe-return
+		return Object.assign({}, ...styles);
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, styles);
 }

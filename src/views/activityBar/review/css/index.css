@@ -1,0 +1,18 @@
+.icon-btn {
+	border: 1px solid transparent;
+	padding: 5px;
+	border-radius: 50%;
+	cursor: pointer;
+}
+
+.icon-btn:active {
+	border: 1px solid var(--vscode-focusBorder);
+}
+
+.MuiPaper-root {
+	background-color: var(--vscode-input-background) !important;
+}
+
+html, body, #app {
+	height: 100%;
+}

@@ -1,4 +1,5 @@
 import {
+	GerritChangeDetailResponse,
 	GerritChangeResponse,
 	GerritCommentRange,
 	GerritCommentResponse,
@@ -7,6 +8,7 @@ import {
 	GerritDetailedUserResponse,
 	GerritGroupsResponse,
 	GerritProjectsResponse,
+	GerritSuggestedReviewerResponse,
 } from './types';
 import { FileCache } from '../../../views/activityBar/changes/changeTreeView/file/fileCache';
 import { optionalArrayEntry, optionalObjectProperty } from '../../util/util';
@@ -14,6 +16,7 @@ import got, { OptionsOfTextResponseBody, Response } from 'got/dist/source';
 import { DefaultChangeFilter, GerritChangeFilter } from './filters';
 import { GerritComment, GerritDraftComment } from './gerritComment';
 import { FileMeta } from '../../../providers/fileProvider';
+import { GerritChangeDetail } from './gerritChangeDetail';
 import { getConfiguration } from '../../vscode/config';
 import { shouldDebugRequests } from '../../util/dev';
 import { READONLY_MODE } from '../../util/constants';
@@ -32,6 +35,7 @@ export enum GerritAPIWith {
 	DETAILED_LABELS = 'DETAILED_LABELS',
 	DETAILED_ACCOUNTS = 'DETAILED_ACCOUNTS',
 	CURRENT_REVISION = 'CURRENT_REVISION',
+	ALL_REVISIONS = 'ALL_REVISIONS',
 	CURRENT_COMMIT = 'CURRENT_COMMIT',
 	CURRENT_FILES = 'CURRENT_FILES',
 }
@@ -134,6 +138,14 @@ class UserCache {
 export class GerritAPI {
 	private static _groups: GerritGroup[] | null = null;
 	private static _projects: GerritProject[] | null = null;
+	private static _reviewerSuggestionCache: Map<
+		string,
+		Map<string | undefined, (GerritUser | GerritGroup)[]>
+	> = new Map();
+	private static _ccSuggestionCache: Map<
+		string,
+		Map<string | undefined, (GerritUser | GerritGroup)[]>
+	> = new Map();
 	private readonly _MAGIC_PREFIX = ")]}'";
 	private _inFlightRequests: Map<string, Promise<ResponseWithBody<string>>> =
 		new Map();
@@ -141,6 +153,13 @@ export class GerritAPI {
 	private get _get(): OptionsOfTextResponseBody {
 		return {
 			method: 'GET',
+			headers: this._headers(false),
+		};
+	}
+
+	private get _post(): OptionsOfTextResponseBody {
+		return {
+			method: 'POST',
 			headers: this._headers(false),
 		};
 	}
@@ -261,10 +280,23 @@ export class GerritAPI {
 		return response;
 	}
 
+	private _makeSearchParamsStringifiable(
+		params: URLSearchParams
+	): Record<string, string[]> {
+		const obj: Record<string, string[]> = {};
+		for (const key of params.keys()) {
+			obj[key] = params.getAll(key);
+		}
+		return obj;
+	}
+
 	private async _tryRequest(
 		url: string,
 		body?: OptionsOfTextResponseBody,
-		onError?: (code: number, body: string) => void | Promise<void>
+		onError?: (
+			code: number | undefined,
+			body: string
+		) => void | Promise<void>
 	): Promise<(Response<string> & { strippedBody: string }) | null> {
 		if (READONLY_MODE && body?.method !== 'GET') {
 			await window.showErrorMessage(
@@ -274,7 +306,13 @@ export class GerritAPI {
 		}
 		log(`${body?.method || 'GET'} request to "${url}"`);
 		if (shouldDebugRequests()) {
-			console.log(body);
+			console.log({
+				...body,
+				searchParams:
+					body?.searchParams instanceof URLSearchParams
+						? this._makeSearchParamsStringifiable(body.searchParams)
+						: body?.searchParams,
+			});
 		}
 		try {
 			const response = await this._syncUpSameRequests(url, body);
@@ -289,12 +327,12 @@ export class GerritAPI {
 			};
 			log(
 				err.toString(),
-				err?.response.statusCode.toString(),
-				err?.response.toString(),
-				err?.response.body.toString()
+				err?.response?.statusCode.toString(),
+				err?.response?.toString(),
+				err?.response?.body.toString()
 			);
 			if (onError) {
-				await onError(err.response.statusCode, err.response.body);
+				await onError(err.response?.statusCode, err.response.body);
 			} else {
 				await window.showErrorMessage(
 					`Gerrit request to "${url}" failed. Please check your settings and/or connection`
@@ -364,6 +402,42 @@ export class GerritAPI {
 		return this._handleResponse<GerritCommentsResponse>(response);
 	}
 
+	private async _suggestPersonShared(
+		changeID: string,
+		query?: string,
+		maxCount: number = 10,
+		...extra: [string, string][]
+	): Promise<(GerritUser | GerritGroup)[]> {
+		console.log('q=', query);
+		const response = await this._tryRequest(
+			this.getURL(`changes/${changeID}/suggest_reviewers/`),
+			{
+				...this._get,
+				searchParams: new URLSearchParams([
+					...optionalArrayEntry(!!query, [
+						['q', query] as [string, string],
+					]),
+					['n', String(maxCount)],
+					...extra,
+				]),
+			}
+		);
+
+		const json =
+			this._handleResponse<GerritSuggestedReviewerResponse>(response);
+		if (!json) {
+			return [];
+		}
+
+		return json.map((entry) => {
+			if ('account' in entry) {
+				return new GerritUser(entry.account);
+			} else {
+				return new GerritGroup(entry.group.name, entry.group);
+			}
+		});
+	}
+
 	public async testConnection(): Promise<boolean> {
 		const response = await this._tryRequest(
 			this.getURL('config/server/version'),
@@ -429,7 +503,10 @@ export class GerritAPI {
 		offsetParams: ChangesOffsetParams | undefined,
 		onError:
 			| undefined
-			| ((code: number, body: string) => void | Promise<void>),
+			| ((
+					code: number | undefined,
+					body: string
+			  ) => void | Promise<void>),
 		...withValues: never[]
 	): Promise<GerritChange[]>;
 	public async getChanges(
@@ -437,7 +514,10 @@ export class GerritAPI {
 		offsetParams: ChangesOffsetParams | undefined,
 		onError:
 			| undefined
-			| ((code: number, body: string) => void | Promise<void>),
+			| ((
+					code: number | undefined,
+					body: string
+			  ) => void | Promise<void>),
 		...withValues: GerritAPIWith.LABELS[]
 	): Promise<InstanceType<WithValue<typeof GerritChange, 'labels'>>[]>;
 	public async getChanges(
@@ -445,7 +525,10 @@ export class GerritAPI {
 		offsetParams: ChangesOffsetParams | undefined,
 		onError:
 			| undefined
-			| ((code: number, body: string) => void | Promise<void>),
+			| ((
+					code: number | undefined,
+					body: string
+			  ) => void | Promise<void>),
 		...withValues: GerritAPIWith.DETAILED_LABELS[]
 	): Promise<
 		InstanceType<WithValue<typeof GerritChange, 'detailedLabels'>>[]
@@ -455,7 +538,10 @@ export class GerritAPI {
 		offsetParams: ChangesOffsetParams | undefined,
 		onError:
 			| undefined
-			| ((code: number, body: string) => void | Promise<void>),
+			| ((
+					code: number | undefined,
+					body: string
+			  ) => void | Promise<void>),
 		...withValues: GerritAPIWith[]
 	): Promise<GerritChange[]>;
 	public async getChanges(
@@ -463,7 +549,10 @@ export class GerritAPI {
 		offsetParams: ChangesOffsetParams | undefined,
 		onError:
 			| undefined
-			| ((code: number, body: string) => void | Promise<void>),
+			| ((
+					code: number | undefined,
+					body: string
+			  ) => void | Promise<void>),
 		...withValues: GerritAPIWith[]
 	): Promise<GerritChange[]> {
 		const response = await this._tryRequest(
@@ -516,7 +605,10 @@ export class GerritAPI {
 		offsetParams: ChangesOffsetParams | undefined,
 		onError:
 			| undefined
-			| ((code: number, body: string) => void | Promise<void>),
+			| ((
+					code: number | undefined,
+					body: string
+			  ) => void | Promise<void>),
 		...withValues: GerritAPIWith[]
 	): Promise<GerritChange[]> {
 		const response = await this._tryRequest(
@@ -897,6 +989,101 @@ export class GerritAPI {
 			return GerritAPI._projects;
 		}
 
-		return this.getGroups();
+		return this.getProjects();
+	}
+
+	public async getChangeDetail(
+		changeID: string
+	): Promise<GerritChangeDetail | null> {
+		const response = await this._tryRequest(
+			this.getURL(`changes/${changeID}/detail/`),
+			this._get
+		);
+
+		const json = this._handleResponse<GerritChangeDetailResponse>(response);
+		if (!json) {
+			return null;
+		}
+
+		return new GerritChangeDetail(json);
+	}
+
+	public async suggestReviewers(
+		changeID: string,
+		query?: string,
+		maxCount: number = 10
+	): Promise<(GerritUser | GerritGroup)[]> {
+		if (
+			GerritAPI._reviewerSuggestionCache.has(changeID) &&
+			GerritAPI._reviewerSuggestionCache.get(changeID)!.has(query)
+		) {
+			return GerritAPI._reviewerSuggestionCache
+				.get(changeID)!
+				.get(query)!;
+		}
+
+		const suggestions = await this._suggestPersonShared(
+			changeID,
+			query,
+			maxCount
+		);
+		if (!GerritAPI._reviewerSuggestionCache.has(changeID)) {
+			GerritAPI._reviewerSuggestionCache.set(changeID, new Map());
+		}
+		GerritAPI._reviewerSuggestionCache
+			.get(changeID)!
+			.set(query, suggestions);
+		return suggestions;
+	}
+
+	public async suggestCC(
+		changeID: string,
+		query?: string,
+		maxCount: number = 10
+	): Promise<(GerritUser | GerritGroup)[]> {
+		if (
+			GerritAPI._ccSuggestionCache.has(changeID) &&
+			GerritAPI._ccSuggestionCache.get(changeID)!.has(query)
+		) {
+			return GerritAPI._ccSuggestionCache.get(changeID)!.get(query)!;
+		}
+
+		const suggestions = await this._suggestPersonShared(
+			changeID,
+			query,
+			maxCount,
+			['reviewer-state', 'CC']
+		);
+		if (!GerritAPI._ccSuggestionCache.has(changeID)) {
+			GerritAPI._ccSuggestionCache.set(changeID, new Map());
+		}
+		GerritAPI._ccSuggestionCache.get(changeID)!.set(query, suggestions);
+		return suggestions;
+	}
+
+	public async setReview(
+		changeID: string,
+		revisionID: string,
+		options: {
+			message?: string;
+			labels?: Record<string, number>;
+			publishDrafts: boolean;
+			removedReviewers: string[];
+			reviewers: string[];
+			cc: string[];
+		}
+	): Promise<void> {
+		options;
+		const response = await this._tryRequest(
+			this.getURL(`changes/${changeID}/revisions/${revisionID}/review`),
+			this._post
+		);
+
+		const json = this._handleResponse<GerritChangeDetailResponse>(response);
+		if (!json) {
+			return null;
+		}
+
+		return new GerritChangeDetail(json);
 	}
 }

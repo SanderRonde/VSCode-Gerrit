@@ -1,10 +1,10 @@
 import { FileModificationStatusProvider } from './providers/fileModificationStatusProvider';
 import { FileCache } from './views/activityBar/changes/changeTreeView/file/fileCache';
 import { getCommentDecorationProvider } from './providers/commentDecorationProvider';
+import { getOrCreateReviewWebviewProvider } from './views/activityBar/review';
 import { SearchResultsTreeProvider } from './views/activityBar/searchResults';
 import { FileProvider, GERRIT_FILE_SCHEME } from './providers/fileProvider';
 import { setContextProp, setDefaultContexts } from './lib/vscode/context';
-import { ReviewWebviewProvider } from './views/activityBar/review';
 import { ChangesTreeProvider } from './views/activityBar/changes';
 import { GerritUser } from './lib/gerrit/gerritAPI/gerritUser';
 import { ExtensionContext, window, workspace } from 'vscode';
@@ -54,7 +54,7 @@ export async function activate(context: ExtensionContext): Promise<void> {
 	context.subscriptions.push(
 		window.registerWebviewViewProvider(
 			'gerrit:review',
-			new ReviewWebviewProvider(context)
+			await getOrCreateReviewWebviewProvider(context)
 		)
 	);
 	context.subscriptions.push(

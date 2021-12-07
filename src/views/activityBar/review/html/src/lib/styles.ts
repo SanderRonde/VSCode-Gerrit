@@ -1,6 +1,6 @@
-import { createStyle } from './style';
+import { createStyles } from './style';
 
-export const globalStyles = createStyle({
+export const globalStyles = createStyles({
 	horizontalCenter: {
 		display: 'flex',
 		flexDirection: 'row',

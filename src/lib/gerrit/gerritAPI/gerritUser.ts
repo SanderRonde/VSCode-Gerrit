@@ -32,6 +32,15 @@ export class GerritUser {
 		return (this._self = await api.getSelf());
 	}
 
+	public static async isSelf(accountID: number): Promise<boolean> {
+		const self = await GerritUser.getSelf();
+		if (!self) {
+			return false;
+		}
+
+		return self.accountID === accountID;
+	}
+
 	public getName(useFallback: true): string;
 	public getName(useFallback?: false): string | null;
 	public getName(useFallback: boolean = false): string | null {
@@ -39,5 +48,22 @@ export class GerritUser {
 			(this.displayName || this.name || this.username || this.email) ??
 			(useFallback ? '' : null)
 		);
+	}
+
+	public shortName(): string {
+		if (this.name && this.name.split(' ').length === 2) {
+			const [firstName, lastName] = this.name.split(' ');
+			return firstName.slice(0, 1) + lastName.slice(0, 1);
+		}
+		return this.getName(true).slice(0, 2);
+	}
+
+	public async isSelf(): Promise<boolean> {
+		const self = await GerritUser.getSelf();
+		if (!self) {
+			return false;
+		}
+
+		return self.accountID === this.accountID;
 	}
 }

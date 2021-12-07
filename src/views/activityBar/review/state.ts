@@ -1,9 +1,34 @@
 export interface ChangeState {
-	// Bit confusing I know
-	number: string;
+	number: number;
+	changeID: string;
+	message: string;
+	reviewers: ReviewPerson[];
+	cc: ReviewPerson[];
+	suggestedReviewers?: ReviewPerson[];
+	suggestedCC?: ReviewPerson[];
+	isOwnWIP: boolean;
+	draftCommentCount: number;
+	labels: {
+		possibleValues: {
+			score: string;
+			description: string;
+		}[];
+		name: string;
+	}[];
+	isNew: boolean;
 }
 
-export type ReviewWebviewState = Partial<{
-	currentChange: string | undefined;
-	changes: Record<string, ChangeState>;
-}>;
+export interface ReviewPerson {
+	id: string;
+	name: string;
+	shortName: string;
+}
+
+export type DeepPartial<T> = {
+	[P in keyof T]?: DeepPartial<T[P]>;
+};
+
+export type ReviewWebviewState = {
+	currentChange?: ChangeState;
+	overriddenChange?: ChangeState;
+};

@@ -8,4 +8,5 @@ export const PERIODICAL_CHANGE_FETCH_INTERVAL = 1000 * 60 * 5;
 /**
  * Don't allow any writing API requests (only GET)
  */
-export const READONLY_MODE = false;
+// TODO: undo
+export const READONLY_MODE = true;

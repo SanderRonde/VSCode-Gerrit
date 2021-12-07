@@ -5,6 +5,7 @@
     -   [x] Infer URL, port, project from `.gitreview` file
 -   [ ] Visual
     -   [ ] Changes pane
+        -   [ ] Changeset selection
         -   [x] ... buttons
             -   [x] Allow changing view. Presets:
                 -   [x] Dashboard

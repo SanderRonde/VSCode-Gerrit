@@ -13,6 +13,9 @@
 	"activationEvents": [
 		"onStartupFinished"
 	],
+	"extensionKind": [
+		"workspace"
+	],
 	"main": "./out/extension.js",
 	"contributes": {
 		"commands": [

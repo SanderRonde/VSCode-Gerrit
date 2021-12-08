@@ -662,7 +662,8 @@
 		"pretest": "yarn run compile && yarn run lint",
 		"lint": "eslint src --ext ts",
 		"test": "node ./out/test/runTest.js",
-		"format": "prettier --write src/"
+		"format": "prettier --write src/",
+		"prepush": "yarn lint && yarn compile && yarn format"
 	},
 	"devDependencies": {
 		"@emotion/react": "^11.7.0",

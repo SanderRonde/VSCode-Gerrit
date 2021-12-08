@@ -1,5 +1,6 @@
 import {
 	CancellationToken,
+	Disposable,
 	EventEmitter,
 	ExtensionContext,
 	WebviewViewProvider,
@@ -26,16 +27,18 @@ import { getAPI } from '../../lib/gerrit/gerritAPI';
 import { mappedMax } from '../../lib/util/util';
 import { getHTML } from './review/html';
 
-class ReviewWebviewProvider implements WebviewViewProvider {
-	private _ready: EventEmitter<void> = new EventEmitter<void>();
-	private _onReady = new Promise<void>((resolve) => {
+class ReviewWebviewProvider implements WebviewViewProvider, Disposable {
+	private readonly _ready: EventEmitter<void> = new EventEmitter<void>();
+	private readonly _onReady = new Promise<void>((resolve) => {
 		const disposable = this._ready.event(() => {
 			disposable.dispose();
 			resolve();
 		});
 	});
-	private _views: Set<TypedWebviewView<ReviewWebviewMessage>> = new Set();
+	private readonly _views: Set<TypedWebviewView<ReviewWebviewMessage>> =
+		new Set();
 	private _lastState: ReviewWebviewState | null = null;
+	private readonly _disposables: Disposable[] = [];
 
 	private constructor(private readonly _context: ExtensionContext) {}
 
@@ -384,6 +387,19 @@ class ReviewWebviewProvider implements WebviewViewProvider {
 		}
 	}
 
+	private async _initWebviewWithState(
+		webviewView: TypedWebviewView<ReviewWebviewMessage>,
+		state: ReviewWebviewState
+	): Promise<void> {
+		await webviewView.webview.postMessage({
+			type: 'stateToView',
+			body: {
+				state: state,
+			},
+		});
+		await webviewView.webview.postMessage({ type: 'initialize' });
+	}
+
 	public async updateAllStates(
 		newState?: ReviewWebviewState,
 		forceUpdate: boolean = false
@@ -425,8 +441,11 @@ class ReviewWebviewProvider implements WebviewViewProvider {
 		}
 
 		this._views.add(webviewView);
+		this._disposables.push({
+			dispose: () => this._views.delete(webviewView),
+		});
 		this._context.subscriptions.push(
-			webviewView.onDidDispose(() => this._views.delete(webviewView))
+			webviewView.onDidDispose(() => this.dispose())
 		);
 
 		webviewView.webview.options = {
@@ -450,16 +469,20 @@ class ReviewWebviewProvider implements WebviewViewProvider {
 			return;
 		}
 
-		await webviewView.webview.postMessage({
-			type: 'stateToView',
-			body: {
-				state: await this._getState(context.state),
-			},
-		});
-		if (token.isCancellationRequested) {
-			return;
-		}
-		await webviewView.webview.postMessage({ type: 'initialize' });
+		const state = await this._getState(context.state);
+		await this._initWebviewWithState(webviewView, state);
+		this._disposables.push(
+			this._ready.event(async () => {
+				await this._initWebviewWithState(
+					webviewView,
+					this._lastState ?? state
+				);
+			})
+		);
+	}
+
+	public dispose(): void {
+		this._disposables.forEach((d) => void d.dispose());
 	}
 }
 

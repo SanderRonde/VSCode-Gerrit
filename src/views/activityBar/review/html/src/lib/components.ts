@@ -4,6 +4,7 @@ import {
 	vsCodeTextArea,
 	vsCodeCheckbox,
 	vsCodeButton,
+	vsCodeProgressRing,
 } from '@vscode/webview-ui-toolkit/dist/toolkit';
 
 export function registerComponents(): void {
@@ -12,6 +13,7 @@ export function registerComponents(): void {
 	vsCodeTextArea();
 	vsCodeCheckbox();
 	vsCodeButton();
+	vsCodeProgressRing();
 }
 
 declare global {
@@ -30,6 +32,7 @@ declare global {
 			};
 			'vscode-checkbox': IntrinsicElements['input'];
 			'vscode-button': IntrinsicElements['button'];
+			'vscode-progress-ring': IntrinsicElements['div'];
 		}
 	}
 }

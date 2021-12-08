@@ -54,7 +54,12 @@ export async function activate(context: ExtensionContext): Promise<void> {
 	context.subscriptions.push(
 		window.registerWebviewViewProvider(
 			'gerrit:review',
-			await getOrCreateReviewWebviewProvider(context)
+			await getOrCreateReviewWebviewProvider(context),
+			{
+				webviewOptions: {
+					retainContextWhenHidden: true,
+				},
+			}
 		)
 	);
 	context.subscriptions.push(

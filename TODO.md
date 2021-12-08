@@ -84,3 +84,5 @@
             -   [-] Uncheckout
             -   [-] Uncheckout & unstash previous
             -   [-] Cancel review (if just reviewing)
+
+[ ] Select active view

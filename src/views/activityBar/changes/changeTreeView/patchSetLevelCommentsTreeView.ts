@@ -43,7 +43,7 @@ export class PatchSetLevelCommentsTreeView implements TreeItemWithoutChildren {
 			'utf8'
 		);
 
-		const uri = file.toVirtualFile('BOTH');
+		const uri = file.toVirtualFile('BOTH', null);
 
 		return {
 			command: 'vscode.open',

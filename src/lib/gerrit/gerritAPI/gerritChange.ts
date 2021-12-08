@@ -76,6 +76,7 @@ export class GerritChange extends DynamicallyFetchable {
 						this.changeID,
 						this,
 						response.current_revision,
+						true,
 						response.revisions[response.current_revision]
 				  )
 				: null;
@@ -101,10 +102,16 @@ export class GerritChange extends DynamicallyFetchable {
 			this._revisions = Object.fromEntries(
 				Object.entries(response.revisions).map(
 					([k, v]) =>
-						[k, new GerritRevision(this.changeID, this, k, v)] as [
-							string,
-							GerritRevision
-						]
+						[
+							k,
+							new GerritRevision(
+								this.changeID,
+								this,
+								k,
+								k === response.current_revision!,
+								v
+							),
+						] as [string, GerritRevision]
 				)
 			);
 		}

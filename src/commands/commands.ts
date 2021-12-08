@@ -50,6 +50,8 @@ export enum GerritExtensionCommands {
 	SEARCH = 'gerrit.search',
 	CLEAR_SEARCH_RESULTS = 'gerrit.clearSearchResults',
 	OPEN_IN_REVIEW = 'gerrit.openInReview',
+	OPEN_PATCHSET_SELECTOR = 'gerrit.openPatchsetSelector',
+	RESET_PATCHSET_SELECTOR = 'gerrit.resetPatchsetSelection',
 }
 
 export function registerCommands(context: ExtensionContext): void {
@@ -195,6 +197,20 @@ export function registerCommands(context: ExtensionContext): void {
 		commands.registerCommand(
 			GerritExtensionCommands.OPEN_IN_REVIEW,
 			async (change: ChangeTreeView) => await change.openInReview()
+		)
+	);
+
+	// Patches
+	context.subscriptions.push(
+		commands.registerCommand(
+			GerritExtensionCommands.OPEN_PATCHSET_SELECTOR,
+			(e: ChangeTreeView) => e.openPatchsetSelector()
+		)
+	);
+	context.subscriptions.push(
+		commands.registerCommand(
+			GerritExtensionCommands.RESET_PATCHSET_SELECTOR,
+			(e: ChangeTreeView) => e.resetPatchsetSelector()
 		)
 	);
 }

@@ -44,7 +44,10 @@ export async function openModified(treeView: FileTreeView): Promise<void> {
 		return;
 	}
 
-	const uri = content.toVirtualFile(GerritCommentSide.RIGHT);
+	const uri = content.toVirtualFile(
+		GerritCommentSide.RIGHT,
+		treeView.patchsetBase
+	);
 
 	await commands.executeCommand(
 		'vscode.open',
@@ -71,7 +74,10 @@ export async function openOriginal(treeView: FileTreeView): Promise<void> {
 		return;
 	}
 
-	const uri = content.toVirtualFile(GerritCommentSide.RIGHT);
+	const uri = content.toVirtualFile(
+		GerritCommentSide.RIGHT,
+		treeView.patchsetBase
+	);
 
 	await commands.executeCommand(
 		'vscode.open',

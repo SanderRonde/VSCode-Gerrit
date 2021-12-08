@@ -274,7 +274,7 @@
 				},
 				{
 					"command": "gerrit.openInReview",
-					"when": "view == gerrit:changeExplorer && viewItem =~ /change/",
+					"when": "view == gerrit:changeExplorer && viewItem =~ /gerritchange/",
 					"group": "change@1"
 				}
 			],

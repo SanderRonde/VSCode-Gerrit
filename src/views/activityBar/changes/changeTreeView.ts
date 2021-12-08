@@ -185,7 +185,7 @@ export class ChangeTreeView implements TreeItemWithChildren {
 			label: `${changeNumber}: ${this.change.subject}`,
 			collapsibleState: TreeItemCollapsibleState.Collapsed,
 			tooltip: this.change.subject,
-			contextValue: 'change',
+			contextValue: 'gerritchange',
 			iconPath: new ThemeIcon('git-pull-request'),
 			description: owner ? `by ${owner.getName(true)!}` : undefined,
 		};

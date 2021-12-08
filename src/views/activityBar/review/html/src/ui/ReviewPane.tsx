@@ -1,8 +1,10 @@
 import { ChangeState, ReviewPerson, ReviewWebviewState } from '../../../state';
+import { messageListeners, sendMessage } from '../lib/messageHandler';
 import { useCurrentChangeState, useGerritState } from '../lib/state';
+import { StateButton, StateButtonState } from './StateButton';
 import { createStyles, useJoinedStyles } from '../lib/style';
+import { ReviewWebviewMessage } from '../../../messaging';
 import { ReviewerPicker } from './pickers/ReviewerPicker';
-import { sendMessage } from '../lib/messageHandler';
 import { useDebounce } from '../lib/debounce';
 import { CCPicker } from './pickers/CCPicker';
 import { globalStyles } from '../lib/styles';
@@ -34,6 +36,10 @@ const _ReviewPane: React.VFC<ReviewPaneProps> = ({ currentState }) => {
 		  })
 		| null
 	>();
+	const [buttonState, setButtonState] = React.useState<StateButtonState>(
+		StateButtonState.DEFAULT
+	);
+	const [reset, setReset] = React.useState<boolean>(false);
 
 	const state = useGerritState();
 	const usedChange = React.useMemo(
@@ -147,10 +153,48 @@ const _ReviewPane: React.VFC<ReviewPaneProps> = ({ currentState }) => {
 		}));
 	}, []);
 
-	// TODO: already existing reviewers
+	const onSubmit = React.useCallback(() => {
+		sendMessage({
+			type: 'publish',
+			body: {
+				changeID: currentState.changeID,
+				cc: editingState?.cc.map((c) => c.id) ?? [],
+				reviewers: editingState?.reviewers.map((c) => c.id) ?? [],
+				labels: editingState?.labelValues ?? {},
+				message: editingState?.message,
+				resolved: editingState?.resolved ?? true,
+				publishDrafts: editingState?.postComments ?? true,
+			},
+		});
+	}, [
+		currentState.changeID,
+		editingState?.cc,
+		editingState?.labelValues,
+		editingState?.message,
+		editingState?.postComments,
+		editingState?.resolved,
+		editingState?.reviewers,
+	]);
+
+	// Filter out selected reviewers from CC suggestions and the other way around
+	const filteredCurrentState = React.useMemo(() => {
+		if (!usedChange || !editingState) {
+			return null;
+		}
+		const { reviewers, cc } = editingState;
+		const reviewerIDs = new Set(reviewers.map((r) => r.id));
+		const ccIDs = new Set(cc.map((c) => c.id));
+
+		return {
+			...usedChange,
+			cc: cc.filter((c) => !reviewerIDs.has(c.id)),
+			reviewers: reviewers.filter((r) => !ccIDs.has(r.id)),
+		};
+	}, [usedChange, editingState]);
 
 	React.useEffect(() => {
 		if (usedChange) {
+			setReset(true);
 			setEditingState({
 				...usedChange,
 				postComments: true,
@@ -159,8 +203,13 @@ const _ReviewPane: React.VFC<ReviewPaneProps> = ({ currentState }) => {
 					usedChange.labels.map((label) => [label.name, 0])
 				),
 			});
+			if (textareaRef.current) {
+				textareaRef.current.value = usedChange.message;
+			}
+			setTimeout(() => setReset(false), 0);
 		}
-	}, [usedChange]);
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [usedChange?.changeID, usedChange?.fetchedAt]);
 	React.useEffect(() => {
 		if (textareaRef.current) {
 			// Bit of a hack to make the textarea fill the pane
@@ -171,6 +220,19 @@ const _ReviewPane: React.VFC<ReviewPaneProps> = ({ currentState }) => {
 		}
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [textareaRef.current]);
+	React.useEffect(() => {
+		const listener = (msg: ReviewWebviewMessage): void => {
+			if (msg.type === 'publishFailed') {
+				setButtonState(StateButtonState.FAILURE);
+			} else if (msg.type === 'publishSuccess') {
+				setButtonState(StateButtonState.SUCCESS);
+			}
+		};
+		messageListeners.add(listener);
+		return () => {
+			messageListeners.delete(listener);
+		};
+	}, []);
 
 	return (
 		<div style={styles.container}>
@@ -188,27 +250,37 @@ const _ReviewPane: React.VFC<ReviewPaneProps> = ({ currentState }) => {
 				)}
 			</div>
 			{state.overriddenChange && (
-				<div style={globalStyles.horizontalCenter}>
-					{'(Manually overridden current change)'}
+				<>
+					<div style={globalStyles.horizontalCenter}>
+						{'(Manually overridden current change)'}
+					</div>
+					<div style={styles.spacing}></div>
+				</>
+			)}
+			{filteredCurrentState && (
+				<div>
+					<div style={styles.inputRow}>
+						<div style={styles.labelCell}>{'Reviewers:'}</div>
+						<div style={styles.inputCell}>
+							<ReviewerPicker
+								state={filteredCurrentState}
+								onChange={onReviewerChange}
+								reset={reset}
+							/>
+						</div>
+					</div>
+					<div style={styles.inputRow}>
+						<div style={styles.labelCell}>{'CC:'}</div>
+						<div style={ccStyles}>
+							<CCPicker
+								state={filteredCurrentState}
+								onChange={onCCChange}
+								reset={reset}
+							/>
+						</div>
+					</div>
 				</div>
 			)}
-			<div>
-				<div style={styles.inputRow}>
-					<div style={styles.labelCell}>{'Reviewers:'}</div>
-					<div style={styles.inputCell}>
-						<ReviewerPicker
-							state={currentState}
-							onChange={onReviewerChange}
-						/>
-					</div>
-				</div>
-				<div style={styles.inputRow}>
-					<div style={styles.labelCell}>{'CC:'}</div>
-					<div style={ccStyles}>
-						<CCPicker state={currentState} onChange={onCCChange} />
-					</div>
-				</div>
-			</div>
 			<div style={styles.spacing}></div>
 			<vscode-text-area
 				style={styles.textarea}
@@ -253,23 +325,35 @@ const _ReviewPane: React.VFC<ReviewPaneProps> = ({ currentState }) => {
 							name={label.name}
 							possibleValues={label.possibleValues}
 							onPickValue={onLabelPick}
+							reset={reset}
+							labelStyle={styles.tinyPadding}
 						/>
 					))}
 			</div>
 			<div style={styles.spacing}></div>
 			{currentState.isOwnWIP && (
-				<vscode-button title="Post comments and start review for this patch">
+				<StateButton
+					title="Post comments and start review for this patch"
+					onSubmit={onSubmit}
+					currentState={buttonState}
+					onStateUpdate={setButtonState}
+				>
 					<div style={styles.rightPadding}>
 						{'Send and Start Review'}
 					</div>
 					<span slot="end" className="codicon codicon-add"></span>
-				</vscode-button>
+				</StateButton>
 			)}
 			{!currentState.isOwnWIP && (
-				<vscode-button title="Post comments">
+				<StateButton
+					title="Post comments"
+					onSubmit={onSubmit}
+					currentState={buttonState}
+					onStateUpdate={setButtonState}
+				>
 					<div style={styles.rightPadding}>{'Send'}</div>
 					<span slot="end" className="codicon codicon-comment"></span>
-				</vscode-button>
+				</StateButton>
 			)}
 			<div style={styles.doubleSpacing}></div>
 		</div>
@@ -279,6 +363,9 @@ const _ReviewPane: React.VFC<ReviewPaneProps> = ({ currentState }) => {
 const styles = createStyles({
 	spacing: {
 		marginTop: '10px',
+	},
+	tinyPadding: {
+		paddingTop: '5px',
 	},
 	padding: {
 		paddingTop: '10px',

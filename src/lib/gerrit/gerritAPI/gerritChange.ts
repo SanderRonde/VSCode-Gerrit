@@ -12,6 +12,7 @@ import { GerritChangeDetail } from './gerritChangeDetail';
 import { GerritRevision } from './gerritRevision';
 import { DynamicallyFetchable } from './shared';
 import { getChangeCache } from '../gerritCache';
+import { DateTime } from '../../util/dateTime';
 import { GerritCommit } from './gerritCommit';
 import { GerritUser } from './gerritUser';
 import { getAPI } from '../gerritAPI';
@@ -37,6 +38,8 @@ export class GerritChange extends DynamicallyFetchable {
 	public workInProgress?: boolean;
 	public owner: GerritUserResponse;
 	public moreChanges: boolean;
+
+	public fetchedAt = new DateTime(new Date());
 
 	// Ideally this would be private but in order to make the typing
 	// below work we use public

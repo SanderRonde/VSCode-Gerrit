@@ -3,7 +3,8 @@
 	"compilerOptions": {
 		"jsx": "react",
 		"lib": ["DOM"],
-		"esModuleInterop": true
+		"esModuleInterop": true,
+		"skipLibCheck": true
 	},
 	"include": ["./*"],
 	"exclude": ["./tsconfig.json"]

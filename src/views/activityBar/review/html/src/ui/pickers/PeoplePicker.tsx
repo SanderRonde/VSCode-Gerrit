@@ -8,6 +8,7 @@ export interface PeoplePickerProps {
 	onChange: (values: ReviewPerson[]) => void;
 	state: ChangeState;
 	isCC: boolean;
+	reset: boolean;
 }
 
 export const PeoplePicker: React.VFC<PeoplePickerProps> = (props) => {
@@ -29,13 +30,14 @@ export const PeoplePicker: React.VFC<PeoplePickerProps> = (props) => {
 		[props.isCC, props.state.changeID]
 	);
 
+	const pOnChange = props.onChange;
 	const onChange = React.useCallback(
 		(values: unknown[]) => {
 			const people = values as ReviewPerson[];
-			props.onChange(people);
+			pOnChange(people);
 			setValue(people);
 		},
-		[props]
+		[pOnChange]
 	);
 
 	const people = React.useMemo(() => {
@@ -68,15 +70,18 @@ export const PeoplePicker: React.VFC<PeoplePickerProps> = (props) => {
 
 	return (
 		<Picker<ReviewPerson>
-			getLabel={(person: unknown) => (person as ReviewPerson).name}
-			getShort={(person: unknown) => (person as ReviewPerson).shortName}
+			getLabel={(person) => person.name}
+			getShort={(person) => person.shortName}
 			onChange={onChange}
 			items={people}
 			value={value}
+			initialValue={props.initialValue}
 			onSearch={onSearch}
 			itemIsSame={(personA, personB) => {
 				return personA.id === personB.id;
 			}}
+			isLocked={(person) => person.locked ?? false}
+			reset={props.reset}
 		/>
 	);
 };

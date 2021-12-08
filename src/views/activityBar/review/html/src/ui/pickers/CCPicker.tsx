@@ -5,6 +5,7 @@ import * as React from 'react';
 interface CCPickerProps {
 	state: ChangeState;
 	onChange: (cc: ReviewPerson[]) => void;
+	reset: boolean;
 }
 
 export const CCPicker: React.VFC<CCPickerProps> = (props) => {
@@ -19,7 +20,8 @@ export const CCPicker: React.VFC<CCPickerProps> = (props) => {
 
 	React.useEffect(() => {
 		props.onChange(cc);
-	}, [cc, props]);
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [props.reset]);
 
 	return (
 		<PeoplePicker
@@ -27,6 +29,7 @@ export const CCPicker: React.VFC<CCPickerProps> = (props) => {
 			initialValue={cc}
 			onChange={onChange}
 			isCC={true}
+			reset={props.reset}
 		/>
 	);
 };

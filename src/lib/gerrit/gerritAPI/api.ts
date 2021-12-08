@@ -10,6 +10,7 @@ import {
 	GerritProjectsResponse,
 	GerritSuggestedReviewerResponse,
 } from './types';
+import { PATCHSET_LEVEL_KEY } from '../../../views/activityBar/changes/changeTreeView/patchSetLevelCommentsTreeView';
 import { FileCache } from '../../../views/activityBar/changes/changeTreeView/file/fileCache';
 import { optionalArrayEntry, optionalObjectProperty } from '../../util/util';
 import got, { OptionsOfTextResponseBody, Response } from 'got/dist/source';
@@ -160,7 +161,7 @@ export class GerritAPI {
 	private get _post(): OptionsOfTextResponseBody {
 		return {
 			method: 'POST',
-			headers: this._headers(false),
+			headers: this._headers(true),
 		};
 	}
 
@@ -298,12 +299,6 @@ export class GerritAPI {
 			body: string
 		) => void | Promise<void>
 	): Promise<(Response<string> & { strippedBody: string }) | null> {
-		if (READONLY_MODE && body?.method !== 'GET') {
-			await window.showErrorMessage(
-				'Canceled request trying to modify data in readonly mode'
-			);
-			return null;
-		}
 		log(`${body?.method || 'GET'} request to "${url}"`);
 		if (shouldDebugRequests()) {
 			console.log({
@@ -313,6 +308,12 @@ export class GerritAPI {
 						? this._makeSearchParamsStringifiable(body.searchParams)
 						: body?.searchParams,
 			});
+		}
+		if (READONLY_MODE && body?.method !== 'GET') {
+			void window.showErrorMessage(
+				'Canceled request trying to modify data in readonly mode'
+			);
+			return null;
 		}
 		try {
 			const response = await this._syncUpSameRequests(url, body);
@@ -334,7 +335,7 @@ export class GerritAPI {
 			if (onError) {
 				await onError(err.response?.statusCode, err.response.body);
 			} else {
-				await window.showErrorMessage(
+				void window.showErrorMessage(
 					`Gerrit request to "${url}" failed. Please check your settings and/or connection`
 				);
 			}
@@ -408,7 +409,6 @@ export class GerritAPI {
 		maxCount: number = 10,
 		...extra: [string, string][]
 	): Promise<(GerritUser | GerritGroup)[]> {
-		console.log('q=', query);
 		const response = await this._tryRequest(
 			this.getURL(`changes/${changeID}/suggest_reviewers/`),
 			{
@@ -436,6 +436,72 @@ export class GerritAPI {
 				return new GerritGroup(entry.group.name, entry.group);
 			}
 		});
+	}
+
+	private _getReviewerCCChanges(
+		previousReviewers: (GerritUser | GerritGroup)[],
+		previousCC: (GerritUser | GerritGroup)[],
+		reviewers: (string | number)[],
+		cc: (string | number)[]
+	): {
+		removed: (string | number)[];
+		addedToCC: (string | number)[];
+		addedToReviewers: (string | number)[];
+	} {
+		const previousUsers: Map<string | number, 'cc' | 'reviewer'> = new Map([
+			...previousReviewers.map(
+				(user) =>
+					[
+						user instanceof GerritUser ? user.accountID : user.id,
+						'reviewer',
+					] as [string | number, 'reviewer']
+			),
+			...previousCC.map(
+				(user) =>
+					[
+						user instanceof GerritUser ? user.accountID : user.id,
+						'cc',
+					] as [string | number, 'cc']
+			),
+		]);
+
+		const newUsers: Map<string | number, 'cc' | 'reviewer'> = new Map([
+			...reviewers.map(
+				(r) => [r, 'reviewer'] as [string | number, 'reviewer']
+			),
+			...cc.map((c) => [c, 'cc'] as [string | number, 'cc']),
+		]);
+
+		// Anyone who was in the last group but not in the new group is removed
+		const removed: (string | number)[] = [];
+		for (const user of previousUsers.keys()) {
+			if (!newUsers.has(user)) {
+				removed.push(user);
+			}
+		}
+
+		// Anyone who is now a reviewer but was a CC (or nothing at all) is added to CC
+		const addedToCC: (string | number)[] = [];
+		const addedToReviewers: (string | number)[] = [];
+		for (const newUser of newUsers.keys()) {
+			if (
+				!previousUsers.has(newUser) ||
+				previousUsers.get(newUser) !== newUsers.get(newUser)
+			) {
+				if (newUsers.get(newUser) === 'cc') {
+					addedToCC.push(newUser);
+				} else {
+					addedToReviewers.push(newUser);
+				}
+			}
+		}
+
+		// The rest has stayed the same so we leave them alone
+		return {
+			addedToCC,
+			addedToReviewers,
+			removed,
+		};
 	}
 
 	public async testConnection(): Promise<boolean> {
@@ -1066,24 +1132,87 @@ export class GerritAPI {
 		revisionID: string,
 		options: {
 			message?: string;
+			resolved?: boolean;
 			labels?: Record<string, number>;
 			publishDrafts: boolean;
-			removedReviewers: string[];
-			reviewers: string[];
-			cc: string[];
+			reviewers: (string | number)[];
+			cc: (string | number)[];
 		}
-	): Promise<void> {
-		options;
-		const response = await this._tryRequest(
-			this.getURL(`changes/${changeID}/revisions/${revisionID}/review`),
-			this._post
+	): Promise<boolean> {
+		// TODO: join requests
+		const detail = await this.getChangeDetail(changeID);
+		const self = await this.getSelf();
+		if (!detail || !self) {
+			return false;
+		}
+
+		const previousReviewers = detail.reviewers.filter(
+			(r) => !(r instanceof GerritUser) || r.accountID !== self.accountID
+		);
+		const previousCC = detail.cc;
+
+		const changes = this._getReviewerCCChanges(
+			previousReviewers,
+			previousCC,
+			options.reviewers ?? [],
+			options.cc ?? []
 		);
 
-		const json = this._handleResponse<GerritChangeDetailResponse>(response);
+		const response = await this._tryRequest(
+			this.getURL(`changes/${changeID}/revisions/${revisionID}/review`),
+			{
+				...this._post,
+				body: JSON.stringify(
+					optionalObjectProperty({
+						labels: options.labels,
+						comments: options.message
+							? {
+									[PATCHSET_LEVEL_KEY]: [
+										{
+											message: options.message,
+											unresolved: !(
+												options.resolved ?? true
+											),
+										},
+									],
+							  }
+							: undefined,
+						drafts: options.publishDrafts
+							? 'PUBLISH_ALL_REVISIONS'
+							: 'KEEP',
+						remove_from_attention_set: changes.removed.map(
+							(id) => ({
+								user: id,
+								reason: `${self.getName(
+									true
+								)} replied to the change`,
+							})
+						),
+						reviewers: [
+							...changes.removed.map((id) => ({
+								reviewer: id,
+								state: 'REMOVED',
+							})),
+							...changes.addedToCC.map((id) => ({
+								reviewer: id,
+								state: 'CC',
+							})),
+							...changes.addedToReviewers.map((id) => ({
+								reviewer: id,
+								state: 'REVIEWER',
+							})),
+						],
+						ready: true,
+					})
+				),
+			}
+		);
+
+		const json = this._handleResponse<Record<string, unknown>>(response);
 		if (!json) {
-			return null;
+			return false;
 		}
 
-		return new GerritChangeDetail(json);
+		return true;
 	}
 }

@@ -22,11 +22,11 @@ export interface PublishMessage {
 	body: {
 		changeID: string;
 		resolved: boolean;
+		message?: string;
 		labels: Record<string, number>;
 		publishDrafts: boolean;
-		reviewers: string[];
-		cc: string[];
-		// TODO: this msg
+		reviewers: (number | string)[];
+		cc: (number | string)[];
 	};
 }
 
@@ -57,4 +57,10 @@ export type ReviewWebviewMessage =
 	  }
 	| GetPeopleMessage
 	| CommentUpdateMessage
-	| PublishMessage;
+	| PublishMessage
+	| {
+			type: 'publishFailed';
+	  }
+	| {
+			type: 'publishSuccess';
+	  };

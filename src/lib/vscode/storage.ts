@@ -14,7 +14,7 @@ interface StorageObj {
 		patchSet: number;
 		// Number-representation of a date
 		setAt: number;
-	};
+	} | null;
 	/**
 	 * Change ID to use for the patchset panel
 	 * instead of the current change

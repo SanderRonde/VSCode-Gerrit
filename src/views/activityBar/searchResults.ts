@@ -89,14 +89,14 @@ export class SearchResultsTreeProvider
 				offset,
 				count,
 			},
-			async (code, body): Promise<void> => {
+			(code, body): void => {
 				const queryFailMsg = `Failed to perform search with query "${query}"`;
 				log(
 					queryFailMsg,
 					`Status code = ${code ?? '?'}`,
 					`response body = "${body}"`
 				);
-				await window.showErrorMessage(queryFailMsg);
+				void window.showErrorMessage(queryFailMsg);
 			},
 			GerritAPIWith.DETAILED_ACCOUNTS
 		);

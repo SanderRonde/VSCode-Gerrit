@@ -218,8 +218,8 @@ export interface GerritChangeDetailResponse {
 	permitted_labels: Record<string, string[]>;
 	removable_reviewers: GerritDetailedUserResponse[];
 	reviewers: {
-		REVIEWER?: GerritDetailedUserResponse[];
-		CC?: GerritDetailedUserResponse[];
+		REVIEWER?: (GerritDetailedUserResponse | GerritGroupBaseInfo)[];
+		CC?: (GerritDetailedUserResponse | GerritGroupBaseInfo)[];
 	};
 	reviewer_updates: {
 		state: string;

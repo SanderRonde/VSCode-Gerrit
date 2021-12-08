@@ -5,6 +5,7 @@ import * as React from 'react';
 interface ReviewerPickerProps {
 	onChange: (reviewers: ReviewPerson[]) => void;
 	state: ChangeState;
+	reset: boolean;
 }
 
 export const ReviewerPicker: React.VFC<ReviewerPickerProps> = (props) => {
@@ -13,16 +14,18 @@ export const ReviewerPicker: React.VFC<ReviewerPickerProps> = (props) => {
 		[props.state.reviewers]
 	);
 
+	const pOnChange = props.onChange;
 	const onChange = React.useCallback(
 		(newReviewers: ReviewPerson[]) => {
-			props.onChange(newReviewers);
+			pOnChange(newReviewers);
 		},
-		[props]
+		[pOnChange]
 	);
 
 	React.useEffect(() => {
-		props.onChange(reviewers);
-	}, [props, reviewers]);
+		pOnChange(reviewers);
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [props.reset]);
 
 	return (
 		<PeoplePicker
@@ -30,6 +33,7 @@ export const ReviewerPicker: React.VFC<ReviewerPickerProps> = (props) => {
 			initialValue={reviewers}
 			onChange={onChange}
 			isCC={false}
+			reset={props.reset}
 		/>
 	);
 };

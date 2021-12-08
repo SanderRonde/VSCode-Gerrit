@@ -7,6 +7,7 @@ export interface ChangeState {
 	suggestedReviewers?: ReviewPerson[];
 	suggestedCC?: ReviewPerson[];
 	isOwnWIP: boolean;
+	isOwn: boolean;
 	draftCommentCount: number;
 	labels: {
 		possibleValues: {
@@ -16,12 +17,14 @@ export interface ChangeState {
 		name: string;
 	}[];
 	isNew: boolean;
+	fetchedAt: number;
 }
 
 export interface ReviewPerson {
-	id: string;
+	id: string | number;
 	name: string;
 	shortName: string;
+	locked?: boolean;
 }
 
 export type DeepPartial<T> = {

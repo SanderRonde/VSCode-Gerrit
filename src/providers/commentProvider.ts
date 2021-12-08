@@ -311,7 +311,7 @@ async function createComment(
 ): Promise<GerritDraftComment | null> {
 	const meta = FileMetaWithSide.tryFrom(thread.thread.uri);
 	if (!meta) {
-		await window.showErrorMessage('Failed to create comment');
+		void window.showErrorMessage('Failed to create comment');
 		return null;
 	}
 
@@ -328,7 +328,7 @@ async function createComment(
 		side: meta.side === 'BOTH' ? undefined : meta.side,
 	});
 	if (!newComment) {
-		await window.showErrorMessage('Failed to create comment');
+		void window.showErrorMessage('Failed to create comment');
 		return null;
 	}
 

@@ -25,6 +25,8 @@ interface ScorePickerProps {
 	}[];
 	name: string;
 	onPickValue: (name: string, value: number) => void;
+	reset: boolean;
+	labelStyle?: React.CSSProperties;
 }
 export const ScorePicker: React.VFC<ScorePickerProps> = (props) => {
 	const [selectedValue, setSelectedValue] = React.useState<number>(0);
@@ -66,9 +68,17 @@ export const ScorePicker: React.VFC<ScorePickerProps> = (props) => {
 		[props, toNum]
 	);
 
+	React.useEffect(() => {
+		if (props.reset) {
+			setSelectedValue(0);
+		}
+	}, [props.reset]);
+
+	const joinedStyles = useJoinedStyles(styles.label, props.labelStyle);
+
 	return (
 		<div style={styles.container}>
-			<div style={styles.label}>{`${props.name}:`}</div>
+			<div style={joinedStyles}>{`${props.name}:`}</div>
 			<div style={styles.scoreContainerContainer}>
 				<div style={styles.scoreContainer}>
 					{props.possibleValues.map((possibleValue, i) => {

@@ -6,14 +6,18 @@ type PickerProps<T> = {
 	getLabel: (value: T) => string;
 	getShort: (value: T) => string;
 	value: T[];
+	initialValue: T[];
 	onChange: (values: T[]) => void;
 	onSearch?: (query: string) => void;
 	itemIsSame: (a: T, b: T) => boolean;
+	isLocked: (value: T) => boolean;
+	reset: boolean;
 };
 
 export function Picker<T>(props: PickerProps<T>): React.ReactElement {
 	const [isOpen, setIsOpen] = React.useState<boolean>(false);
-	const [value, setValue] = React.useState<T[]>(props.value);
+	const [value, setValue] = React.useState<T[]>(props.initialValue);
+	const [keyboardSelected, setKeyboardSelected] = React.useState<number>(0);
 
 	const selfRef = React.useRef<HTMLDivElement>(null);
 	const inputRef = React.useRef<HTMLInputElement>(null);
@@ -29,20 +33,12 @@ export function Picker<T>(props: PickerProps<T>): React.ReactElement {
 
 	const setClosed = React.useCallback(() => setIsOpen(false), []);
 	const setOpen = React.useCallback(() => setIsOpen(true), []);
-	const onSearch = React.useCallback(
-		(e: React.KeyboardEvent<HTMLDivElement>) => {
-			setIsOpen(true);
-			const element = e.target as HTMLInputElement | null;
-			setTimeout(() => {
-				if (element) {
-					props.onSearch?.(element.value);
-				}
-			}, 0);
-		},
-		[props]
-	);
+	const pOnSearch = props.onSearch;
 	const onOptionClick = React.useCallback(
 		(item: T) => {
+			if (props.isLocked(item)) {
+				return;
+			}
 			return () => {
 				setValue((prevValue) => {
 					const newValues: T[] = [];
@@ -62,12 +58,49 @@ export function Picker<T>(props: PickerProps<T>): React.ReactElement {
 					if (inputRef.current) {
 						inputRef.current.value = '';
 					}
+					props.onSearch?.('');
 					props.onChange(newValues);
 					return newValues;
 				});
 			};
 		},
 		[props]
+	);
+	const onSearch = React.useCallback(
+		(e: React.KeyboardEvent<HTMLDivElement>) => {
+			if (e.key === 'Enter') {
+				// Select/deselect current
+				const currentIndex = Math.max(
+					0,
+					Math.min(keyboardSelected, props.items.length - 1)
+				);
+				const option = props.items[currentIndex];
+				if (option) {
+					onOptionClick(option)?.();
+				}
+			} else if (e.key === 'ArrowUp') {
+				setKeyboardSelected((c) =>
+					Math.max(0, Math.min(c - 1, props.items.length - 1))
+				);
+				e.preventDefault();
+			} else if (e.key === 'ArrowDown') {
+				setKeyboardSelected((c) =>
+					Math.max(0, Math.min(c + 1, props.items.length - 1))
+				);
+				e.preventDefault();
+			} else if (e.key === 'Escape') {
+				setClosed();
+			} else {
+				setIsOpen(true);
+				const element = e.target as HTMLInputElement | null;
+				setTimeout(() => {
+					if (element) {
+						pOnSearch?.(element.value);
+					}
+				}, 0);
+			}
+		},
+		[keyboardSelected, props.items, onOptionClick, setClosed, pOnSearch]
 	);
 
 	React.useEffect(() => {
@@ -94,6 +127,13 @@ export function Picker<T>(props: PickerProps<T>): React.ReactElement {
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [selfRef.current]);
 
+	React.useEffect(() => {
+		if (props.reset) {
+			setValue(props.initialValue);
+		}
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [props.reset]);
+
 	return (
 		<div style={styles.container} ref={selfRef}>
 			<vscode-text-field
@@ -117,13 +157,31 @@ export function Picker<T>(props: PickerProps<T>): React.ReactElement {
 			</vscode-text-field>
 			{isOpen && (
 				<div style={styles.dropdownContainer}>
-					{props.items.map((item) => (
+					{props.items.map((item, i, arr) => (
 						<vscode-option
 							{...{ 'aria-selected': isInArray(value, item) }}
 							selected={isInArray(value, item)}
 							onClick={onOptionClick(item)}
+							title={`${props.getLabel(item)} ${
+								props.isLocked(item) ? '(locked)' : ''
+							}`}
+							style={
+								keyboardSelected === i ||
+								(i === arr.length - 1 && keyboardSelected >= i)
+									? styles.keyboardSelected
+									: undefined
+							}
 						>
-							{props.getLabel(item)}
+							<div style={styles.optionContainer}>
+								<span>{props.getLabel(item)}</span>
+								{props.isLocked(item) && (
+									<i
+										style={styles.lockedIcon}
+										title="Locked, can't be removed"
+										className="codicon codicon-lock-small"
+									></i>
+								)}
+							</div>
 						</vscode-option>
 					))}
 				</div>
@@ -138,6 +196,9 @@ const styles = createStyles({
 		display: 'flex',
 		flexDirection: 'column',
 		position: 'relative',
+	},
+	keyboardSelected: {
+		border: 'calc(var(--border-width) * 1px) solid var(--focus-border)',
 	},
 	input: {
 		background: 'var(--vscode-input-background)',
@@ -177,5 +238,14 @@ const styles = createStyles({
 		display: 'flex',
 		flexDirection: 'row',
 		justifyContent: 'flex-start',
+	},
+	lockedIcon: {
+		right: '5px',
+		position: 'absolute',
+	},
+	optionContainer: {
+		display: 'flex',
+		flexDirection: 'row',
+		justifyContent: 'space-between',
 	},
 });

@@ -1139,7 +1139,6 @@ export class GerritAPI {
 			cc: (string | number)[];
 		}
 	): Promise<boolean> {
-		// TODO: join requests
 		const detail = await this.getChangeDetail(changeID);
 		const self = await this.getSelf();
 		if (!detail || !self) {

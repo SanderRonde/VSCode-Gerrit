@@ -140,7 +140,6 @@ class ReviewWebviewProvider implements WebviewViewProvider {
 			return undefined;
 		}
 
-		// TODO: join these requests
 		const [change, detail, reviewers, cc, draftComments, self] =
 			await Promise.all([
 				forceUpdate

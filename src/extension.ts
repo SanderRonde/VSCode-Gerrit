@@ -47,7 +47,7 @@ export async function activate(context: ExtensionContext): Promise<void> {
 	// Register tree views
 	context.subscriptions.push(
 		window.createTreeView('gerrit:changeExplorer', {
-			treeDataProvider: new ChangesTreeProvider(),
+			treeDataProvider: new ChangesTreeProvider(context),
 			showCollapseAll: true,
 		})
 	);
@@ -64,7 +64,9 @@ export async function activate(context: ExtensionContext): Promise<void> {
 	);
 	context.subscriptions.push(
 		(() => {
-			const searchResultsTreeProvider = new SearchResultsTreeProvider();
+			const searchResultsTreeProvider = new SearchResultsTreeProvider(
+				context
+			);
 			const treeView = window.createTreeView('gerrit:searchResults', {
 				treeDataProvider: searchResultsTreeProvider,
 				showCollapseAll: true,

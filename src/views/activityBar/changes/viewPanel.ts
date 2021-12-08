@@ -2,10 +2,15 @@ import {
 	DefaultChangeFilter,
 	GerritChangeFilter,
 } from '../../../lib/gerrit/gerritAPI/filters';
+import {
+	Disposable,
+	ExtensionContext,
+	TreeItem,
+	TreeItemCollapsibleState,
+} from 'vscode';
 import { CanFetchMoreTreeProvider } from '../shared/canFetchMoreTreeProvider';
 import { GerritChange } from '../../../lib/gerrit/gerritAPI/gerritChange';
 import { TreeItemWithChildren, TreeViewItem } from '../shared/treeTypes';
-import { Disposable, TreeItem, TreeItemCollapsibleState } from 'vscode';
 import { GerritAPIWith } from '../../../lib/gerrit/gerritAPI/api';
 import { optionalArrayEntry } from '../../../lib/util/util';
 import { ChangesPanel } from '../../../lib/vscode/config';
@@ -34,10 +39,11 @@ export class ViewPanel
 		this._panel.extraEntriesFetchCount ?? 25;
 
 	public constructor(
+		context: ExtensionContext,
 		private readonly _root: ChangesTreeProvider,
 		private readonly _panel: ChangesPanel
 	) {
-		super();
+		super(context);
 		if (this._panel.refreshInterval) {
 			const interval = setInterval(() => {
 				this.refresh();

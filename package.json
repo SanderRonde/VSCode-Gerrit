@@ -101,6 +101,11 @@
 				"command": "gerrit.clearSearchResults",
 				"title": "Clear search results",
 				"icon": "$(clear-all)"
+			},
+			{
+				"command": "gerrit.openInReview",
+				"title": "Open in Review panel",
+				"icon": "$(open-preview)"
 			}
 		],
 		"menus": {
@@ -172,6 +177,10 @@
 				{
 					"command": "gerrit.clearSearchResults",
 					"when": "gerrit:searchQuery"
+				},
+				{
+					"command": "gerrit.openInReview",
+					"when": "false"
 				}
 			],
 			"comments/comment/context": [
@@ -262,6 +271,11 @@
 					"command": "gerrit.openOriginal",
 					"when": "view == gerrit:changeExplorer && viewItem =~ /filechange/ && viewItem =~ /modified/",
 					"group": "open@3"
+				},
+				{
+					"command": "gerrit.openInReview",
+					"when": "view == gerrit:changeExplorer && viewItem =~ /change/",
+					"group": "change@1"
 				}
 			],
 			"view/title": [

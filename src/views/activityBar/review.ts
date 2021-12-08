@@ -422,6 +422,13 @@ class ReviewWebviewProvider implements WebviewViewProvider, Disposable {
 		);
 	}
 
+	public async revealAllStates(): Promise<void> {
+		if (this._views.size === 0) {
+			return;
+		}
+		await Promise.all([...this._views.values()].map((v) => v.show()));
+	}
+
 	public async init(): Promise<this> {
 		this._context.subscriptions.push(
 			await onChangeLastCommit(async () => {

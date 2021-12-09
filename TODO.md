@@ -6,7 +6,7 @@
     -   [ ] Join requests
 -   [ ] Visual
     -   [ ] Changes pane
-        -   [ ] Changeset selection
+        -   [x] Changeset selection
         -   [x] ... buttons
             -   [x] Allow changing view. Presets:
                 -   [x] Dashboard
@@ -60,22 +60,22 @@
                         -   [x] Add the magic buttons (done etc)
                         -   [x] Inline text field etc
                             -   [x] Cancel, save, resolved
-    -   [ ] Reply pane
-        -   [ ] Contains everything under the "reply" button and some more:
-            -   [ ] Reviewers
-            -   [ ] CC
-            -   [ ] Main textfield
-                -   [ ] Checkbox [resolved]
-            -   [ ] All scores
-                -   [ ] Code-review
-                -   [ ] Others
-            -   [ ] Checkbox [publish X drafts]
-            -   [ ] Attention set modifier
-            -   [ ] if WIP, show "start review"
-            -   [ ] Show cancel (reset) button
-        -   [ ] Shows this data for the currently checked-out change
-            -   [ ] If clicking "review" instead of "checkout & review" in changes, show it as well. Shows the reviewing change in the bottom bar. Can click that to stop reviewing (or the change itself).
-                -   [ ] Also a "stop reviewing X" button below reply button.
+    -   [x] Reply pane
+        -   [x] Contains everything under the "reply" button and some more:
+            -   [x] Reviewers
+            -   [x] CC
+            -   [x] Main textfield
+                -   [x] Checkbox [resolved]
+            -   [x] All scores
+                -   [x] Code-review
+                -   [x] Others
+            -   [x] Checkbox [publish X drafts]
+            -   [-] Attention set modifier
+            -   [x] if WIP, show "start review"
+            -   [-] Show cancel (reset) button
+        -   [x] Shows this data for the currently checked-out change
+            -   [x] If clicking "review" instead of "checkout & review" in changes, show it as well. Shows the reviewing change in the bottom bar. Can click that to stop reviewing (or the change itself).
+                -   [x] Also a "stop reviewing X" button below reply button.
     -   [ ] Add "review" button in source control
         -   [ ] If first patchset, automatically open reply pane
             -   [ ] Allow disabling this in settings

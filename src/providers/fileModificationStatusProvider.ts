@@ -5,10 +5,10 @@ import {
 	ThemeColor,
 	Uri,
 } from 'vscode';
+import { FileMetaWithSideAndBase, GERRIT_FILE_SCHEME } from './fileProvider';
 import { GerritRevisionFileStatus } from '../lib/gerrit/gerritAPI/types';
 import { GerritChange } from '../lib/gerrit/gerritAPI/gerritChange';
 import { GerritFile } from '../lib/gerrit/gerritAPI/gerritFile';
-import { FileMeta, GERRIT_FILE_SCHEME } from './fileProvider';
 
 export class FileModificationStatusProvider implements FileDecorationProvider {
 	private _formatFilePath(filePath: string): string {
@@ -73,7 +73,7 @@ export class FileModificationStatusProvider implements FileDecorationProvider {
 			return;
 		}
 
-		const meta = FileMeta.tryFrom(uri);
+		const meta = FileMetaWithSideAndBase.tryFrom(uri);
 		if (!meta || meta.isEmpty()) {
 			return;
 		}
@@ -86,7 +86,7 @@ export class FileModificationStatusProvider implements FileDecorationProvider {
 		if (!revision || token.isCancellationRequested) {
 			return;
 		}
-		const files = await revision.files();
+		const files = await revision.files(meta.baseRevision);
 		if (!files || token.isCancellationRequested || !files[meta.filePath]) {
 			return;
 		}

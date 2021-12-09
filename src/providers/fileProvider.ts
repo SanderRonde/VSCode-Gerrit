@@ -79,7 +79,7 @@ export class FileMeta {
 		);
 	}
 
-	protected toObj(): Record<string, string | boolean> {
+	protected toObj(): Record<string, string | boolean | number | null> {
 		return {
 			project: this.project,
 			changeID: this.changeID,
@@ -104,14 +104,16 @@ export class FileMeta {
 	}
 }
 
-export class FileMetaWithSide extends FileMeta {
+export class FileMetaWithSideAndBase extends FileMeta {
 	public side!: GerritCommentSide | 'BOTH';
+	public baseRevision!: number | null;
 
 	public static fromFileMeta(
 		fileMeta: FileMeta,
-		side: GerritCommentSide | 'BOTH'
-	): FileMetaWithSide {
-		const meta = new FileMetaWithSide(
+		side: GerritCommentSide | 'BOTH',
+		baseRevision: number | null
+	): FileMetaWithSideAndBase {
+		const meta = new FileMetaWithSideAndBase(
 			fileMeta.project,
 			fileMeta.changeID,
 			fileMeta.commit,
@@ -120,31 +122,45 @@ export class FileMetaWithSide extends FileMeta {
 			fileMeta.content
 		);
 		meta.side = side;
+		meta.baseRevision = baseRevision;
 		return meta;
 	}
 
-	public static override from(uri: Uri): FileMetaWithSide {
+	public static override from(uri: Uri): FileMetaWithSideAndBase {
 		const meta = JSON.parse(uri.query) as {
 			side?: GerritCommentSide | 'BOTH';
+			baseRevision?: number | null;
 		};
 		if (typeof meta.side !== 'string') {
 			throw new Error('Invalid file meta');
 		}
+		if (
+			typeof meta.baseRevision !== 'number' &&
+			meta.baseRevision !== null
+		) {
+			throw new Error('Invalid base revision');
+		}
 
-		return this.fromFileMeta(FileMeta.from(uri), meta.side);
+		return this.fromFileMeta(
+			FileMeta.from(uri),
+			meta.side,
+			meta.baseRevision
+		);
 	}
 
 	public static createFileMetaWithSide(
 		options: FileMetaCreate,
-		side: GerritCommentSide | 'BOTH'
-	): FileMetaWithSide {
-		return FileMetaWithSide.fromFileMeta(
+		side: GerritCommentSide | 'BOTH',
+		baseRevision: number | null
+	): FileMetaWithSideAndBase {
+		return FileMetaWithSideAndBase.fromFileMeta(
 			FileMeta.createFileMeta(options),
-			side
+			side,
+			baseRevision
 		);
 	}
 
-	public static override tryFrom(uri: Uri): FileMetaWithSide | null {
+	public static override tryFrom(uri: Uri): FileMetaWithSideAndBase | null {
 		try {
 			return this.from(uri);
 		} catch (e) {

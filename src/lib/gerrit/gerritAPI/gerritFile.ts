@@ -1,6 +1,6 @@
 import {
 	FileMeta,
-	FileMetaWithSide,
+	FileMetaWithSideAndBase,
 	GERRIT_FILE_SCHEME,
 } from '../../../providers/fileProvider';
 import {
@@ -29,11 +29,18 @@ export class TextContent {
 		return this.buffer.toString('utf8');
 	}
 
-	public toVirtualFile(forSide: GerritCommentSide | 'BOTH'): Uri {
+	public toVirtualFile(
+		forSide: GerritCommentSide | 'BOTH',
+		baseRevision: number | null
+	): Uri {
 		return Uri.from({
 			scheme: GERRIT_FILE_SCHEME,
 			path: this.meta.filePath,
-			query: FileMetaWithSide.fromFileMeta(this.meta, forSide).toString(),
+			query: FileMetaWithSideAndBase.fromFileMeta(
+				this.meta,
+				forSide,
+				baseRevision
+			).toString(),
 		});
 	}
 
@@ -114,7 +121,10 @@ export class GerritFile extends DynamicallyFetchable {
 		return content;
 	}
 
-	public getLocalURI(forSide: GerritCommentSide): Uri | null {
+	public getLocalURI(
+		forSide: GerritCommentSide,
+		forBaseRevision: number | null
+	): Uri | null {
 		if (
 			!workspace.workspaceFolders ||
 			workspace.workspaceFolders.length !== 1
@@ -124,20 +134,21 @@ export class GerritFile extends DynamicallyFetchable {
 		const workspaceFolder = workspace.workspaceFolders[0];
 		const filePath = Uri.joinPath(workspaceFolder.uri, this.filePath);
 		return filePath.with({
-			query: FileMetaWithSide.createFileMetaWithSide(
+			query: FileMetaWithSideAndBase.createFileMetaWithSide(
 				{
 					project: this.change.project,
 					commit: this.currentRevision,
 					filePath: this.filePath,
 					changeID: this.change.id,
 				},
-				forSide
+				forSide,
+				forBaseRevision
 			).toString(),
 		});
 	}
 
 	public async isLocalFile(content: TextContent): Promise<boolean> {
-		const filePath = this.getLocalURI(GerritCommentSide.LEFT);
+		const filePath = this.getLocalURI(GerritCommentSide.LEFT, null);
 		if (!filePath) {
 			return false;
 		}

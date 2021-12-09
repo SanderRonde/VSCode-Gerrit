@@ -96,7 +96,7 @@ export class ViewPanel
 	}
 
 	public async getChildren(): Promise<TreeViewItem[]> {
-		const changes = await this._fetch();
+		const changes = await this._fetch(this);
 		const hasMore =
 			changes.length > 0 &&
 			changes[changes.length - 1].change.moreChanges;

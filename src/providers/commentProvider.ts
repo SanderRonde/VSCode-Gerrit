@@ -20,8 +20,8 @@ import { PATCHSET_LEVEL_KEY } from '../views/activityBar/changes/changeTreeView/
 import { GerritChange } from '../lib/gerrit/gerritAPI/gerritChange';
 import { DateSortDirection, DateTime } from '../lib/util/dateTime';
 import { GerritCommentSide } from '../lib/gerrit/gerritAPI/types';
+import { FileMetaWithSideAndBase } from './fileProvider';
 import { GerritCommentThread } from './comments/thread';
-import { FileMetaWithSide } from './fileProvider';
 import { uniqueComplex } from '../lib/util/util';
 
 export interface GerritCommentReply {
@@ -106,7 +106,7 @@ export class DocumentCommentManager {
 	}
 
 	public async loadComments(): Promise<this> {
-		const fileMeta = FileMetaWithSide.tryFrom(this.document);
+		const fileMeta = FileMetaWithSideAndBase.tryFrom(this.document);
 		if (!fileMeta || fileMeta.isEmpty()) {
 			return this;
 		}
@@ -217,7 +217,7 @@ export class CommentManager {
 	public static init(): typeof CommentManager {
 		this._disposables.add(
 			workspace.onDidCloseTextDocument((doc) => {
-				const meta = FileMetaWithSide.tryFrom(doc.uri);
+				const meta = FileMetaWithSideAndBase.tryFrom(doc.uri);
 				if (!meta) {
 					return;
 				}
@@ -231,7 +231,7 @@ export class CommentManager {
 		);
 		this._commentController.commentingRangeProvider = {
 			provideCommentingRanges: (document) => {
-				const meta = FileMetaWithSide.tryFrom(document.uri);
+				const meta = FileMetaWithSideAndBase.tryFrom(document.uri);
 				if (meta) {
 					const lineCount = document.lineCount;
 					void (async () => {
@@ -262,7 +262,7 @@ export class CommentManager {
 	}
 
 	public static getFileManagersForUri(uri: Uri): DocumentCommentManager[] {
-		const meta = FileMetaWithSide.tryFrom(uri);
+		const meta = FileMetaWithSideAndBase.tryFrom(uri);
 		if (!meta) {
 			return [];
 		}
@@ -309,7 +309,7 @@ async function createComment(
 	isResolved: boolean,
 	parentComment = thread.lastComment
 ): Promise<GerritDraftComment | null> {
-	const meta = FileMetaWithSide.tryFrom(thread.thread.uri);
+	const meta = FileMetaWithSideAndBase.tryFrom(thread.thread.uri);
 	if (!meta) {
 		void window.showErrorMessage('Failed to create comment');
 		return null;

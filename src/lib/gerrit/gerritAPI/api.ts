@@ -6,11 +6,13 @@ import {
 	GerritCommentSide,
 	GerritCommentsResponse,
 	GerritDetailedUserResponse,
+	GerritFilesResponse,
 	GerritGroupsResponse,
 	GerritProjectsResponse,
 	GerritSuggestedReviewerResponse,
 } from './types';
 import { PATCHSET_LEVEL_KEY } from '../../../views/activityBar/changes/changeTreeView/patchSetLevelCommentsTreeView';
+import { FilesCache } from '../../../views/activityBar/changes/changeTreeView/file/filesCache';
 import { FileCache } from '../../../views/activityBar/changes/changeTreeView/file/fileCache';
 import { optionalArrayEntry, optionalObjectProperty } from '../../util/util';
 import got, { OptionsOfTextResponseBody, Response } from 'got/dist/source';
@@ -18,6 +20,7 @@ import { DefaultChangeFilter, GerritChangeFilter } from './filters';
 import { GerritComment, GerritDraftComment } from './gerritComment';
 import { FileMeta } from '../../../providers/fileProvider';
 import { GerritChangeDetail } from './gerritChangeDetail';
+import { GerritFile, TextContent } from './gerritFile';
 import { getConfiguration } from '../../vscode/config';
 import { shouldDebugRequests } from '../../util/dev';
 import { READONLY_MODE } from '../../util/constants';
@@ -25,7 +28,6 @@ import { getChangeCache } from '../gerritCache';
 import { GerritProject } from './gerritProject';
 import { GerritChange } from './gerritChange';
 import { GerritGroup } from './gerritGroup';
-import { TextContent } from './gerritFile';
 import { GerritUser } from './gerritUser';
 import { URLSearchParams } from 'url';
 import { log } from '../../util/log';
@@ -764,6 +766,42 @@ export class GerritAPI {
 			);
 		}
 		return map;
+	}
+
+	public async getFiles(
+		change: GerritChange,
+		commit: string,
+		revision: number,
+		baseRevision?: number
+	): Promise<GerritFile[]> {
+		if (FilesCache.has(change.project, change.changeID, revision)) {
+			return FilesCache.get(change.project, change.changeID, revision)!;
+		}
+
+		const response = await this._tryRequest(
+			this.getURL(
+				`projects/${change.project}/commits/${revision}/files/`
+			),
+			{
+				...this._get,
+				searchParams: new URLSearchParams([
+					...optionalArrayEntry(typeof baseRevision === 'number', [
+						['base', String(baseRevision)] as [string, string],
+					]),
+				]),
+			}
+		);
+
+		const json = this._handleResponse<GerritFilesResponse>(response);
+		if (!json) {
+			return [];
+		}
+
+		const files = Object.entries(json).map(([path, file]) => {
+			return new GerritFile(change.changeID, change, commit, path, file);
+		});
+		FilesCache.set(change.project, change.changeID, revision, files);
+		return files;
 	}
 
 	public async getFileContent({

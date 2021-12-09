@@ -8,6 +8,7 @@ import {
 	ThemeIcon,
 	TreeItem,
 	Uri,
+	window,
 } from 'vscode';
 import {
 	GerritFile,
@@ -23,12 +24,34 @@ export class FileTreeView implements TreeItemWithoutChildren {
 	public constructor(
 		public filePath: string,
 		public change: GerritChange,
-		public file: GerritFile
+		public file: GerritFile,
+		public patchsetBase: number | null
 	) {}
+
+	private async _getFileBaseContent(
+		file: GerritFile
+	): Promise<TextContent | null> {
+		if (this.patchsetBase === null) {
+			return await file.getOldContent();
+		}
+		const revisions = await this.change.revisions();
+		if (!revisions) {
+			void window.showErrorMessage('Could not get revisions');
+			return null;
+		}
+		const baseRevision = Object.values(revisions).find(
+			(r) => r.number === this.patchsetBase
+		);
+		if (!baseRevision) {
+			void window.showErrorMessage('Could not get revisions');
+			return null;
+		}
+		return await file.getContent(baseRevision.revisionID);
+	}
 
 	private async _getFileDiffContent(
 		file: GerritFile
-	): Promise<[TextContent | null, TextContent | null]> {
+	): Promise<[TextContent | null, TextContent | null] | null> {
 		if (file.status === GerritRevisionFileStatus.ADDED) {
 			return [
 				TextContent.from(FileMeta.EMPTY, '', 'utf8'),
@@ -36,26 +59,40 @@ export class FileTreeView implements TreeItemWithoutChildren {
 			];
 		}
 		if (file.status === GerritRevisionFileStatus.DELETED) {
-			return [
-				await file.getOldContent(),
-				TextContent.from(FileMeta.EMPTY, '', 'utf8'),
-			];
+			const oldContent = await this._getFileBaseContent(file);
+			if (!oldContent) {
+				return null;
+			}
+			return [oldContent, TextContent.from(FileMeta.EMPTY, '', 'utf8')];
 		}
-		const [oldContent, newContent] = await Promise.all([
-			file.getOldContent(),
-			file.getNewContent(),
-		]);
+
+		const oldContent = await this._getFileBaseContent(file);
+		if (!oldContent) {
+			return null;
+		}
+		const newContent = await file.getNewContent();
 		return [oldContent, newContent];
 	}
 
 	private async _getFileUri(file: GerritFile): Promise<Uri | null> {
-		const [oldContent, newContent] = await this._getFileDiffContent(file);
+		const contents = await this._getFileDiffContent(file);
+		if (!contents) {
+			return null;
+		}
+
+		const [oldContent, newContent] = contents;
 
 		if (newContent && !newContent.isEmpty()) {
-			return newContent.toVirtualFile(GerritCommentSide.RIGHT);
+			return newContent.toVirtualFile(
+				GerritCommentSide.RIGHT,
+				this.patchsetBase
+			);
 		}
 		if (oldContent && !oldContent.isEmpty()) {
-			return oldContent.toVirtualFile(GerritCommentSide.LEFT);
+			return oldContent.toVirtualFile(
+				GerritCommentSide.LEFT,
+				this.patchsetBase
+			);
 		}
 
 		return null;
@@ -64,18 +101,26 @@ export class FileTreeView implements TreeItemWithoutChildren {
 	private async _createDiffCommand(
 		file: GerritFile
 	): Promise<Command | null> {
-		const [oldContent, newContent] = await this._getFileDiffContent(file);
+		const contents = await this._getFileDiffContent(file);
+		if (!contents) {
+			return null;
+		}
+
+		const [oldContent, newContent] = contents;
 		if (oldContent === null || newContent === null) {
 			return null;
 		}
 
 		// Never use local file for old content since then you're
 		// just editing history which makes no sense.
-		const oldURI = oldContent.toVirtualFile(GerritCommentSide.LEFT);
+		const oldURI = oldContent.toVirtualFile(
+			GerritCommentSide.LEFT,
+			this.patchsetBase
+		);
 		const newURI = tertiaryWithFallback(
-			await file.isLocalFile(newContent),
-			file.getLocalURI(GerritCommentSide.RIGHT),
-			newContent.toVirtualFile(GerritCommentSide.RIGHT)
+			this.patchsetBase === null && (await file.isLocalFile(newContent)),
+			file.getLocalURI(GerritCommentSide.RIGHT, this.patchsetBase),
+			newContent.toVirtualFile(GerritCommentSide.RIGHT, this.patchsetBase)
 		);
 
 		return {

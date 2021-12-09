@@ -246,3 +246,5 @@ export type GerritSuggestedReviewerResponse = (
 			count: number;
 	  }
 )[];
+
+export type GerritFilesResponse = Record<string, GerritRevisionFile>;

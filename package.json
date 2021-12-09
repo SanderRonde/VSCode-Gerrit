@@ -106,6 +106,14 @@
 				"command": "gerrit.openInReview",
 				"title": "Open in Review panel",
 				"icon": "$(open-preview)"
+			},
+			{
+				"command": "gerrit.openPatchsetSelector",
+				"title": "Open Patchset Selector"
+			},
+			{
+				"command": "gerrit.resetPatchsetSelection",
+				"title": "Reset patchset selection"
 			}
 		],
 		"menus": {
@@ -180,6 +188,14 @@
 				},
 				{
 					"command": "gerrit.openInReview",
+					"when": "false"
+				},
+				{
+					"command": "gerrit.openPatchsetSelector",
+					"when": "false"
+				},
+				{
+					"command": "gerrit.resetPatchsetSelection",
 					"when": "false"
 				}
 			],
@@ -276,6 +292,16 @@
 					"command": "gerrit.openInReview",
 					"when": "view == gerrit:changeExplorer && viewItem =~ /gerritchange/",
 					"group": "change@1"
+				},
+				{
+					"command": "gerrit.openPatchsetSelector",
+					"when": "view == gerrit:changeExplorer && viewItem =~ /change/",
+					"group": "change@2"
+				},
+				{
+					"command": "gerrit.resetPatchsetSelection",
+					"when": "view == gerrit:changeExplorer && viewItem =~ /change/ && viewItem =~ /customPatchset/",
+					"group": "change@3"
 				}
 			],
 			"view/title": [
@@ -676,8 +702,8 @@
 		"pretest": "yarn run compile && yarn run lint",
 		"lint": "eslint src --ext ts",
 		"test": "node ./out/test/runTest.js",
-		"format": "prettier --write src/",
-		"prepush": "yarn lint && yarn compile && yarn format"
+		"format": "pretty-quick src/",
+		"prepush": "yarn format && yarn lint && yarn compile"
 	},
 	"devDependencies": {
 		"@emotion/react": "^11.7.0",

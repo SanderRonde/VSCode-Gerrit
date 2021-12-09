@@ -10,6 +10,7 @@ import { GerritCommit } from './gerritCommit';
 import { GerritChange } from './gerritChange';
 import { GerritFile } from './gerritFile';
 import { GerritAPIWith } from './api';
+import { getAPI } from '../gerritAPI';
 
 export class GerritRevision extends DynamicallyFetchable {
 	public kind: RevisionType;
@@ -29,7 +30,8 @@ export class GerritRevision extends DynamicallyFetchable {
 	public constructor(
 		public override changeID: string,
 		public change: GerritChange,
-		public currentRevision: string,
+		public revisionID: string,
+		public isCurrentRevision: boolean,
 		response: GerritRevisionResponse
 	) {
 		super();
@@ -52,7 +54,7 @@ export class GerritRevision extends DynamicallyFetchable {
 		if (response.commit) {
 			this._commit = new GerritCommit(
 				this.changeID,
-				this.currentRevision,
+				this.revisionID,
 				response.commit
 			);
 		}
@@ -66,7 +68,7 @@ export class GerritRevision extends DynamicallyFetchable {
 							new GerritFile(
 								this.changeID,
 								this.change,
-								this.currentRevision,
+								this.revisionID,
 								k,
 								v
 							),
@@ -76,18 +78,37 @@ export class GerritRevision extends DynamicallyFetchable {
 		}
 	}
 
-	public files(
+	public async files(
+		baseRevision: number | null = null,
 		...additionalWith: GerritAPIWith[]
 	): Promise<Record<string, GerritFile> | null> {
-		return this._fieldFallbackGetter(
-			'_files',
-			[
-				GerritAPIWith.CURRENT_REVISION,
-				GerritAPIWith.CURRENT_FILES,
-				...additionalWith,
-			],
-			async (c) => (await c.getCurrentRevision())?.files() ?? null
-		);
+		if (baseRevision === null && this.isCurrentRevision) {
+			return this._fieldFallbackGetter(
+				'_files',
+				[
+					GerritAPIWith.CURRENT_REVISION,
+					GerritAPIWith.CURRENT_FILES,
+					...additionalWith,
+				],
+				async (c) => (await c.getCurrentRevision())?.files() ?? null
+			);
+		} else {
+			const api = await getAPI();
+			if (!api) {
+				return null;
+			}
+
+			const files = await api.getFiles(
+				this.change,
+				this.revisionID,
+				this.number,
+				baseRevision ?? undefined
+			);
+			if (!files) {
+				return null;
+			}
+			return Object.fromEntries(files.map((f) => [f.filePath, f]));
+		}
 	}
 
 	public detailedUploader(

@@ -1,14 +1,18 @@
+import {
+	ChangeTreeView,
+	FileMap,
+	PatchsetDescription,
+} from '../changeTreeView';
 import { TreeItemWithoutChildren, TreeViewItem } from '../../shared/treeTypes';
 import { GerritChange } from '../../../../lib/gerrit/gerritAPI/gerritChange';
 import { ThemeIcon, TreeItem, TreeItemCollapsibleState } from 'vscode';
-import { ChangeTreeView, FileMap } from '../changeTreeView';
 
 export class FolderTreeView implements TreeItemWithoutChildren {
 	public constructor(
 		public folderPath: string,
 		public change: GerritChange,
 		public fileMap: FileMap,
-		public patchsetBase: number | null
+		public patchsetBase: PatchsetDescription | null
 	) {}
 
 	public getItem(): TreeItem {

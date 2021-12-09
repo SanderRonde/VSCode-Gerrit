@@ -14,6 +14,7 @@ import {
 import { PATCHSET_LEVEL_KEY } from '../../../views/activityBar/changes/changeTreeView/patchSetLevelCommentsTreeView';
 import { FilesCache } from '../../../views/activityBar/changes/changeTreeView/file/filesCache';
 import { FileCache } from '../../../views/activityBar/changes/changeTreeView/file/fileCache';
+import { PatchsetDescription } from '../../../views/activityBar/changes/changeTreeView';
 import { optionalArrayEntry, optionalObjectProperty } from '../../util/util';
 import got, { OptionsOfTextResponseBody, Response } from 'got/dist/source';
 import { DefaultChangeFilter, GerritChangeFilter } from './filters';
@@ -38,9 +39,9 @@ export enum GerritAPIWith {
 	DETAILED_LABELS = 'DETAILED_LABELS',
 	DETAILED_ACCOUNTS = 'DETAILED_ACCOUNTS',
 	CURRENT_REVISION = 'CURRENT_REVISION',
-	ALL_REVISIONS = 'ALL_REVISIONS',
 	CURRENT_COMMIT = 'CURRENT_COMMIT',
 	CURRENT_FILES = 'CURRENT_FILES',
+	ALL_REVISIONS = 'ALL_REVISIONS',
 }
 
 type WithValue<
@@ -561,7 +562,10 @@ export class GerritAPI {
 			return null;
 		}
 
-		const change = new GerritChange(json);
+		const change = new GerritChange(
+			json,
+			withValues.includes(GerritAPIWith.ALL_REVISIONS)
+		);
 		getChangeCache().set(changeID, withValues, change);
 		return change;
 	}
@@ -660,7 +664,13 @@ export class GerritAPI {
 			return [];
 		}
 
-		const changes = json.map((p) => new GerritChange(p));
+		const changes = json.map(
+			(p) =>
+				new GerritChange(
+					p,
+					withValues.includes(GerritAPIWith.ALL_REVISIONS)
+				)
+		);
 		const cache = getChangeCache();
 		changes.forEach((change) =>
 			cache.set(change.change_id, withValues, change)
@@ -714,7 +724,13 @@ export class GerritAPI {
 			return [];
 		}
 
-		const changes = json.map((p) => new GerritChange(p));
+		const changes = json.map(
+			(p) =>
+				new GerritChange(
+					p,
+					withValues.includes(GerritAPIWith.ALL_REVISIONS)
+				)
+		);
 		const cache = getChangeCache();
 		changes.forEach((change) =>
 			cache.set(change.change_id, withValues, change)
@@ -770,23 +786,29 @@ export class GerritAPI {
 
 	public async getFiles(
 		change: GerritChange,
-		commit: string,
-		revision: number,
-		baseRevision?: number
+		revision: PatchsetDescription,
+		baseRevision?: PatchsetDescription
 	): Promise<GerritFile[]> {
-		if (FilesCache.has(change.project, change.changeID, revision)) {
-			return FilesCache.get(change.project, change.changeID, revision)!;
+		if (FilesCache.has(change.project, change.changeID, revision.number)) {
+			return FilesCache.get(
+				change.project,
+				change.changeID,
+				revision.number
+			)!;
 		}
 
 		const response = await this._tryRequest(
 			this.getURL(
-				`projects/${change.project}/commits/${revision}/files/`
+				`changes/${change.changeID}/revisions/${revision.id}/files`
 			),
 			{
 				...this._get,
 				searchParams: new URLSearchParams([
-					...optionalArrayEntry(typeof baseRevision === 'number', [
-						['base', String(baseRevision)] as [string, string],
+					...optionalArrayEntry(!!baseRevision, [
+						['base', String(baseRevision!.number)] as [
+							string,
+							string
+						],
 					]),
 				]),
 			}
@@ -797,10 +819,18 @@ export class GerritAPI {
 			return [];
 		}
 
-		const files = Object.entries(json).map(([path, file]) => {
-			return new GerritFile(change.changeID, change, commit, path, file);
-		});
-		FilesCache.set(change.project, change.changeID, revision, files);
+		const files = Object.entries(json)
+			.filter(([path]) => path !== '/COMMIT_MSG')
+			.map(([path, file]) => {
+				return new GerritFile(
+					change.changeID,
+					change,
+					revision,
+					path,
+					file
+				);
+			});
+		FilesCache.set(change.project, change.changeID, revision.number, files);
 		return files;
 	}
 
@@ -811,19 +841,19 @@ export class GerritAPI {
 		filePath,
 	}: {
 		project: string;
-		commit: string;
+		commit: PatchsetDescription;
 		changeID: string;
 		filePath: string;
 	}): Promise<TextContent | null> {
-		if (FileCache.has(project, commit, filePath)) {
-			return FileCache.get(project, commit, filePath);
+		if (FileCache.has(project, commit.id, filePath)) {
+			return FileCache.get(project, commit.id, filePath);
 		}
 
 		const response = await this._tryRequest(
 			this.getURL(
-				`projects/${project}/commits/${commit}/files/${encodeURIComponent(
-					filePath
-				)}/content`
+				`projects/${project}/commits/${
+					commit.id
+				}/files/${encodeURIComponent(filePath)}/content`
 			),
 			this._get
 		);
@@ -849,7 +879,7 @@ export class GerritAPI {
 			return null;
 		}
 
-		FileCache.set(project, commit, filePath, textContent);
+		FileCache.set(project, commit.id, filePath, textContent);
 		return textContent;
 	}
 

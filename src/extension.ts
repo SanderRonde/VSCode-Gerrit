@@ -2,13 +2,13 @@ import { FileModificationStatusProvider } from './providers/fileModificationStat
 import { FileCache } from './views/activityBar/changes/changeTreeView/file/fileCache';
 import { getCommentDecorationProvider } from './providers/commentDecorationProvider';
 import { getOrCreateReviewWebviewProvider } from './views/activityBar/review';
+import { CommentManager, DocumentManager } from './providers/commentProvider';
 import { SearchResultsTreeProvider } from './views/activityBar/searchResults';
 import { FileProvider, GERRIT_FILE_SCHEME } from './providers/fileProvider';
 import { setContextProp, setDefaultContexts } from './lib/vscode/context';
 import { ChangesTreeProvider } from './views/activityBar/changes';
 import { GerritUser } from './lib/gerrit/gerritAPI/gerritUser';
 import { ExtensionContext, window, workspace } from 'vscode';
-import { CommentManager } from './providers/commentProvider';
 import { registerCommands } from './commands/commands';
 import { showStatusBarIcon } from './views/statusBar';
 import { createOutputChannel } from './lib/util/log';
@@ -86,6 +86,9 @@ export async function activate(context: ExtensionContext): Promise<void> {
 
 	// Create comment controller
 	context.subscriptions.push(CommentManager.init());
+
+	// Create document manager
+	context.subscriptions.push(DocumentManager.init());
 
 	// Register comment decoration provider (comment bubbles)
 	context.subscriptions.push(

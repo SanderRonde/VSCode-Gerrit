@@ -7,6 +7,7 @@ import {
 	TreeItem,
 } from 'vscode';
 import { PERIODICAL_CHANGE_FETCH_INTERVAL } from '../../lib/util/constants';
+import { FileTreeView } from './changes/changeTreeView/fileTreeView';
 import { RootTreeViewProvider } from './changes/rootTreeView';
 import { TreeViewItem } from './shared/treeTypes';
 
@@ -26,6 +27,7 @@ export class ChangesTreeProvider
 
 	public constructor(private readonly _context: ExtensionContext) {
 		ChangesTreeProvider._instances.add(this);
+		this._disposables.push(FileTreeView.init());
 		const interval = setTimeout(() => {
 			this.refresh();
 		}, PERIODICAL_CHANGE_FETCH_INTERVAL);

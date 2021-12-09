@@ -5,6 +5,7 @@ import {
 	GerritDetailedChangeLabels,
 	GerritUserResponse,
 } from './types';
+import { PatchsetDescription } from '../../../views/activityBar/changes/changeTreeView';
 import { DefaultChangeFilter, GerritChangeFilter } from './filters';
 import { GerritComment, GerritDraftComment } from './gerritComment';
 import { ChangesOffsetParams, GerritAPIWith } from './api';
@@ -47,10 +48,13 @@ export class GerritChange extends DynamicallyFetchable {
 	public _detailedLabels: GerritDetailedChangeLabels | null = null;
 	public _detailedOwner: GerritUser | null = null;
 	public _revisions: Record<string, GerritRevision> | null = null;
-	public _currentRevision: GerritRevision | null = null;
-	public _currentRevisionStr: string | null = null;
+	public _currentRevisions: Record<string, GerritRevision> | null = null;
+	public _currentRevision: PatchsetDescription | null = null;
 
-	public constructor(response: GerritChangeResponse) {
+	public constructor(
+		response: GerritChangeResponse,
+		private readonly _isAllRevisions: boolean
+	) {
 		super();
 		this.changeID = response.id;
 		this.id = response.id;
@@ -68,19 +72,13 @@ export class GerritChange extends DynamicallyFetchable {
 		this.workInProgress = response.work_in_progress;
 		this.owner = response.owner;
 		this.moreChanges = response._more_changes ?? false;
-		this._currentRevision =
-			response.revisions &&
-			response.current_revision &&
-			response.revisions[response.current_revision]
-				? new GerritRevision(
-						this.changeID,
-						this,
-						response.current_revision,
-						true,
-						response.revisions[response.current_revision]
-				  )
-				: null;
-		this._currentRevisionStr = response.current_revision ?? null;
+		this._currentRevision = response.current_revision
+			? {
+					id: response.current_revision,
+					number: response.revisions![response.current_revision]
+						._number,
+			  }
+			: null;
 
 		if (response.labels) {
 			this._labels = response.labels;
@@ -99,7 +97,7 @@ export class GerritChange extends DynamicallyFetchable {
 		}
 
 		if (response.revisions) {
-			this._revisions = Object.fromEntries(
+			this._currentRevisions = Object.fromEntries(
 				Object.entries(response.revisions).map(
 					([k, v]) =>
 						[
@@ -114,6 +112,9 @@ export class GerritChange extends DynamicallyFetchable {
 						] as [string, GerritRevision]
 				)
 			);
+			if (this._isAllRevisions) {
+				this._revisions = this._currentRevisions;
+			}
 		}
 	}
 
@@ -230,6 +231,19 @@ export class GerritChange extends DynamicallyFetchable {
 		);
 	}
 
+	public currentRevisions(
+		...additionalWith: GerritAPIWith[]
+	): Promise<Record<string, GerritRevision> | null> {
+		return this._fieldFallbackGetter(
+			'_currentRevisions',
+			[GerritAPIWith.CURRENT_REVISION, ...additionalWith],
+			(c) => c.revisions(),
+			async (c) => {
+				this._currentRevision = await c.currentRevision();
+			}
+		);
+	}
+
 	public revisions(
 		...additionalWith: GerritAPIWith[]
 	): Promise<Record<string, GerritRevision> | null> {
@@ -238,33 +252,21 @@ export class GerritChange extends DynamicallyFetchable {
 			[GerritAPIWith.ALL_REVISIONS, ...additionalWith],
 			(c) => c.revisions(),
 			async (c) => {
-				this._currentRevisionStr = await c.currentRevisionStr();
+				this._currentRevision = await c.currentRevision();
+				this._currentRevisions = await this.currentRevisions();
 			}
 		);
 	}
 
 	public currentRevision(
 		...additionalWith: GerritAPIWith[]
-	): Promise<GerritRevision | null> {
+	): Promise<PatchsetDescription | null> {
 		return this._fieldFallbackGetter(
 			'_currentRevision',
 			[GerritAPIWith.CURRENT_REVISION, ...additionalWith],
 			(c) => c.currentRevision(),
 			async (c) => {
-				this._revisions = await c.revisions();
-			}
-		);
-	}
-
-	public currentRevisionStr(
-		...additionalWith: GerritAPIWith[]
-	): Promise<string | null> {
-		return this._fieldFallbackGetter(
-			'_currentRevisionStr',
-			[GerritAPIWith.CURRENT_REVISION, ...additionalWith],
-			(c) => c.currentRevisionStr(),
-			async (c) => {
-				this._revisions = await c.revisions();
+				this._currentRevisions = await c.currentRevisions();
 			}
 		);
 	}
@@ -272,17 +274,15 @@ export class GerritChange extends DynamicallyFetchable {
 	public async getCurrentRevision(
 		...additionalWith: GerritAPIWith[]
 	): Promise<GerritRevision | null> {
-		const currentRevision = await this.currentRevisionStr(
-			...additionalWith
-		);
+		const currentRevision = await this.currentRevision(...additionalWith);
 		if (!currentRevision) {
 			return null;
 		}
-		const revisions = await this.revisions(...additionalWith);
+		const revisions = await this.currentRevisions(...additionalWith);
 		if (!revisions) {
 			return null;
 		}
-		return revisions[currentRevision];
+		return revisions[currentRevision.id];
 	}
 
 	public async getCurrentCommit(

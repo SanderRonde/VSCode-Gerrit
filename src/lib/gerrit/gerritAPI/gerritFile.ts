@@ -8,6 +8,7 @@ import {
 	GerritRevisionFile,
 	GerritRevisionFileStatus,
 } from './types';
+import { PatchsetDescription } from '../../../views/activityBar/changes/changeTreeView';
 import { DynamicallyFetchable } from './shared';
 import { GerritChange } from './gerritChange';
 import { Uri, workspace } from 'vscode';
@@ -31,13 +32,17 @@ export class TextContent {
 
 	public toVirtualFile(
 		forSide: GerritCommentSide | 'BOTH',
-		baseRevision: number | null
+		baseRevision: PatchsetDescription | null,
+		extra?: string
 	): Uri {
 		return Uri.from({
 			scheme: GERRIT_FILE_SCHEME,
 			path: this.meta.filePath,
 			query: FileMetaWithSideAndBase.fromFileMeta(
-				this.meta,
+				FileMeta.createFileMeta({
+					...this.meta,
+					extra,
+				}),
 				forSide,
 				baseRevision
 			).toString(),
@@ -60,7 +65,7 @@ export class GerritFile extends DynamicallyFetchable {
 	public constructor(
 		public override changeID: string,
 		public change: GerritChange,
-		public currentRevision: string,
+		public currentRevision: PatchsetDescription,
 		public filePath: string,
 		response: GerritRevisionFile
 	) {
@@ -91,13 +96,16 @@ export class GerritFile extends DynamicallyFetchable {
 		}
 
 		return this.getContent(
-			commit.parents[commit.parents.length - 1].commit,
+			{
+				id: commit.parents[commit.parents.length - 1].commit,
+				number: 0,
+			},
 			true
 		);
 	}
 
 	public async getContent(
-		revision: string = this.currentRevision,
+		revision: PatchsetDescription = this.currentRevision,
 		useOldPath = false
 	): Promise<TextContent | null> {
 		const filePath = useOldPath
@@ -123,7 +131,8 @@ export class GerritFile extends DynamicallyFetchable {
 
 	public getLocalURI(
 		forSide: GerritCommentSide,
-		forBaseRevision: number | null
+		forBaseRevision: PatchsetDescription | null,
+		extra?: string
 	): Uri | null {
 		if (
 			!workspace.workspaceFolders ||
@@ -140,6 +149,7 @@ export class GerritFile extends DynamicallyFetchable {
 					commit: this.currentRevision,
 					filePath: this.filePath,
 					changeID: this.change.id,
+					extra,
 				},
 				forSide,
 				forBaseRevision

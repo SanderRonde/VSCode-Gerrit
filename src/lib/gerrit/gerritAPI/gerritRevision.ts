@@ -5,6 +5,7 @@ import {
 	GerritUserResponse,
 	RevisionType,
 } from './types';
+import { PatchsetDescription } from '../../../views/activityBar/changes/changeTreeView';
 import { DynamicallyFetchable } from './shared';
 import { GerritCommit } from './gerritCommit';
 import { GerritChange } from './gerritChange';
@@ -68,7 +69,10 @@ export class GerritRevision extends DynamicallyFetchable {
 							new GerritFile(
 								this.changeID,
 								this.change,
-								this.revisionID,
+								{
+									id: this.revisionID,
+									number: this.number,
+								},
 								k,
 								v
 							),
@@ -79,7 +83,7 @@ export class GerritRevision extends DynamicallyFetchable {
 	}
 
 	public async files(
-		baseRevision: number | null = null,
+		baseRevision: PatchsetDescription | null = null,
 		...additionalWith: GerritAPIWith[]
 	): Promise<Record<string, GerritFile> | null> {
 		if (baseRevision === null && this.isCurrentRevision) {
@@ -100,8 +104,10 @@ export class GerritRevision extends DynamicallyFetchable {
 
 			const files = await api.getFiles(
 				this.change,
-				this.revisionID,
-				this.number,
+				{
+					id: this.revisionID,
+					number: this.number,
+				},
 				baseRevision ?? undefined
 			);
 			if (!files) {

@@ -7,6 +7,7 @@ import {
 	Disposable,
 	Position,
 	Range,
+	TextDocument,
 	Uri,
 	window,
 	workspace,
@@ -113,7 +114,7 @@ export class DocumentCommentManager {
 
 		const isPatchSetLevel = fileMeta.filePath === PATCHSET_LEVEL_KEY;
 		const comments =
-			(await GerritChange.getAllCommentsCached(fileMeta.changeID)).get(
+			(await GerritChange.getAllComments(fileMeta.changeID)).get(
 				fileMeta.filePath
 			) ?? [];
 		const thisSideComments = isPatchSetLevel
@@ -137,6 +138,17 @@ export class DocumentCommentManager {
 				};
 			});
 		}
+		// Hide all threads that were started after the current patchSet
+		threads = threads.filter((thread) => {
+			if (!fileMeta.commit || thread.comments.length === 0) {
+				return true;
+			}
+			const firstComment = thread.comments[0];
+			if (typeof firstComment.patchSet !== 'number') {
+				return true;
+			}
+			return firstComment.patchSet >= fileMeta.commit.number;
+		});
 		for (const thread of threads) {
 			const line = thread.range?.start.line ?? -1;
 			this._threadLineCount.set(
@@ -198,6 +210,50 @@ export class DocumentCommentManager {
 		}
 		this._threadMap.clear();
 		this._threadLineCount.clear();
+	}
+}
+
+export class DocumentManager {
+	private static _disposables: Disposable[] = [];
+	private static _openDocs: Set<TextDocument> = new Set();
+	private static _listeners: Set<{
+		onOpen?: (doc: TextDocument) => void;
+		onClose?: (doc: TextDocument) => void;
+	}> = new Set();
+
+	public static init(): typeof DocumentManager {
+		this._disposables.push(
+			workspace.onDidCloseTextDocument((doc) => {
+				this._openDocs.delete(doc);
+			})
+		);
+		this._disposables.push(
+			workspace.onDidOpenTextDocument((doc) => {
+				this._openDocs.add(doc);
+			})
+		);
+		return DocumentManager;
+	}
+
+	public static listen(listeners: {
+		onOpen?: (doc: TextDocument) => void;
+		onClose?: (doc: TextDocument) => void;
+	}): Disposable {
+		this._listeners.add(listeners);
+
+		return {
+			dispose: () => {
+				this._listeners.delete(listeners);
+			},
+		};
+	}
+
+	public static getAllDocs(): TextDocument[] {
+		return [...this._openDocs.values()];
+	}
+
+	public static dispose(): void {
+		this._disposables.forEach((d) => void d.dispose());
 	}
 }
 
@@ -319,7 +375,7 @@ async function createComment(
 		changeID: meta.changeID,
 		content: text,
 		filePath: meta.filePath,
-		revision: meta.commit,
+		revision: meta.commit.id,
 		unresolved: !isResolved,
 		replyTo: parentComment?.id,
 		lineOrRange: GerritComment.vsCodeRangeToGerritRange(

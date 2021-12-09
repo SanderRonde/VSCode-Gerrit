@@ -1,7 +1,13 @@
+import {
+	Disposable,
+	ExtensionContext,
+	ThemeIcon,
+	TreeItem,
+	TreeItemCollapsibleState,
+	window,
+} from 'vscode';
 import { PatchSetLevelCommentsTreeView } from './changeTreeView/patchSetLevelCommentsTreeView';
-import { ThemeIcon, TreeItem, TreeItemCollapsibleState, window } from 'vscode';
 import { GerritRevision } from '../../../lib/gerrit/gerritAPI/gerritRevision';
-import { MultiStepEntry, MultiStepper } from '../../../lib/vscode/multiStep';
 import { GerritChange } from '../../../lib/gerrit/gerritAPI/gerritChange';
 import { TreeItemWithChildren, TreeViewItem } from '../shared/treeTypes';
 import { StorageScope, storageSet } from '../../../lib/vscode/storage';
@@ -10,7 +16,6 @@ import { FolderTreeView } from './changeTreeView/folderTreeView';
 import { FileTreeView } from './changeTreeView/fileTreeView';
 import { optionalArrayEntry } from '../../../lib/util/util';
 import { getReviewWebviewProvider } from '../review';
-import { ExtensionContext } from 'vscode';
 import { ViewPanel } from './viewPanel';
 
 export type FileMap = Map<
@@ -26,9 +31,14 @@ interface FileWithPath {
 	path: string[];
 }
 
+export interface PatchsetDescription {
+	number: number;
+	id: string;
+}
+
 export class ChangeTreeView implements TreeItemWithChildren {
-	public patchSetBase: number | null = null;
-	public patchSetCurrent: string | null = null;
+	public patchSetBase: PatchsetDescription | null = null;
+	public patchSetCurrent: PatchsetDescription | null = null;
 
 	public constructor(
 		private readonly _context: ExtensionContext,
@@ -39,7 +49,7 @@ export class ChangeTreeView implements TreeItemWithChildren {
 	public static getFilesAndFolders(
 		change: GerritChange,
 		fileMap: FileMap,
-		patchsetStart: number | null
+		patchsetStart: PatchsetDescription | null
 	): TreeViewItem[] {
 		const currentValues = [...fileMap.entries()];
 		const folderValues = [];
@@ -109,7 +119,7 @@ export class ChangeTreeView implements TreeItemWithChildren {
 
 		return (
 			Object.values(revisions).find(
-				(r) => r.revisionID === this.patchSetCurrent
+				(r) => r.revisionID === this.patchSetCurrent!.id
 			) ?? null
 		);
 	}
@@ -187,6 +197,77 @@ export class ChangeTreeView implements TreeItemWithChildren {
 		return values.join('.');
 	}
 
+	private _showPatchsetPicker(
+		revisions: GerritRevision[]
+	): Promise<[number | null, number | null] | null> {
+		return new Promise<[number | null, number | null] | null>((resolve) => {
+			const maxRevision = Math.max(...revisions.map((r) => r.number));
+
+			const quickPick = window.createQuickPick();
+			quickPick.step = 1;
+			quickPick.totalSteps = 2;
+			quickPick.items = [
+				{
+					label: 'Base',
+					description: 'Base revision (parent branch/change)',
+				},
+				...revisions
+					.sort((a, b) => a.number - b.number)
+					.map((r) => ({
+						label: String(r.number),
+						description: 'Revision ' + String(r.number),
+					})),
+			];
+			quickPick.selectedItems = [quickPick.items[0]];
+			quickPick.title = 'Select start patchset';
+			quickPick.show();
+
+			const disposables: Disposable[] = [];
+			const values: (number | null)[] = [];
+			disposables.push(
+				quickPick.onDidAccept(() => {
+					if (quickPick.step === 1) {
+						values.push(
+							quickPick.selectedItems[0].label === 'Base'
+								? null
+								: parseInt(quickPick.selectedItems[0].label, 10)
+						);
+						quickPick.step = 2;
+						quickPick.title = 'Select end patchset';
+						quickPick.items = revisions
+							.sort((a, b) => a.number - b.number)
+							.filter(
+								(r) =>
+									values[0] === null || r.number > values[0]
+							)
+							.map((r) => ({
+								label: String(r.number),
+								description: 'Revision ' + String(r.number),
+							}));
+					} else {
+						const selectedNum = parseInt(
+							quickPick.selectedItems[0].label,
+							10
+						);
+						values.push(
+							selectedNum === maxRevision ? null : selectedNum
+						);
+						resolve(
+							values as unknown as [number | null, number | null]
+						);
+						quickPick.hide();
+					}
+				})
+			);
+			disposables.push(
+				quickPick.onDidHide(() => {
+					disposables.forEach((d) => void d.dispose());
+					resolve(null);
+				})
+			);
+		});
+	}
+
 	public async openInReview(): Promise<void> {
 		// Override
 		await storageSet(
@@ -251,39 +332,27 @@ export class ChangeTreeView implements TreeItemWithChildren {
 
 		const revisionArr = Object.values(revisions);
 
-		const minRevision = Math.min(...revisionArr.map((r) => r.number));
-		const maxRevision = Math.max(...revisionArr.map((r) => r.number));
-		const stepper = new MultiStepper([
-			new MultiStepEntry({
-				prompt: 'Select start patchset',
-				placeHolder: `Starting patchset: ${minRevision} - ${
-					maxRevision - 1
-				}`,
-				value: String(minRevision),
-			}),
-			new MultiStepEntry({
-				prompt: 'Select end patchset',
-				placeHolder: (stepper) =>
-					`Starting patchset: ${Math.max(
-						stepper.values[0] ? parseInt(stepper.values[0], 10) : 0,
-						minRevision
-					)} - ${maxRevision}`,
-				value: String(maxRevision),
-			}),
-		]);
-
-		const values = await stepper.run();
-		if (!values || !values[0] || !values[1]) {
+		const result = await this._showPatchsetPicker(revisionArr);
+		if (result === null) {
 			return;
 		}
 
-		const base = parseInt(values[0], 10);
-		const end = parseInt(values[1], 10);
-		this.patchSetBase = base === minRevision ? null : base;
-		this.patchSetCurrent =
-			end === maxRevision
+		this.patchSetBase =
+			result[0] === null
 				? null
-				: revisionArr.find((r) => r.number === end)?.revisionID ?? null;
+				: {
+						number: result[0],
+						id: revisionArr.find((r) => r.number === result[0])!
+							.revisionID,
+				  };
+		this.patchSetCurrent =
+			result[1] === null
+				? null
+				: {
+						number: result[1],
+						id: revisionArr.find((r) => r.number === result[1])!
+							.revisionID,
+				  };
 
 		this._panel.refresh();
 	}

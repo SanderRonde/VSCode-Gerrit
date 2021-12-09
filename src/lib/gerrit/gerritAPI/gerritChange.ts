@@ -8,9 +8,11 @@ import {
 import { DefaultChangeFilter, GerritChangeFilter } from './filters';
 import { GerritComment, GerritDraftComment } from './gerritComment';
 import { ChangesOffsetParams, GerritAPIWith } from './api';
+import { GerritChangeDetail } from './gerritChangeDetail';
 import { GerritRevision } from './gerritRevision';
 import { DynamicallyFetchable } from './shared';
 import { getChangeCache } from '../gerritCache';
+import { DateTime } from '../../util/dateTime';
 import { GerritCommit } from './gerritCommit';
 import { GerritUser } from './gerritUser';
 import { getAPI } from '../gerritAPI';
@@ -37,13 +39,16 @@ export class GerritChange extends DynamicallyFetchable {
 	public owner: GerritUserResponse;
 	public moreChanges: boolean;
 
+	public fetchedAt = new DateTime(new Date());
+
 	// Ideally this would be private but in order to make the typing
 	// below work we use public
 	public _labels: GerritChangeLabels | null = null;
 	public _detailedLabels: GerritDetailedChangeLabels | null = null;
 	public _detailedOwner: GerritUser | null = null;
 	public _revisions: Record<string, GerritRevision> | null = null;
-	public _currentRevision: string | null = null;
+	public _currentRevision: GerritRevision | null = null;
+	public _currentRevisionStr: string | null = null;
 
 	public constructor(response: GerritChangeResponse) {
 		super();
@@ -63,7 +68,18 @@ export class GerritChange extends DynamicallyFetchable {
 		this.workInProgress = response.work_in_progress;
 		this.owner = response.owner;
 		this.moreChanges = response._more_changes ?? false;
-		this._currentRevision = response.current_revision ?? null;
+		this._currentRevision =
+			response.revisions &&
+			response.current_revision &&
+			response.revisions[response.current_revision]
+				? new GerritRevision(
+						this.changeID,
+						this,
+						response.current_revision,
+						response.revisions[response.current_revision]
+				  )
+				: null;
+		this._currentRevisionStr = response.current_revision ?? null;
 
 		if (response.labels) {
 			this._labels = response.labels;
@@ -139,7 +155,10 @@ export class GerritChange extends DynamicallyFetchable {
 		offset: ChangesOffsetParams,
 		onError:
 			| undefined
-			| ((code: number, body: string) => void | Promise<void>),
+			| ((
+					code: number | undefined,
+					body: string
+			  ) => void | Promise<void>),
 		...withValues: GerritAPIWith[]
 	): Promise<GerritChange[]> {
 		const api = await getAPI();
@@ -209,17 +228,17 @@ export class GerritChange extends DynamicallyFetchable {
 	): Promise<Record<string, GerritRevision> | null> {
 		return this._fieldFallbackGetter(
 			'_revisions',
-			[GerritAPIWith.CURRENT_REVISION, ...additionalWith],
+			[GerritAPIWith.ALL_REVISIONS, ...additionalWith],
 			(c) => c.revisions(),
 			async (c) => {
-				this._currentRevision = await c.currentRevision();
+				this._currentRevisionStr = await c.currentRevisionStr();
 			}
 		);
 	}
 
 	public currentRevision(
 		...additionalWith: GerritAPIWith[]
-	): Promise<string | null> {
+	): Promise<GerritRevision | null> {
 		return this._fieldFallbackGetter(
 			'_currentRevision',
 			[GerritAPIWith.CURRENT_REVISION, ...additionalWith],
@@ -230,10 +249,25 @@ export class GerritChange extends DynamicallyFetchable {
 		);
 	}
 
+	public currentRevisionStr(
+		...additionalWith: GerritAPIWith[]
+	): Promise<string | null> {
+		return this._fieldFallbackGetter(
+			'_currentRevisionStr',
+			[GerritAPIWith.CURRENT_REVISION, ...additionalWith],
+			(c) => c.currentRevisionStr(),
+			async (c) => {
+				this._revisions = await c.revisions();
+			}
+		);
+	}
+
 	public async getCurrentRevision(
 		...additionalWith: GerritAPIWith[]
 	): Promise<GerritRevision | null> {
-		const currentRevision = await this.currentRevision(...additionalWith);
+		const currentRevision = await this.currentRevisionStr(
+			...additionalWith
+		);
 		if (!currentRevision) {
 			return null;
 		}
@@ -258,5 +292,14 @@ export class GerritChange extends DynamicallyFetchable {
 		}
 
 		return await currentRevision.commit();
+	}
+
+	public async getDetail(): Promise<GerritChangeDetail | null> {
+		const api = await getAPI();
+		if (!api) {
+			return null;
+		}
+
+		return api.getChangeDetail(this.changeID);
 	}
 }

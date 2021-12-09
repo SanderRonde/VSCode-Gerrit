@@ -157,3 +157,30 @@ export function wait(ms: number): Promise<void> {
 		setTimeout(resolve, ms);
 	});
 }
+
+export function mappedMax<T>(values: T[], mapper: (value: T) => number): T {
+	if (values.length === 0) {
+		throw new Error('No values passed to mappedMax');
+	}
+	if (values.length === 1) {
+		return values[0];
+	}
+
+	let highest: {
+		value: T;
+		num: number;
+	} = {
+		value: values[0],
+		num: mapper(values[0]),
+	};
+	for (let i = 1; i < values.length; i++) {
+		const num = mapper(values[i]);
+		if (num > highest.num) {
+			highest = {
+				value: values[i],
+				num,
+			};
+		}
+	}
+	return highest.value;
+}

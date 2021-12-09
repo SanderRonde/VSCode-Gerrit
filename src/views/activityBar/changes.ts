@@ -7,7 +7,7 @@ import {
 } from 'vscode';
 import { PERIODICAL_CHANGE_FETCH_INTERVAL } from '../../lib/util/constants';
 import { RootTreeViewProvider } from './changes/rootTreeView';
-import { TreeViewItem } from './treeTypes';
+import { TreeViewItem } from './shared/treeTypes';
 
 export class ChangesTreeProvider
 	implements TreeDataProvider<TreeViewItem>, Disposable

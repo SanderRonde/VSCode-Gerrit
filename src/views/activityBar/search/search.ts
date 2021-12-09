@@ -70,7 +70,7 @@ const groupFetcher = async (): Promise<
 	return [
 		...(await api.getGroupsCached()).map((group) => ({
 			label: group.name,
-			description: group.description,
+			description: group.description ?? group.name,
 		})),
 	];
 };

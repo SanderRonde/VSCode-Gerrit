@@ -6,7 +6,21 @@ export enum StorageScope {
 }
 
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
-interface StorageObj {}
+interface StorageObj {
+	reviewComment: {
+		project: string;
+		changeID: string;
+		comment: string;
+		patchSet: number;
+		// Number-representation of a date
+		setAt: number;
+	} | null;
+	/**
+	 * Change ID to use for the patchset panel
+	 * instead of the current change
+	 */
+	reviewChangeIDOverride: string | null;
+}
 
 const SYNC_KEYS: (keyof StorageObj)[] = [] as (keyof StorageObj)[];
 

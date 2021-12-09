@@ -10,7 +10,14 @@
 		"noImplicitReturns": true,
 		"noFallthroughCasesInSwitch": true,
 		"noUnusedParameters": true,
-		"noImplicitOverride": true
+		"noImplicitOverride": true,
+		"skipLibCheck": true
 	},
-	"exclude": ["node_modules", ".vscode-test", "submodules"]
+	"exclude": [
+		"node_modules",
+		".vscode-test",
+		"submodules",
+		"src/views/activityBar/review/html/src",
+		"src/views/activityBar/review/html/dist"
+	]
 }

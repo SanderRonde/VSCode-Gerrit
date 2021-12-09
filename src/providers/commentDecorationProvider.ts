@@ -110,4 +110,10 @@ class CommentDecorationProvider implements FileDecorationProvider {
 	}
 }
 
-export const commentDecorationProvider = new CommentDecorationProvider();
+let commentDecorationProvider: CommentDecorationProvider | null = null;
+export function getCommentDecorationProvider(): CommentDecorationProvider {
+	if (commentDecorationProvider) {
+		return commentDecorationProvider;
+	}
+	return (commentDecorationProvider = new CommentDecorationProvider());
+}

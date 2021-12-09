@@ -1,0 +1,35 @@
+.icon-btn {
+	border: 1px solid transparent;
+	padding: 5px;
+	border-radius: 50%;
+	cursor: pointer;
+}
+
+.icon-btn:active {
+	border: 1px solid var(--vscode-focusBorder);
+}
+
+.MuiPaper-root {
+	background-color: var(--vscode-input-background) !important;
+}
+
+html,
+body,
+#app {
+	height: 100%;
+}
+
+@keyframes spin-infinite {
+	0% {
+		stroke-dasharray: 0.01px 43.97px;
+		transform: rotate(0deg);
+	}
+	50% {
+		stroke-dasharray: 21.99px 21.99px;
+		transform: rotate(450deg);
+	}
+	100% {
+		stroke-dasharray: 0.01px 43.97px;
+		transform: rotate(1080deg);
+	}
+}

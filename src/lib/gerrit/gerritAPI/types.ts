@@ -21,7 +21,7 @@ export interface GerritDetailedChangeLabel extends GerritChangeLabel {
 			max: number;
 		};
 	}[];
-	values: Record<number, string>;
+	values: Record<string, string>;
 	default_value: number;
 }
 
@@ -176,6 +176,11 @@ export type GerritGroupResponse = {
 	created_on: string;
 };
 
+export type GerritGroupBaseInfo = {
+	id: string;
+	name: string;
+};
+
 export type GerritGroupsResponse = Record<string, GerritGroupResponse>;
 
 export type GerritProjectResponse = {
@@ -186,3 +191,58 @@ export type GerritProjectResponse = {
 export type GerritProjectsResponse = Record<string, GerritProjectResponse>;
 
 export type GerritCommentsResponse = Record<string, GerritCommentResponse[]>;
+
+export interface GerritChangeDetailResponse {
+	id: string;
+	project: string;
+	branch: string;
+	attention_set: Record<
+		string,
+		{
+			account: GerritDetailedUserResponse;
+			last_update: string;
+			reason: string;
+		}[]
+	>;
+	change_id: string;
+	subject: string;
+	status: GerritChangeStatus;
+	created: string;
+	updated: string;
+	mergeable: boolean;
+	insertions: number;
+	deletions: number;
+	_number: number;
+	owner: GerritDetailedUserResponse;
+	labels: GerritDetailedChangeLabels;
+	permitted_labels: Record<string, string[]>;
+	removable_reviewers: GerritDetailedUserResponse[];
+	reviewers: {
+		REVIEWER?: (GerritDetailedUserResponse | GerritGroupBaseInfo)[];
+		CC?: (GerritDetailedUserResponse | GerritGroupBaseInfo)[];
+	};
+	reviewer_updates: {
+		state: string;
+		reviewer: GerritDetailedUserResponse;
+		updated_by: GerritDetailedUserResponse;
+		updated: string;
+	}[];
+	messages: {
+		id: string;
+		author: GerritDetailedUserResponse;
+		date: string;
+		message: string;
+		_revision_number: number;
+	}[];
+}
+
+export type GerritSuggestedReviewerResponse = (
+	| {
+			account: GerritDetailedUserResponse;
+			count: 1;
+	  }
+	| {
+			group: GerritGroupBaseInfo;
+			count: number;
+	  }
+)[];

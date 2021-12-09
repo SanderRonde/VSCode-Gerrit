@@ -16,6 +16,7 @@
                 -   [x] Merged
                 -   [x] Or by just changing config in settings
         -   [x] Search bar at the top // Search bar in treeview is not possible (see https://github.com/Microsoft/vscode-extension-samples/issues/113). Instead we use a search icon
+        -   [x] Select active view
         -   [x] Show changes under headers with following info:
             -   [x] #ID
             -   [x] Subject
@@ -84,5 +85,3 @@
             -   [-] Uncheckout
             -   [-] Uncheckout & unstash previous
             -   [-] Cancel review (if just reviewing)
-
-[ ] Select active view

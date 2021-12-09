@@ -114,6 +114,11 @@
 			{
 				"command": "gerrit.resetPatchsetSelection",
 				"title": "Reset patchset selection"
+			},
+			{
+				"command": "gerrit.selectActiveView",
+				"title": "Select Active View",
+				"icon": "$(menu)"
 			}
 		],
 		"menus": {
@@ -197,6 +202,10 @@
 				{
 					"command": "gerrit.resetPatchsetSelection",
 					"when": "false"
+				},
+				{
+					"command": "gerrit.selectActiveView",
+					"when": "true"
 				}
 			],
 			"comments/comment/context": [
@@ -308,12 +317,17 @@
 				{
 					"command": "gerrit.refreshChanges",
 					"when": "gerrit:connected && view == gerrit:changeExplorer",
+					"group": "navigation@3"
+				},
+				{
+					"command": "gerrit.selectActiveView",
+					"when": "view == gerrit:changeExplorer",
 					"group": "navigation@4"
 				},
 				{
 					"command": "gerrit.configureChangeList",
 					"when": "view == gerrit:changeExplorer",
-					"group": "navigation@3"
+					"group": "navigation@5"
 				},
 				{
 					"command": "gerrit.search",

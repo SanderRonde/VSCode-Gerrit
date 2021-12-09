@@ -21,6 +21,7 @@ import {
 } from '../views/activityBar/changes/changeCommands';
 import { fetchMoreTreeItemEntries } from '../views/activityBar/changes/fetchMoreTreeItem';
 import { clearSearchResults, search } from '../views/activityBar/search/search';
+import { ChangeTreeView } from '../views/activityBar/changes/changeTreeView';
 import { enterCredentials } from '../lib/credentials/credentials';
 import { checkConnection } from '../lib/gerrit/gerritAPI';
 import { onStatusBarClick } from '../views/statusBar';
@@ -48,6 +49,7 @@ export enum GerritExtensionCommands {
 	CONFIGURE_CHANGE_LIST = 'gerrit.configureChangeList',
 	SEARCH = 'gerrit.search',
 	CLEAR_SEARCH_RESULTS = 'gerrit.clearSearchResults',
+	OPEN_IN_REVIEW = 'gerrit.openInReview',
 }
 
 export function registerCommands(context: ExtensionContext): void {
@@ -185,6 +187,14 @@ export function registerCommands(context: ExtensionContext): void {
 		commands.registerCommand(
 			GerritExtensionCommands.CLEAR_SEARCH_RESULTS,
 			clearSearchResults
+		)
+	);
+
+	// Change buttons
+	context.subscriptions.push(
+		commands.registerCommand(
+			GerritExtensionCommands.OPEN_IN_REVIEW,
+			async (change: ChangeTreeView) => await change.openInReview()
 		)
 	);
 }

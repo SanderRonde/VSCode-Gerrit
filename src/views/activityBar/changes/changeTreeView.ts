@@ -1,12 +1,19 @@
 import { PatchSetLevelCommentsTreeView } from './changeTreeView/patchSetLevelCommentsTreeView';
+import {
+	ExtensionContext,
+	ThemeIcon,
+	TreeItem,
+	TreeItemCollapsibleState,
+} from 'vscode';
 import { GerritChange } from '../../../lib/gerrit/gerritAPI/gerritChange';
 import { TreeItemWithChildren, TreeViewItem } from '../shared/treeTypes';
-import { ThemeIcon, TreeItem, TreeItemCollapsibleState } from 'vscode';
+import { StorageScope, storageSet } from '../../../lib/vscode/storage';
 import { GerritFile } from '../../../lib/gerrit/gerritAPI/gerritFile';
 import { GerritAPIWith } from '../../../lib/gerrit/gerritAPI/api';
 import { FolderTreeView } from './changeTreeView/folderTreeView';
 import { FileTreeView } from './changeTreeView/fileTreeView';
 import { optionalArrayEntry } from '../../../lib/util/util';
+import { getReviewWebviewProvider } from '../review';
 
 export type FileMap = Map<
 	string,
@@ -22,7 +29,10 @@ interface FileWithPath {
 }
 
 export class ChangeTreeView implements TreeItemWithChildren {
-	public constructor(public change: GerritChange) {}
+	public constructor(
+		private readonly _context: ExtensionContext,
+		public readonly change: GerritChange
+	) {}
 
 	public static getFilesAndFolders(
 		change: GerritChange,
@@ -150,6 +160,22 @@ export class ChangeTreeView implements TreeItemWithChildren {
 		return pathMap;
 	}
 
+	public async openInReview(): Promise<void> {
+		// Override
+		await storageSet(
+			this._context,
+			'reviewChangeIDOverride',
+			this.change.changeID,
+			StorageScope.WORKSPACE
+		);
+
+		// Cause rerender
+		await getReviewWebviewProvider()?.updateAllStates();
+
+		// Focus panel
+		await getReviewWebviewProvider()?.revealAllStates();
+	}
+
 	public async getItem(): Promise<TreeItem> {
 		const changeNumber = `#${this.change.number}`;
 
@@ -159,7 +185,7 @@ export class ChangeTreeView implements TreeItemWithChildren {
 			label: `${changeNumber}: ${this.change.subject}`,
 			collapsibleState: TreeItemCollapsibleState.Collapsed,
 			tooltip: this.change.subject,
-			contextValue: 'change',
+			contextValue: 'gerritchange',
 			iconPath: new ThemeIcon('git-pull-request'),
 			description: owner ? `by ${owner.getName(true)!}` : undefined,
 		};

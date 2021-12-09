@@ -1,6 +1,7 @@
 import { GerritChange } from '../../../lib/gerrit/gerritAPI/gerritChange';
 import { ChangeTreeView } from '../changes/changeTreeView';
 import { Refreshable } from './refreshable';
+import { ExtensionContext } from 'vscode';
 
 export abstract class CanFetchMoreTreeProvider implements Refreshable {
 	private _cursor = 0;
@@ -8,6 +9,8 @@ export abstract class CanFetchMoreTreeProvider implements Refreshable {
 	protected _fetchedChildren: Map<number, ChangeTreeView> = new Map();
 	protected abstract get _initialLimit(): number;
 	protected abstract get _fetchMoreCount(): number;
+
+	public constructor(private readonly _context: ExtensionContext) {}
 
 	protected abstract _getChanges(
 		offset: number,
@@ -24,7 +27,9 @@ export abstract class CanFetchMoreTreeProvider implements Refreshable {
 			this._limit - this._cursor
 		);
 
-		const changeViews = changes.map((change) => new ChangeTreeView(change));
+		const changeViews = changes.map(
+			(change) => new ChangeTreeView(this._context, change)
+		);
 		for (let i = this._cursor; i < this._limit; i++) {
 			this._fetchedChildren.set(i, changeViews[i - this._cursor]);
 		}

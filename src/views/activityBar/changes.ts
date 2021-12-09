@@ -2,6 +2,7 @@ import {
 	Disposable,
 	Event,
 	EventEmitter,
+	ExtensionContext,
 	TreeDataProvider,
 	TreeItem,
 } from 'vscode';
@@ -14,7 +15,7 @@ export class ChangesTreeProvider
 {
 	private static _instances: Set<ChangesTreeProvider> = new Set();
 	private _disposables: Disposable[] = [];
-	private _rootViewProvider = new RootTreeViewProvider(this);
+	private _rootViewProvider = new RootTreeViewProvider(this._context, this);
 
 	public onDidChangeTreeDataEmitter: EventEmitter<
 		TreeViewItem | undefined | null | void
@@ -23,7 +24,7 @@ export class ChangesTreeProvider
 		TreeViewItem | undefined | null | void
 	> = this.onDidChangeTreeDataEmitter.event;
 
-	public constructor() {
+	public constructor(private readonly _context: ExtensionContext) {
 		ChangesTreeProvider._instances.add(this);
 		const interval = setTimeout(() => {
 			this.refresh();

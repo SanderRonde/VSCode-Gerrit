@@ -2,6 +2,7 @@ import {
 	Disposable,
 	Event,
 	EventEmitter,
+	ExtensionContext,
 	TreeDataProvider,
 	TreeItem,
 	TreeView,
@@ -42,8 +43,8 @@ export class SearchResultsTreeProvider
 
 	public treeView!: TreeView<TreeViewItem>;
 
-	public constructor() {
-		super();
+	public constructor(context: ExtensionContext) {
+		super(context);
 		SearchResultsTreeProvider._instances.add(this);
 	}
 

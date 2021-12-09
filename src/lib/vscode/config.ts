@@ -28,9 +28,9 @@ export interface ChangesView {
 }
 
 interface ConfigSettings {
-	'gerrit.auth.url': string;
-	'gerrit.auth.username': string;
-	'gerrit.auth.password': string;
+	'gerrit.auth.url'?: string;
+	'gerrit.auth.username'?: string;
+	'gerrit.auth.password'?: string;
 	'gerrit.selectedView': string;
 	'gerrit.changesViews': ChangesView[];
 	'gerrit.allowInvalidSSLCerts': boolean;
@@ -41,15 +41,15 @@ interface TypedWorkspaceConfiguration<T> extends WorkspaceConfiguration {
 		section: K,
 		defaultValue: T[K]
 	): T[K];
-	get<K extends Extract<keyof T, string>>(section: K): T[K] | undefined;
+	get<K extends Extract<keyof T, string>>(section: K): T[K];
 	get<K extends Extract<keyof T, string>>(
 		section: K,
 		defaultValue?: T[K]
-	): T[K] | undefined;
+	): T[K];
 	has<K extends Extract<keyof T, string>>(section: K): boolean;
 	update<K extends Extract<keyof T, string>>(
 		section: K,
-		value: T[K] | undefined,
+		value: T[K],
 		configurationTarget?: ConfigurationTarget | boolean | null,
 		overrideInLanguage?: boolean
 	): Thenable<void>;

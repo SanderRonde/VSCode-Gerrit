@@ -18,6 +18,7 @@ import {
 import {
 	configureChangeLists,
 	refreshChanges,
+	selectActiveView,
 } from '../views/activityBar/changes/changeCommands';
 import { fetchMoreTreeItemEntries } from '../views/activityBar/changes/fetchMoreTreeItem';
 import { clearSearchResults, search } from '../views/activityBar/search/search';
@@ -52,6 +53,7 @@ export enum GerritExtensionCommands {
 	OPEN_IN_REVIEW = 'gerrit.openInReview',
 	OPEN_PATCHSET_SELECTOR = 'gerrit.openPatchsetSelector',
 	RESET_PATCHSET_SELECTOR = 'gerrit.resetPatchsetSelection',
+	SELECT_ACTIVE_VIEW = 'gerrit.selectActiveView',
 }
 
 export function registerCommands(context: ExtensionContext): void {
@@ -178,6 +180,12 @@ export function registerCommands(context: ExtensionContext): void {
 		commands.registerCommand(
 			GerritExtensionCommands.CONFIGURE_CHANGE_LIST,
 			configureChangeLists
+		)
+	);
+	context.subscriptions.push(
+		commands.registerCommand(
+			GerritExtensionCommands.SELECT_ACTIVE_VIEW,
+			selectActiveView
 		)
 	);
 

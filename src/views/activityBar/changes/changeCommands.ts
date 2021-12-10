@@ -1,7 +1,15 @@
-import { commands, ConfigurationTarget, Disposable, window } from 'vscode';
+import {
+	commands,
+	ConfigurationTarget,
+	Disposable,
+	window,
+	Uri,
+	env,
+} from 'vscode';
 import { getConfiguration } from '../../../lib/vscode/config';
 import { EXTENSION_ID } from '../../../lib/util/constants';
 import { gitCheckoutRemote } from '../../../lib/git/git';
+import { getAPI } from '../../../lib/gerrit/gerritAPI';
 import { ChangeTreeView } from './changeTreeView';
 import { ChangesTreeProvider } from '../changes';
 
@@ -58,4 +66,21 @@ export async function checkoutBranch(
 	changeTreeView: ChangeTreeView
 ): Promise<void> {
 	await gitCheckoutRemote(changeTreeView.change.number);
+}
+
+export async function openChangeOnline(
+	changeTreeView: ChangeTreeView
+): Promise<void> {
+	const api = await getAPI();
+	if (!api) {
+		void window.showErrorMessage(
+			'Invalid API settings, failed to open change online'
+		);
+		return;
+	}
+
+	const { number, project } = changeTreeView.change;
+	await env.openExternal(
+		Uri.parse(api.getURL(`c/${project}/+/${number}`, false))
+	);
 }

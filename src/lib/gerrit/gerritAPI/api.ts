@@ -805,7 +805,7 @@ export class GerritAPI {
 			{
 				...this._get,
 				searchParams: new URLSearchParams([
-					...optionalArrayEntry(!!baseRevision, [
+					...optionalArrayEntry(!!baseRevision, () => [
 						['base', String(baseRevision!.number)] as [
 							string,
 							string

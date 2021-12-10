@@ -123,12 +123,17 @@ export class FileTreeView implements TreeItemWithoutChildren {
 			newContent,
 			oldContent,
 		});
+
+		const tabTitle = `${file.filePath} ${
+			patchsetBase?.number ?? 'Base'
+		} -> ${file.currentRevision.number}`;
+
 		return {
 			command: 'vscode.diff',
 			arguments: [
 				oldURI,
 				newURI,
-				path.basename(file.filePath),
+				path.basename(tabTitle),
 				{
 					preserveFocus: false,
 					preview: true,

@@ -136,6 +136,10 @@
 					"when": "false"
 				},
 				{
+					"command": "gerrit.openChangeOnline",
+					"when": "false"
+				},
+				{
 					"command": "gerrit.createCommentResolved",
 					"when": "false"
 				},

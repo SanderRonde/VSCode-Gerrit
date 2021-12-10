@@ -1,12 +1,12 @@
-import { PATCHSET_LEVEL_KEY } from '../../views/activityBar/changes/changeTreeView/patchSetLevelCommentsTreeView';
+import { PATCHSET_LEVEL_KEY } from '../../../views/activityBar/changes/changeTreeView/patchSetLevelCommentsTreeView';
 import {
-	GerritCommentBase,
-	GerritDraftComment,
-} from '../../lib/gerrit/gerritAPI/gerritComment';
-import { CommentManager, DocumentCommentManager } from '../commentProvider';
+	CommentManager,
+	DocumentCommentManager,
+} from '../../../providers/commentProvider';
+import { GerritCommentBase, GerritDraftComment } from './gerritComment';
 import { CommentThread, CommentThreadCollapsibleState } from 'vscode';
-import { OnceDisposable } from '../../lib/classes/onceDisposable';
-import { FileMeta } from '../fileProvider';
+import { OnceDisposable } from '../../classes/onceDisposable';
+import { FileMeta } from '../../../providers/fileProvider';
 
 interface CommentThreadWithGerritComments
 	extends Omit<CommentThread, 'comments'> {

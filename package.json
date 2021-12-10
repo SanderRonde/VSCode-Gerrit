@@ -127,6 +127,26 @@
 				"command": "gerrit.selectActiveView",
 				"title": "Select Active View",
 				"icon": "$(menu)"
+			},
+			{
+				"command": "gerrit.nextUnresolvedComment",
+				"title": "Next unresolved comment",
+				"icon": "$(menu)"
+			},
+			{
+				"command": "gerrit.previousUnresolvedComment",
+				"title": "Previous unresolved comment",
+				"icon": "$(menu)"
+			}
+		],
+		"keybindings": [
+			{
+				"command": "gerrit.nextUnresolvedComment",
+				"when": "editorTextFocus"
+			},
+			{
+				"command": "gerrit.previousUnresolvedComment",
+				"when": "editorTextFocus"
 			}
 		],
 		"menus": {

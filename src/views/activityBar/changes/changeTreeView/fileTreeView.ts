@@ -205,7 +205,12 @@ export class FileTreeView implements TreeItemWithoutChildren {
 				continue;
 			}
 			const meta = FileMeta.tryFrom(doc.uri);
-			if (!meta || !meta.extra || !meta.extra.startsWith('DIFF-')) {
+			if (
+				!meta ||
+				!meta.extra ||
+				!meta.extra.startsWith('DIFF-') ||
+				meta.filePath !== this.filePath
+			) {
 				continue;
 			}
 

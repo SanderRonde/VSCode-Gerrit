@@ -62,6 +62,7 @@
                         -   [x] Inline text field etc
                             -   [x] Cancel, save, resolved
     -   [x] Reply pane
+        -   [ ] Update draft comment counter when a comment is added
         -   [x] Contains everything under the "reply" button and some more:
             -   [x] Reviewers
             -   [x] CC

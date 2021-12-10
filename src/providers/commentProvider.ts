@@ -22,8 +22,11 @@ import { GerritCommentThread } from '../lib/gerrit/gerritAPI/gerritCommentThread
 import { GerritChange } from '../lib/gerrit/gerritAPI/gerritChange';
 import { DateSortDirection, DateTime } from '../lib/util/dateTime';
 import { GerritCommentSide } from '../lib/gerrit/gerritAPI/types';
+import { GerritAPIWith } from '../lib/gerrit/gerritAPI/api';
 import { FileMetaWithSideAndBase } from './fileProvider';
+import { getCurrentChangeID } from '../lib/git/commit';
 import { uniqueComplex } from '../lib/util/util';
+import path = require('path');
 
 export interface GerritCommentReply {
 	text: string;
@@ -286,7 +289,7 @@ export class CommentManager {
 			})
 		);
 		this._commentController.commentingRangeProvider = {
-			provideCommentingRanges: (document) => {
+			provideCommentingRanges: async (document) => {
 				const meta = FileMetaWithSideAndBase.tryFrom(document.uri);
 				if (meta) {
 					const lineCount = document.lineCount;
@@ -310,6 +313,50 @@ export class CommentManager {
 						await manager.loadComments();
 					})();
 					return [new Range(0, 0, lineCount - 1, 0)];
+				} else {
+					// No meta, might be a regular checked-out file. We look for the current change
+					// and find out if the current file was changed in that change.
+					const changeID = await getCurrentChangeID();
+					if (
+						!changeID
+					) {
+						return null;
+					}
+					const change = await GerritChange.getChangeCached(
+						changeID,
+						GerritAPIWith.CURRENT_REVISION,
+						GerritAPIWith.CURRENT_FILES
+					);
+					if (!change) {
+						return null;
+					}
+					const currentRevision = await change.getCurrentRevision();
+					if (!currentRevision) {
+						return null;
+					}
+					const files = await currentRevision.files(null);
+					if (!files) {
+						return null;
+					}
+
+					const currentWorkspace = workspace.getWorkspaceFolder(document.uri)
+					if (!currentWorkspace || currentWorkspace.uri.scheme !== document.uri.scheme) {
+						return null;
+					}
+					const relativePath = path.relative(
+						currentWorkspace.uri.fsPath,
+						document.uri.fsPath
+					).replace(/\\/g, '/');
+					if (!files[relativePath]) {
+						return null;
+					}
+
+					// Mark two things:
+					// * Lines that have comments close to them
+					// * Lines that have changed in this patch
+					window.activeTextEditor.
+
+					// TODO: provide comments
 				}
 				return null;
 			},

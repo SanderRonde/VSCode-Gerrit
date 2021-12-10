@@ -9,6 +9,7 @@ import { FileProvider, GERRIT_FILE_SCHEME } from './providers/fileProvider';
 import { setContextProp, setDefaultContexts } from './lib/vscode/context';
 import { GerritUser } from './lib/gerrit/gerritAPI/gerritUser';
 import { ExtensionContext, window, workspace } from 'vscode';
+import { getChangeCache } from './lib/gerrit/gerritCache';
 import { registerCommands } from './commands/commands';
 import { showStatusBarIcon } from './views/statusBar';
 import { createOutputChannel } from './lib/util/log';
@@ -96,6 +97,9 @@ export async function activate(context: ExtensionContext): Promise<void> {
 			new FileModificationStatusProvider()
 		)
 	);
+
+	// Add disposables
+	context.subscriptions.push(getChangeCache());
 
 	// Warm up cache for self
 	void GerritUser.getSelf();

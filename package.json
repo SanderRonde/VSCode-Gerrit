@@ -75,6 +75,10 @@
 				"title": "Open On Gerrit"
 			},
 			{
+				"command": "gerrit.openChangeOnline",
+				"title": "Open On Gerrit"
+			},
+			{
 				"command": "gerrit.openModified",
 				"title": "Open Modified File"
 			},
@@ -129,6 +133,10 @@
 			"commandPalette": [
 				{
 					"command": "gerrit.checkoutBranch",
+					"when": "false"
+				},
+				{
+					"command": "gerrit.openChangeOnline",
 					"when": "false"
 				},
 				{
@@ -316,13 +324,18 @@
 					"group": "achange@1"
 				},
 				{
+					"command": "gerrit.openChangeOnline",
+					"when": "view == gerrit:changeExplorer && viewItem =~ /gerritchange/",
+					"group": "change@3"
+				},
+				{
 					"command": "gerrit.openPatchsetSelector",
-					"when": "view == gerrit:changeExplorer && viewItem =~ /change/",
+					"when": "view == gerrit:changeExplorer && viewItem =~ /gerritchange/",
 					"group": "change@2"
 				},
 				{
 					"command": "gerrit.resetPatchsetSelection",
-					"when": "view == gerrit:changeExplorer && viewItem =~ /change/ && viewItem =~ /customPatchset/",
+					"when": "view == gerrit:changeExplorer && viewItem =~ /gerritchange/ && viewItem =~ /customPatchset/",
 					"group": "change@3"
 				}
 			],

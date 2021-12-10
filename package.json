@@ -75,6 +75,10 @@
 				"title": "Open On Gerrit"
 			},
 			{
+				"command": "gerrit.openChangeOnline",
+				"title": "Open On Gerrit"
+			},
+			{
 				"command": "gerrit.openModified",
 				"title": "Open Modified File"
 			},
@@ -314,6 +318,11 @@
 					"command": "gerrit.checkoutBranch",
 					"when": "view == gerrit:changeExplorer && viewItem =~ /gerritchange/",
 					"group": "achange@1"
+				},
+				{
+					"command": "gerrit.openChangeOnline",
+					"when": "view == gerrit:changeExplorer && viewItem =~ /gerritchange/",
+					"group": "change@3"
 				},
 				{
 					"command": "gerrit.openPatchsetSelector",

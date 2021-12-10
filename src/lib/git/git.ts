@@ -54,8 +54,14 @@ export async function gitCheckoutRemote(patchNumber: number): Promise<void> {
 	}
 
 	const uri = api.repositories[0].rootUri.fsPath;
-	const stdout = await execAsync(`git-review -d ${String(patchNumber)}`, {
-		cwd: uri,
-	});
-	await window.showInformationMessage(stdout);
+	try {
+		const stdout = await execAsync(`git-review -d ${String(patchNumber)}`, {
+			cwd: uri,
+		});
+		await window.showInformationMessage(stdout);
+	} catch {
+		await window.showErrorMessage(
+			'Checkout failed. Please commit your changes or stash them before you switch branches'
+		);
+	}
 }

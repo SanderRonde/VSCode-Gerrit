@@ -21,6 +21,7 @@ import {
 	refreshChanges,
 	selectActiveView,
 	checkoutBranch,
+	openChangeOnline,
 } from '../views/activityBar/changes/changeCommands';
 import { fetchMoreTreeItemEntries } from '../views/activityBar/changes/fetchMoreTreeItem';
 import { clearSearchResults, search } from '../views/activityBar/search/search';
@@ -57,6 +58,7 @@ export enum GerritExtensionCommands {
 	RESET_PATCHSET_SELECTOR = 'gerrit.resetPatchsetSelection',
 	SELECT_ACTIVE_VIEW = 'gerrit.selectActiveView',
 	CHECKOUT_BRANCH = 'gerrit.checkoutBranch',
+	CHANGE_OPEN_ONLINE = 'gerrit.openChangeOnline',
 }
 
 export function registerCommands(context: ExtensionContext): void {
@@ -229,6 +231,12 @@ export function registerCommands(context: ExtensionContext): void {
 		commands.registerCommand(
 			GerritExtensionCommands.CHECKOUT_BRANCH,
 			checkoutBranch
+		)
+	);
+	context.subscriptions.push(
+		commands.registerCommand(
+			GerritExtensionCommands.CHANGE_OPEN_ONLINE,
+			openChangeOnline
 		)
 	);
 }

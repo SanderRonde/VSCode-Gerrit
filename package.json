@@ -317,12 +317,12 @@
 				},
 				{
 					"command": "gerrit.openPatchsetSelector",
-					"when": "view == gerrit:changeExplorer && viewItem =~ /change/",
+					"when": "view == gerrit:changeExplorer && viewItem =~ /gerritchange/",
 					"group": "change@2"
 				},
 				{
 					"command": "gerrit.resetPatchsetSelection",
-					"when": "view == gerrit:changeExplorer && viewItem =~ /change/ && viewItem =~ /customPatchset/",
+					"when": "view == gerrit:changeExplorer && viewItem =~ /gerritchange/ && viewItem =~ /customPatchset/",
 					"group": "change@3"
 				}
 			],

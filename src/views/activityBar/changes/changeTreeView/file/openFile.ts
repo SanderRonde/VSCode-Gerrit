@@ -7,18 +7,18 @@ import { getAPI } from '../../../../../lib/gerrit/gerritAPI';
 export async function openFileOnline(treeView: FileTreeView): Promise<void> {
 	const api = await getAPI();
 	if (!api) {
-		void window.showErrorMessage(
+		await window.showErrorMessage(
 			'Invalid API settings, failed to open file online'
 		);
 		return;
 	}
-	const revisions = await treeView.change.revisions();
-	if (!revisions) {
-		void window.showErrorMessage('Failed to build URL');
+	const currentRevision = await treeView.change.getCurrentRevision();
+	if (!currentRevision) {
+		await window.showErrorMessage('Failed to build URL');
 		return;
 	}
 
-	const revisionNumber = revisions[treeView.file.currentRevision].number;
+	const revisionNumber = currentRevision.number;
 
 	await env.openExternal(
 		Uri.parse(
@@ -52,11 +52,11 @@ export async function openModified(treeView: FileTreeView): Promise<void> {
 	await commands.executeCommand(
 		'vscode.open',
 		uri,
-		`${path.basename(treeView.filePath)} (modified)`,
 		{
 			preserveFocus: false,
 			preview: true,
-		} as TextDocumentShowOptions
+		} as TextDocumentShowOptions,
+		`${path.basename(treeView.filePath)} (modified)`
 	);
 }
 
@@ -82,10 +82,10 @@ export async function openOriginal(treeView: FileTreeView): Promise<void> {
 	await commands.executeCommand(
 		'vscode.open',
 		uri,
-		`${path.basename(treeView.filePath)} (modified)`,
 		{
 			preserveFocus: false,
 			preview: true,
-		} as TextDocumentShowOptions
+		} as TextDocumentShowOptions,
+		`${path.basename(treeView.filePath)} (original)`
 	);
 }

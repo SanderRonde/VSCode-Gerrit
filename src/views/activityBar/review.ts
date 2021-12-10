@@ -325,7 +325,7 @@ class ReviewWebviewProvider implements WebviewViewProvider, Disposable {
 			return;
 		}
 
-		const currentRevision = await change.currentRevisionStr();
+		const currentRevision = await change.currentRevision();
 		if (!currentRevision) {
 			await srcView.postMessage({
 				type: 'publishFailed',
@@ -335,7 +335,7 @@ class ReviewWebviewProvider implements WebviewViewProvider, Disposable {
 
 		const setReviewSuccess = await api.setReview(
 			change.changeID,
-			currentRevision,
+			currentRevision.id,
 			{
 				resolved: msg.body.resolved,
 				message: msg.body.message || undefined,

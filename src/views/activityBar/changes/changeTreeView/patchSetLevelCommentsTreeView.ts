@@ -21,7 +21,7 @@ export class PatchSetLevelCommentsTreeView implements TreeItemWithoutChildren {
 		const comments = await GerritChange.getAllCommentsCached(
 			this.change.id
 		);
-		const revision = await this.change.currentRevisionStr();
+		const revision = await this.change.currentRevision();
 		if (!revision) {
 			return null;
 		}

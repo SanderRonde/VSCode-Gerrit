@@ -3,12 +3,9 @@ import {
 	GerritChangeStatus,
 	GerritDetailedChangeLabels,
 } from './types';
-import { GerritComment, GerritDraftComment } from './gerritComment';
 import { DateTime } from '../../util/dateTime';
 import { GerritGroup } from './gerritGroup';
 import { GerritUser } from './gerritUser';
-
-export type CommentMap = Map<string, (GerritComment | GerritDraftComment)[]>;
 
 export class GerritChangeDetail {
 	public id: string;

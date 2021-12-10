@@ -28,15 +28,17 @@ import { tertiaryWithFallback } from '../../../../lib/util/util';
 import { PatchsetDescription } from '../changeTreeView';
 import * as path from 'path';
 
+export interface DiffEditorMapEntry {
+	oldContent: TextContent | null;
+	newContent: TextContent | null;
+	change: GerritChange;
+	file: GerritFile;
+	baseRevision: PatchsetDescription | null;
+}
+
 export class FileTreeView implements TreeItemWithoutChildren {
 	private static _lastKey: number = 0;
-	private static _diffEditorMap: Map<
-		string,
-		{
-			oldContent: TextContent | null;
-			newContent: TextContent | null;
-		}
-	> = new Map();
+	private static _diffEditorMap: Map<string, DiffEditorMapEntry> = new Map();
 	private static _disposables: Disposable[] = [];
 
 	public constructor(
@@ -122,6 +124,9 @@ export class FileTreeView implements TreeItemWithoutChildren {
 		this._diffEditorMap.set(key, {
 			newContent,
 			oldContent,
+			baseRevision: patchsetBase,
+			change: file.change,
+			file,
 		});
 		return {
 			command: 'vscode.diff',
@@ -154,6 +159,19 @@ export class FileTreeView implements TreeItemWithoutChildren {
 			})
 		);
 		return this;
+	}
+
+	public static getDiffEditor(uri: Uri): DiffEditorMapEntry | null {
+		if (uri.scheme !== GERRIT_FILE_SCHEME) {
+			return null;
+		}
+		const meta = FileMeta.tryFrom(uri);
+		if (!meta || !meta.extra || !meta.extra.startsWith('DIFF-')) {
+			return null;
+		}
+
+		const id = meta.extra.slice('DIFF-'.length);
+		return this._diffEditorMap.get(id) ?? null;
 	}
 
 	public static dispose(): void {

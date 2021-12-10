@@ -14,7 +14,7 @@ import {
 	GerritCommentSide,
 } from './types';
 import { getReviewWebviewProvider } from '../../../views/activityBar/review';
-import { GerritCommentThread } from '../../../providers/comments/thread';
+import { GerritCommentThread } from './gerritCommentThread';
 import { DynamicallyFetchable } from './shared';
 import { DateTime } from '../../util/dateTime';
 import { GerritUser } from './gerritUser';

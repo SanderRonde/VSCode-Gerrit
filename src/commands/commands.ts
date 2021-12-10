@@ -20,6 +20,10 @@ import {
 	refreshChanges,
 	selectActiveView,
 } from '../views/activityBar/changes/changeCommands';
+import {
+	nextUnresolvedComment,
+	previousUnresolvedComment,
+} from '../providers/comments/commentCommands';
 import { fetchMoreTreeItemEntries } from '../views/activityBar/changes/fetchMoreTreeItem';
 import { clearSearchResults, search } from '../views/activityBar/search/search';
 import { ChangeTreeView } from '../views/activityBar/changes/changeTreeView';
@@ -54,6 +58,8 @@ export enum GerritExtensionCommands {
 	OPEN_PATCHSET_SELECTOR = 'gerrit.openPatchsetSelector',
 	RESET_PATCHSET_SELECTOR = 'gerrit.resetPatchsetSelection',
 	SELECT_ACTIVE_VIEW = 'gerrit.selectActiveView',
+	NEXT_UNRESOLVED_COMMENT = 'gerrit.nextUnresolvedComment',
+	PREVIOUS_UNRESOLVED_COMMENT = 'gerrit.previousUnresolvedComment',
 }
 
 export function registerCommands(context: ExtensionContext): void {
@@ -132,6 +138,18 @@ export function registerCommands(context: ExtensionContext): void {
 		commands.registerCommand(
 			GerritExtensionCommands.ACK_COMMENT_THREAD,
 			ackComment
+		)
+	);
+	context.subscriptions.push(
+		commands.registerCommand(
+			GerritExtensionCommands.NEXT_UNRESOLVED_COMMENT,
+			nextUnresolvedComment
+		)
+	);
+	context.subscriptions.push(
+		commands.registerCommand(
+			GerritExtensionCommands.PREVIOUS_UNRESOLVED_COMMENT,
+			previousUnresolvedComment
 		)
 	);
 

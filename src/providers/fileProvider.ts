@@ -12,7 +12,7 @@ import { getAPI } from '../lib/gerrit/gerritAPI';
 
 export const GERRIT_FILE_SCHEME = 'gerrit-file';
 
-interface FileMetaCreate {
+export interface FileMetaCreate {
 	project: string;
 	changeID: string;
 	commit: PatchsetDescription;
@@ -227,6 +227,7 @@ export class FileProvider implements TextDocumentContentProvider {
 		uri: Uri,
 		token: CancellationToken
 	): Promise<string | null> {
+		console.log('content for', uri);
 		const meta = FileMeta.tryFrom(uri);
 		if (!meta) {
 			return '';

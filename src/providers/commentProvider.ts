@@ -18,11 +18,11 @@ import {
 	GerritDraftComment,
 } from '../lib/gerrit/gerritAPI/gerritComment';
 import { PATCHSET_LEVEL_KEY } from '../views/activityBar/changes/changeTreeView/patchSetLevelCommentsTreeView';
+import { GerritCommentThread } from '../lib/gerrit/gerritAPI/gerritCommentThread';
 import { GerritChange } from '../lib/gerrit/gerritAPI/gerritChange';
 import { DateSortDirection, DateTime } from '../lib/util/dateTime';
 import { GerritCommentSide } from '../lib/gerrit/gerritAPI/types';
 import { FileMetaWithSideAndBase } from './fileProvider';
-import { GerritCommentThread } from './comments/thread';
 import { uniqueComplex } from '../lib/util/util';
 
 export interface GerritCommentReply {
@@ -94,7 +94,7 @@ export class DocumentCommentManager {
 			);
 	}
 
-	private _getThreadRanges(threads: GerritCommentBase[][]): {
+	public static getThreadRanges(threads: GerritCommentBase[][]): {
 		range: Range | null;
 		comments: GerritCommentBase[];
 	}[] {
@@ -122,7 +122,7 @@ export class DocumentCommentManager {
 			: comments.filter(
 					(c) => c.side ?? GerritCommentSide.RIGHT === fileMeta.side
 			  );
-		let threads = this._getThreadRanges(
+		let threads = DocumentCommentManager.getThreadRanges(
 			DocumentCommentManager.buildThreadsFromComments(
 				thisSideComments
 			).filter((t) => t.length !== 0)

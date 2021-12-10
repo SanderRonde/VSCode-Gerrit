@@ -180,6 +180,7 @@ export type GerritGroupBaseInfo = {
 	id: string;
 	name: string;
 };
+export type GerritTopicResponse = string | '';
 
 export type GerritGroupsResponse = Record<string, GerritGroupResponse>;
 
@@ -234,6 +235,7 @@ export interface GerritChangeDetailResponse {
 		message: string;
 		_revision_number: number;
 	}[];
+	topic?: string;
 }
 
 export type GerritSuggestedReviewerResponse = (

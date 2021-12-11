@@ -6,6 +6,10 @@ import {
 	TreeItemCollapsibleState,
 	window,
 } from 'vscode';
+import {
+	TREE_ITEM_CHANGE_CUSTOM_PATCHSET_SELECTION,
+	TREE_ITEM_TYPE_CHANGE,
+} from '../../../lib/util/magic';
 import { PatchSetLevelCommentsTreeView } from './changeTreeView/patchSetLevelCommentsTreeView';
 import { GerritRevision } from '../../../lib/gerrit/gerritAPI/gerritRevision';
 import { GerritChange } from '../../../lib/gerrit/gerritAPI/gerritChange';
@@ -190,9 +194,9 @@ export class ChangeTreeView implements TreeItemWithChildren {
 	}
 
 	private _buildContextValue(): string {
-		const values = ['gerritchange'];
+		const values = [TREE_ITEM_TYPE_CHANGE];
 		if (this.patchSetBase !== null || this.patchSetCurrent !== null) {
-			values.push('customPatchset');
+			values.push(TREE_ITEM_CHANGE_CUSTOM_PATCHSET_SELECTION);
 		}
 		return values.join('.');
 	}

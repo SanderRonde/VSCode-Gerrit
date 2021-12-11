@@ -212,8 +212,8 @@ const styles = createStyles({
 		height: '26px',
 	},
 	chip: {
-		color: 'var(--vscode-input-foreground)',
-		backgroundColor: 'var(--vscode-activityBar-background)',
+		color: 'var(--vscode-quickInput-foreground)',
+		backgroundColor: 'var(--vscode-quickInput-background)',
 		borderRadius: '16px',
 		paddingLeft: '5px',
 		paddingRight: '5px',

@@ -1,5 +1,10 @@
 import { PATCHSET_LEVEL_KEY } from '../../../views/activityBar/changes/changeTreeView/patchSetLevelCommentsTreeView';
 import {
+	COMMENT_IS_DELETABLE,
+	COMMENT_IS_EDITABLE,
+	COMMENT_QUICK_ACTIONS_POSSIBLE,
+} from '../../util/magic';
+import {
 	Comment,
 	CommentAuthorInformation,
 	CommentMode,
@@ -14,7 +19,7 @@ import {
 	GerritCommentSide,
 } from './types';
 import { getReviewWebviewProvider } from '../../../views/activityBar/review';
-import { GerritCommentThread } from '../../../providers/comments/thread';
+import { GerritCommentThread } from './gerritCommentThread';
 import { DynamicallyFetchable } from './shared';
 import { DateTime } from '../../util/dateTime';
 import { GerritUser } from './gerritUser';
@@ -174,7 +179,7 @@ export class GerritComment extends GerritCommentBase {
 		const values: string[] = [];
 		const thread = this.thread;
 		if (!thread?.resolved && thread?.comments.every((c) => !c.isDraft)) {
-			values.push('quickActionable');
+			values.push(COMMENT_QUICK_ACTIONS_POSSIBLE);
 		}
 		return values;
 	}
@@ -220,7 +225,7 @@ export class GerritDraftComment extends GerritCommentBase implements Comment {
 	}
 
 	public getContextValues(): string[] {
-		return ['editable', 'deletable'];
+		return [COMMENT_IS_EDITABLE, COMMENT_IS_DELETABLE];
 	}
 
 	public override async init(): Promise<this> {

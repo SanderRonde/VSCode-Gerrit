@@ -1,12 +1,17 @@
-import { PATCHSET_LEVEL_KEY } from '../../views/activityBar/changes/changeTreeView/patchSetLevelCommentsTreeView';
 import {
-	GerritCommentBase,
-	GerritDraftComment,
-} from '../../lib/gerrit/gerritAPI/gerritComment';
-import { CommentManager, DocumentCommentManager } from '../commentProvider';
+	COMMENT_THREAD_IS_NOT_RESOLVED,
+	COMMENT_THREAD_IS_RESOLVED,
+	LAST_COMMENT_WAS_DRAFT,
+} from '../../util/magic';
+import { PATCHSET_LEVEL_KEY } from '../../../views/activityBar/changes/changeTreeView/patchSetLevelCommentsTreeView';
+import {
+	CommentManager,
+	DocumentCommentManager,
+} from '../../../providers/commentProvider';
+import { GerritCommentBase, GerritDraftComment } from './gerritComment';
 import { CommentThread, CommentThreadCollapsibleState } from 'vscode';
-import { OnceDisposable } from '../../lib/classes/onceDisposable';
-import { FileMeta } from '../fileProvider';
+import { OnceDisposable } from '../../classes/onceDisposable';
+import { FileMeta } from '../../../providers/fileProvider';
 
 interface CommentThreadWithGerritComments
 	extends Omit<CommentThread, 'comments'> {
@@ -104,11 +109,15 @@ export class GerritCommentThread extends OnceDisposable {
 	private _updateContextValues(): void {
 		const contextValues: string[] = [];
 		// Use yes/no here because the string "resolved" is in "unresolved"
-		contextValues.push(this.resolved ? 'yesResolved' : 'noResolved');
+		contextValues.push(
+			this.resolved
+				? COMMENT_THREAD_IS_RESOLVED
+				: COMMENT_THREAD_IS_NOT_RESOLVED
+		);
 		contextValues.push(
 			!this.lastComment || this.lastComment.isDraft
-				? 'yesLastCommentDraft'
-				: 'nodLastCommentDaft'
+				? LAST_COMMENT_WAS_DRAFT
+				: ''
 		);
 		this._setContextValue(contextValues.join(','));
 	}

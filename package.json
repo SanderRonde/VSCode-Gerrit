@@ -11,7 +11,36 @@
 		"Other"
 	],
 	"activationEvents": [
-		"onStartupFinished"
+		"onStartupFinished",
+		"onView:gerrit:changeExplorer",
+		"onView:gerrit:searchResults",
+		"onView:gerrit:review",
+		"onCommand:gerrit.checkoutBranch",
+		"onCommand:gerrit.createCommentResolved",
+		"onCommand:gerrit.createCommentUnresolved",
+		"onCommand:gerrit.cancelComment",
+		"onCommand:gerrit.ackCommentThread",
+		"onCommand:gerrit.doneCommentThread",
+		"onCommand:gerrit.deleteComment",
+		"onCommand:gerrit.editComment",
+		"onCommand:gerrit.toggleResolvedOn",
+		"onCommand:gerrit.toggleResolvedOff",
+		"onCommand:gerrit.collapseAllComments",
+		"onCommand:gerrit.openOnline",
+		"onCommand:gerrit.openChangeOnline",
+		"onCommand:gerrit.openModified",
+		"onCommand:gerrit.openOriginal",
+		"onCommand:gerrit.fetchMore",
+		"onCommand:gerrit.refreshChanges",
+		"onCommand:gerrit.configureChangeList",
+		"onCommand:gerrit.search",
+		"onCommand:gerrit.clearSearchResults",
+		"onCommand:gerrit.openInReview",
+		"onCommand:gerrit.openPatchsetSelector",
+		"onCommand:gerrit.resetPatchsetSelection",
+		"onCommand:gerrit.selectActiveView",
+		"onCommand:gerrit.nextUnresolvedComment",
+		"onCommand:gerrit.previousUnresolvedComment"
 	],
 	"extensionKind": [
 		"workspace"

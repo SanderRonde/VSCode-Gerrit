@@ -47,10 +47,7 @@ export function uniqueSimple<T>(arr: T[]): T[] {
 	return [...new Set(arr)];
 }
 
-export function uniqueComplex<T>(
-	arr: T[],
-	key: (item: T) => string | number
-): T[] {
+export function uniqueComplex<T>(arr: T[], key: (item: T) => unknown): T[] {
 	const items: T[] = [];
 	for (const item of arr) {
 		const keyValue = key(item);
@@ -194,4 +191,12 @@ export function flatten<T>(arr: T[][]): T[] {
 		flattened.push(...subArr);
 	}
 	return flattened;
+}
+
+export function avg(...values: number[]): number {
+	return values.reduce((a, b) => a + b, 0) / values.length;
+}
+
+export function diff(a: number, b: number): number {
+	return Math.abs(a - b);
 }

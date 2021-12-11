@@ -131,12 +131,18 @@
 			{
 				"command": "gerrit.nextUnresolvedComment",
 				"title": "Next unresolved comment",
-				"icon": "$(menu)"
+				"icon": {
+					"dark": "src/images/icons/comment-down-dark.svg",
+					"light": "src/images/icons/comment-down-light.svg"
+				}
 			},
 			{
 				"command": "gerrit.previousUnresolvedComment",
 				"title": "Previous unresolved comment",
-				"icon": "$(menu)"
+				"icon": {
+					"dark": "src/images/icons/comment-up-dark.svg",
+					"light": "src/images/icons/comment-up-light.svg"
+				}
 			}
 		],
 		"keybindings": [
@@ -290,8 +296,18 @@
 			],
 			"comments/commentThread/title": [
 				{
+					"command": "gerrit.nextUnresolvedComment",
+					"group": "collapse@-3",
+					"when": "commentController == gerrit"
+				},
+				{
+					"command": "gerrit.previousUnresolvedComment",
+					"group": "collapse@-4",
+					"when": "commentController == gerrit"
+				},
+				{
 					"command": "gerrit.collapseAllComments",
-					"group": "collapse@1",
+					"group": "collapse@-2",
 					"when": "commentController == gerrit"
 				}
 			],
@@ -384,6 +400,18 @@
 					"command": "gerrit.clearSearchResults",
 					"when": "view == gerrit:searchResults && gerrit:searchQuery",
 					"group": "navigation@1"
+				}
+			],
+			"editor/title": [
+				{
+					"command": "gerrit.nextUnresolvedComment",
+					"group": "navigation@2",
+					"when": "resource =~ /_ctx_gerritDiff/ || resource =~ /_ctx_hasUnresolved/ || resource =~ /_ctx_patchsetLevel/"
+				},
+				{
+					"command": "gerrit.previousUnresolvedComment",
+					"group": "navigation@1",
+					"when": "resource =~ /_ctx_gerritDiff/ || resource =~ /_ctx_hasUnresolved/ || resource =~ /_ctx_patchsetLevel/"
 				}
 			]
 		},

@@ -9,12 +9,13 @@ import {
 	FileMetaWithSideAndBase,
 } from '../fileProvider';
 import { GerritCommentBase } from '../../lib/gerrit/gerritAPI/gerritComment';
+import { OPEN_FILE_HAS_UNRESOLVED_COMMENTS } from '../../lib/util/magic';
 import { GerritChange } from '../../lib/gerrit/gerritAPI/gerritChange';
 import { commands, Position, Range, Selection, window } from 'vscode';
 import { TextContent } from '../../lib/gerrit/gerritAPI/gerritFile';
+import { avg, diff, uniqueComplex } from '../../lib/util/util';
 import { DocumentCommentManager } from '../commentProvider';
 import { getCurrentChangeID } from '../../lib/git/commit';
-import { uniqueComplex } from '../../lib/util/util';
 
 function getCurrentMeta(): FileMeta | null {
 	// First check currently open editor's URI
@@ -51,14 +52,6 @@ const allCommentsCache: Map<
 		timer: NodeJS.Timeout;
 	}
 > = new Map();
-
-function avg(...values: number[]): number {
-	return values.reduce((a, b) => a + b, 0) / values.length;
-}
-
-function diff(a: number, b: number): number {
-	return Math.abs(a - b);
-}
 
 function iterateUntilTrue<T>(
 	arr: T[],
@@ -165,60 +158,55 @@ function buildExpandedThreadRanges(
 const COMMENT_RETAIN_TIME = 1000 * 60 * 10;
 async function getAllComments(changeID: string): Promise<{
 	allThreads: ThreadMap;
-	resolvedThreads: ThreadMap;
+	unresolvedThreads: ThreadMap;
 }> {
-	const { allThreads, resolvedThreadMap } = await (async () => {
-		if (allCommentsCache.has(changeID)) {
-			return allCommentsCache.get(changeID)!.comments;
-		}
-		const allComments = await GerritChange.getAllCommentsCached(changeID);
-		const resolvedThreadMap = new Map(
-			[...allComments.entries()].map(([filePath, comments]) => {
-				const threads = buildExpandedThreadRanges(
-					DocumentCommentManager.getThreadRanges(
-						DocumentCommentManager.buildThreadsFromComments(
-							comments
+	const { allThreads, resolvedThreadMap: unresolvedThreadMap } =
+		await (async () => {
+			if (allCommentsCache.has(changeID)) {
+				return allCommentsCache.get(changeID)!.comments;
+			}
+			const allComments = await GerritChange.getAllCommentsCached(
+				changeID
+			);
+
+			const baseEntries = [...allComments.entries()].map(
+				([filePath, comments]) => {
+					const threads = buildExpandedThreadRanges(
+						DocumentCommentManager.getThreadRanges(
+							DocumentCommentManager.buildThreadsFromComments(
+								comments
+							)
 						)
-					)
-				);
-				return [
-					filePath,
-					uniqueComplex(
-						threads
-							.filter((t) => t.comments.length !== 0)
-							.filter(
+					);
+					return [
+						filePath,
+						uniqueComplex(
+							threads.filter((t) => t.comments.length !== 0),
+							(t) => (t.range ? t.range.start.line : {})
+						),
+					] as const;
+				}
+			);
+			const resolvedThreadMap = new Map(
+				baseEntries
+					.map(([key, threads]) => {
+						return [
+							key,
+							threads.filter(
 								(t) =>
 									t.comments[t.comments.length - 1]
 										.unresolved ?? false
 							),
-						(t) => t.range?.start.line ?? -1
-					),
-				];
-			})
-		);
-		const threadMap = new Map(
-			[...allComments.entries()].map(([filePath, comments]) => {
-				const threads = buildExpandedThreadRanges(
-					DocumentCommentManager.getThreadRanges(
-						DocumentCommentManager.buildThreadsFromComments(
-							comments
-						)
-					)
-				);
-				return [
-					filePath,
-					uniqueComplex(
-						threads.filter((t) => t.comments.length !== 0),
-						(t) => t.range?.start.line ?? -1
-					),
-				];
-			})
-		);
-		return {
-			allThreads: threadMap,
-			resolvedThreadMap,
-		};
-	})();
+						] as const;
+					})
+					.filter(([, threads]) => threads.length !== 0)
+			);
+			const threadMap = new Map(baseEntries);
+			return {
+				allThreads: threadMap,
+				resolvedThreadMap,
+			};
+		})();
 	const timer = allCommentsCache.get(changeID)?.timer ?? null;
 
 	// Extend timer
@@ -227,7 +215,7 @@ async function getAllComments(changeID: string): Promise<{
 	}
 	allCommentsCache.set(changeID, {
 		comments: {
-			resolvedThreadMap: resolvedThreadMap,
+			resolvedThreadMap: unresolvedThreadMap,
 			allThreads: allThreads,
 		},
 		timer: setTimeout(() => {
@@ -235,7 +223,7 @@ async function getAllComments(changeID: string): Promise<{
 		}, COMMENT_RETAIN_TIME),
 	});
 	return {
-		resolvedThreads: resolvedThreadMap,
+		unresolvedThreads: unresolvedThreadMap,
 		allThreads: allThreads,
 	};
 }
@@ -297,6 +285,36 @@ function getCurrentComment(
 	return sortedComments[sortedComments.length - 1];
 }
 
+function getClosestNumWithMaxDistance(
+	numbers: number[],
+	num: number,
+	maxDistance: number
+): number {
+	const sortedNumbers = numbers.sort((a, b) => a - b);
+	if (sortedNumbers.length === 0) {
+		return 0;
+	}
+	if (num < sortedNumbers[0]) {
+		return sortedNumbers[0];
+	}
+	for (let i = 0; i < sortedNumbers.length; i++) {
+		if (num > sortedNumbers[i]) {
+			if (i === sortedNumbers.length - 1) {
+				return sortedNumbers[i];
+			}
+			if (
+				num > avg(sortedNumbers[i], sortedNumbers[i + 1]) &&
+				sortedNumbers[i + 1] - num <= maxDistance
+			) {
+				return sortedNumbers[i + 1];
+			} else {
+				return sortedNumbers[i];
+			}
+		}
+	}
+	return sortedNumbers[sortedNumbers.length - 1];
+}
+
 async function getCurrentCommentData(): Promise<{
 	comment: {
 		range: Range | null;
@@ -304,7 +322,7 @@ async function getCurrentCommentData(): Promise<{
 		comments: GerritCommentBase[];
 	} | null;
 	allThreads: ThreadMap;
-	resolvedThreads: ThreadMap;
+	unresolvedThreads: ThreadMap;
 	currentMeta: FileMeta | null;
 	changeID: string;
 } | null> {
@@ -317,26 +335,37 @@ async function getCurrentCommentData(): Promise<{
 		return null;
 	}
 
-	const { resolvedThreads, allThreads } = await getAllComments(changeID);
+	const { unresolvedThreads, allThreads } = await getAllComments(changeID);
 
 	// If we have meta info, we want to start at the current position
 	const currentComment = (() => {
-		if (!meta || !resolvedThreads.has(meta.filePath)) {
+		if (!meta || !unresolvedThreads.has(meta.filePath)) {
 			return null;
 		}
 		if (meta.filePath === PATCHSET_LEVEL_KEY) {
 			// Comment is equal to index in file
 			const comments = allThreads.get(meta.filePath)!;
-			const line = window.activeTextEditor!.selection.active.line - 1;
-			if (line > comments.length) {
-				return comments[comments.length - 1];
+			const line = window.activeTextEditor!.selection.active.line;
+
+			const unresolvedComments = unresolvedThreads.get(meta.filePath)!;
+			if (unresolvedComments.includes(comments[line])) {
+				return comments[line];
 			}
-			return comments[line];
+			return comments[
+				getClosestNumWithMaxDistance(
+					unresolvedComments.map((c) => comments.indexOf(c)),
+					line,
+					3
+				)
+			];
 		}
-		return getCurrentComment(meta, resolvedThreads as ThreadMapWithRanges);
+		return getCurrentComment(
+			meta,
+			unresolvedThreads as ThreadMapWithRanges
+		);
 	})();
 	return {
-		resolvedThreads,
+		unresolvedThreads,
 		allThreads,
 		comment: currentComment,
 		currentMeta: meta,
@@ -402,15 +431,18 @@ async function jumpToUnresolvedCommentShared(
 			project: change.project,
 			changeID: change.changeID,
 			commit: revision,
+			context: [],
 		};
 	})();
 	if (!partialFileMeta) {
 		return;
 	}
 
-	if (data.resolvedThreads.size === 0) {
+	if (data.unresolvedThreads.size === 0) {
 		// Possible if no comments are left
-		void window.showInformationMessage('Found no more unresolved comments');
+		void window.showInformationMessage(
+			`Found no more unresolved comments in change ${data.changeID}`
+		);
 		return;
 	}
 
@@ -418,25 +450,20 @@ async function jumpToUnresolvedCommentShared(
 
 	if (!data.currentMeta || filePath !== data.currentMeta.filePath) {
 		if (filePath === PATCHSET_LEVEL_KEY) {
-			debugger;
 			const cmd = PatchSetLevelCommentsTreeView.createCommand(
 				{
 					id: partialFileMeta.changeID,
 					project: partialFileMeta.project,
 				},
 				partialFileMeta.commit,
-				data.resolvedThreads
-					.get(PATCHSET_LEVEL_KEY)!
-					.map((t) => t.comments)
+				data.allThreads.get(PATCHSET_LEVEL_KEY)!.map((t) => t.comments)
 			);
 			await commands.executeCommand(
 				cmd.command,
 				// eslint-disable-next-line @typescript-eslint/no-unsafe-argument
 				...(cmd.arguments ?? [])
 			);
-		}
-
-		if (
+		} else if (
 			window.activeTextEditor &&
 			(FileTreeView.getDiffEditor(window.activeTextEditor.document.uri) ||
 				(data.currentMeta &&
@@ -499,7 +526,8 @@ async function jumpToUnresolvedCommentShared(
 				'vscode.open',
 				content.toVirtualFile(
 					'BOTH',
-					metaWithData?.baseRevision ?? null
+					metaWithData?.baseRevision ?? null,
+					[OPEN_FILE_HAS_UNRESOLVED_COMMENTS]
 				)
 			);
 		}
@@ -508,7 +536,7 @@ async function jumpToUnresolvedCommentShared(
 	// Now get new active editor
 	const newEditor = window.activeTextEditor!;
 
-	const fileComments = data.resolvedThreads.get(filePath)!;
+	const fileComments = data.unresolvedThreads.get(filePath)!;
 	const index =
 		typeof commentIndex === 'number'
 			? commentIndex
@@ -518,7 +546,7 @@ async function jumpToUnresolvedCommentShared(
 	const comment = fileComments[index]!;
 	const pos =
 		filePath === PATCHSET_LEVEL_KEY
-			? new Position(index + 1, 0)
+			? new Position(data.allThreads.get(filePath)!.indexOf(comment), 0)
 			: new Position(
 					comment.range?.start.line ?? 0,
 					comment.range?.start.character ?? 0
@@ -539,7 +567,7 @@ enum COMMENT_POSITION {
 export async function nextUnresolvedComment(): Promise<void> {
 	await jumpToUnresolvedCommentShared((data) => {
 		const allFilePaths = supersortFilePaths([
-			...data.resolvedThreads.keys(),
+			...data.unresolvedThreads.keys(),
 		]);
 
 		// If no meta, return first comment of first file
@@ -559,7 +587,7 @@ export async function nextUnresolvedComment(): Promise<void> {
 		}
 
 		// Find comment index in current file
-		const currentFileComments = data.resolvedThreads.get(
+		const currentFileComments = data.unresolvedThreads.get(
 			data.currentMeta.filePath
 		);
 
@@ -605,7 +633,7 @@ export async function nextUnresolvedComment(): Promise<void> {
 export async function previousUnresolvedComment(): Promise<void> {
 	await jumpToUnresolvedCommentShared((data) => {
 		const allFilePaths = supersortFilePaths([
-			...data.resolvedThreads.keys(),
+			...data.unresolvedThreads.keys(),
 		]);
 
 		// If no meta, return first comment of first file
@@ -625,7 +653,7 @@ export async function previousUnresolvedComment(): Promise<void> {
 		}
 
 		// Find comment index in current file
-		const currentFileComments = data.resolvedThreads.get(
+		const currentFileComments = data.unresolvedThreads.get(
 			data.currentMeta.filePath
 		);
 
@@ -660,7 +688,8 @@ export async function previousUnresolvedComment(): Promise<void> {
 		const nextFile =
 			allFilePaths.length === 1
 				? allFilePaths[0]
-				: allFilePaths[fileIndex + 1] ?? allFilePaths[0];
+				: allFilePaths[fileIndex - 1] ??
+				  allFilePaths[allFilePaths.length - 1];
 		return {
 			filePath: nextFile,
 			commentIndex: COMMENT_POSITION.END,

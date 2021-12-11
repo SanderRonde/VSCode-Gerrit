@@ -1,10 +1,8 @@
-import {
-	CommentMap,
-	GerritChange,
-} from '../../../../lib/gerrit/gerritAPI/gerritChange';
 import { GerritCommentBase } from '../../../../lib/gerrit/gerritAPI/gerritComment';
 import { Command, TextDocumentShowOptions, ThemeIcon, TreeItem } from 'vscode';
 import { DocumentCommentManager } from '../../../../providers/commentProvider';
+import { OPEN_FILE_IS_PATCHSET_LEVEL_FILE } from '../../../../lib/util/magic';
+import { GerritChange } from '../../../../lib/gerrit/gerritAPI/gerritChange';
 import { TextContent } from '../../../../lib/gerrit/gerritAPI/gerritFile';
 import { TreeItemWithoutChildren } from '../../shared/treeTypes';
 import { FileMeta } from '../../../../providers/fileProvider';
@@ -43,7 +41,9 @@ export class PatchSetLevelCommentsTreeView implements TreeItemWithoutChildren {
 			'utf8'
 		);
 
-		const uri = file.toVirtualFile('BOTH', null);
+		const uri = file.toVirtualFile('BOTH', null, [
+			OPEN_FILE_IS_PATCHSET_LEVEL_FILE,
+		]);
 
 		return {
 			command: 'vscode.open',

@@ -46,7 +46,8 @@ export async function openModified(treeView: FileTreeView): Promise<void> {
 
 	const uri = content.toVirtualFile(
 		GerritCommentSide.RIGHT,
-		treeView.patchsetBase
+		treeView.patchsetBase,
+		[]
 	);
 
 	await commands.executeCommand(
@@ -76,7 +77,8 @@ export async function openOriginal(treeView: FileTreeView): Promise<void> {
 
 	const uri = content.toVirtualFile(
 		GerritCommentSide.RIGHT,
-		treeView.patchsetBase
+		treeView.patchsetBase,
+		[]
 	);
 
 	await commands.executeCommand(

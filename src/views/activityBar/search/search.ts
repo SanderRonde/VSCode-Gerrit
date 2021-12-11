@@ -873,4 +873,5 @@ export function search(): void {
 
 export async function clearSearchResults(): Promise<void> {
 	await setContextProp('gerrit:searchQuery', null);
+	await setContextProp('gerrit:searchChangeNumber', null);
 }

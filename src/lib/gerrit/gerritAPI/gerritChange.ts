@@ -9,6 +9,7 @@ import { PatchsetDescription } from '../../../views/activityBar/changes/changeTr
 import { DefaultChangeFilter, GerritChangeFilter } from './filters';
 import { GerritComment, GerritDraftComment } from './gerritComment';
 import { ChangesOffsetParams, GerritAPIWith } from './api';
+import { TemporaryCache } from '../../util/temporaryCache';
 import { GerritChangeDetail } from './gerritChangeDetail';
 import { GerritRevision } from './gerritRevision';
 import { DynamicallyFetchable } from './shared';
@@ -21,7 +22,8 @@ import { getAPI } from '../gerritAPI';
 export type CommentMap = Map<string, (GerritComment | GerritDraftComment)[]>;
 
 export class GerritChange extends DynamicallyFetchable {
-	private static _commentMap: Map<string, CommentMap> = new Map();
+	private static _commentMap: TemporaryCache<string, CommentMap> =
+		new TemporaryCache(1000 * 60);
 
 	public override changeID: string;
 	public id: string;

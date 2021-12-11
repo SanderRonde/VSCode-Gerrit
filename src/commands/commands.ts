@@ -35,6 +35,7 @@ import {
 import { clearSearchResults, search } from '../views/activityBar/search/search';
 import { ChangeTreeView } from '../views/activityBar/changes/changeTreeView';
 import { enterCredentials } from '../lib/credentials/credentials';
+import { focusChange } from '../lib/commandHandlers/focusChange';
 import { checkConnection } from '../lib/gerrit/gerritAPI';
 import { commands, ExtensionContext } from 'vscode';
 
@@ -69,6 +70,7 @@ export enum GerritExtensionCommands {
 	NEXT_UNRESOLVED_COMMENT = 'gerrit.nextUnresolvedComment',
 	PREVIOUS_UNRESOLVED_COMMENT = 'gerrit.previousUnresolvedComment',
 	OPEN_CURRENT_CHANGE_ONLINE = 'gerrit.openCurrentOnline',
+	FOCUS_CHANGE = 'gerrit.focusChange',
 }
 
 export function registerCommands(context: ExtensionContext): void {
@@ -268,6 +270,12 @@ export function registerCommands(context: ExtensionContext): void {
 		commands.registerCommand(
 			GerritExtensionCommands.OPEN_CURRENT_CHANGE_ONLINE,
 			openCurrentChangeOnline
+		)
+	);
+	context.subscriptions.push(
+		commands.registerCommand(
+			GerritExtensionCommands.FOCUS_CHANGE,
+			focusChange
 		)
 	);
 }

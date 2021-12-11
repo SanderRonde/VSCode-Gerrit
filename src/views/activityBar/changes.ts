@@ -5,18 +5,22 @@ import {
 	ExtensionContext,
 	TreeDataProvider,
 	TreeItem,
+	TreeView,
+	window,
 } from 'vscode';
 import { PERIODICAL_CHANGE_FETCH_INTERVAL } from '../../lib/util/constants';
 import { FileTreeView } from './changes/changeTreeView/fileTreeView';
 import { RootTreeViewProvider } from './changes/rootTreeView';
+import { ChangeTreeView } from './changes/changeTreeView';
 import { TreeViewItem } from './shared/treeTypes';
+import { ViewPanel } from './changes/viewPanel';
 
 export class ChangesTreeProvider
 	implements TreeDataProvider<TreeViewItem>, Disposable
 {
 	private static _instances: Set<ChangesTreeProvider> = new Set();
 	private _disposables: Disposable[] = [];
-	private _rootViewProvider = new RootTreeViewProvider(this._context, this);
+	public rootViewProvider = new RootTreeViewProvider(this._context, this);
 
 	public onDidChangeTreeDataEmitter: EventEmitter<
 		TreeViewItem | undefined | null | void
@@ -37,7 +41,27 @@ export class ChangesTreeProvider
 	}
 
 	public static refesh(): void {
-		this._instances.forEach((i) => i.refresh());
+		this.getInstances().forEach((i) => i.refresh());
+	}
+
+	public static getInstances(): ChangesTreeProvider[] {
+		return [...this._instances.values()];
+	}
+
+	public getParent(element: TreeViewItem): TreeViewItem | undefined {
+		if (
+			element instanceof ChangeTreeView &&
+			element.parent instanceof ViewPanel
+		) {
+			return element.parent ?? undefined;
+		}
+		if (element instanceof ViewPanel) {
+			return element.parent;
+		}
+		if (element instanceof RootTreeViewProvider) {
+			return undefined;
+		}
+		return undefined;
 	}
 
 	public refresh(): void {
@@ -46,7 +70,7 @@ export class ChangesTreeProvider
 
 	public async getChildren(element?: TreeViewItem): Promise<TreeViewItem[]> {
 		if (!element) {
-			return this._rootViewProvider.getChildren();
+			return this.rootViewProvider.getChildren();
 		}
 		return element.getChildren?.() ?? [];
 	}
@@ -59,4 +83,24 @@ export class ChangesTreeProvider
 		ChangesTreeProvider._instances.delete(this);
 		this._disposables.forEach((d) => void d.dispose());
 	}
+}
+
+let changesTreeProvider: TreeView<TreeViewItem> | null = null;
+export function getOrCreateChangesTreeProvider(
+	context: ExtensionContext
+): TreeView<TreeViewItem> {
+	if (changesTreeProvider) {
+		return changesTreeProvider;
+	}
+	return (changesTreeProvider = window.createTreeView(
+		'gerrit:changeExplorer',
+		{
+			treeDataProvider: new ChangesTreeProvider(context),
+			showCollapseAll: true,
+		}
+	));
+}
+
+export function getChangesTreeProvider(): TreeView<TreeViewItem> | null {
+	return changesTreeProvider;
 }

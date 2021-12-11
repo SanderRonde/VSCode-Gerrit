@@ -24,12 +24,12 @@ import { GerritAPIWith } from '../lib/gerrit/gerritAPI/api';
 import { getAPI } from '../lib/gerrit/gerritAPI';
 import { GitCommit } from '../lib/git/gitCLI';
 
-export async function openChangeSelector(): Promise<void> {
+export async function selectChange(): Promise<number | null> {
 	// Get a list of changes
 	const api = await getAPI();
 	if (!api) {
 		void window.showErrorMessage('Failed to connect to Gerrit API');
-		return;
+		return null;
 	}
 
 	const changes = await api.getChanges(
@@ -74,21 +74,35 @@ export async function openChangeSelector(): Promise<void> {
 			disposables.forEach((d) => void d.dispose());
 		})
 	);
-	disposables.push(
-		quickPick.onDidAccept(async () => {
-			const value = quickPick.selectedItems[0]?.label ?? quickPick.value;
-			const changeNumber = parseInt(value, 10);
-			if (isNaN(changeNumber)) {
-				void window.showErrorMessage(`Invalid change number: ${value}`);
-				return;
-			}
 
-			quickPick.hide();
+	return new Promise<number | null>((resolve) => {
+		disposables.push(
+			quickPick.onDidAccept(() => {
+				const value =
+					quickPick.selectedItems[0]?.label ?? quickPick.value;
+				const changeNumber = parseInt(value, 10);
+				if (isNaN(changeNumber)) {
+					void window.showErrorMessage(
+						`Invalid change number: ${value}`
+					);
+					resolve(null);
+					return;
+				}
 
-			await gitCheckoutRemote(changeNumber);
-		})
-	);
-	quickPick.show();
+				quickPick.hide();
+				resolve(changeNumber);
+			})
+		);
+		quickPick.show();
+	});
+}
+
+export async function openChangeSelector(): Promise<void> {
+	const changeNumber = await selectChange();
+	if (!changeNumber) {
+		return;
+	}
+	await gitCheckoutRemote(changeNumber);
 }
 
 export async function openCurrentChangeOnline(): Promise<void> {

@@ -9,11 +9,11 @@ import {
 	window,
 } from 'vscode';
 import { CanFetchMoreTreeProvider } from './shared/canFetchMoreTreeProvider';
+import { getContextProp, setContextProp } from '../../lib/vscode/context';
 import { showInvalidSettingsMessage } from '../../lib/vscode/messages';
 import { GerritChange } from '../../lib/gerrit/gerritAPI/gerritChange';
 import { FetchMoreTreeItem } from './changes/fetchMoreTreeItem';
 import { GerritAPIWith } from '../../lib/gerrit/gerritAPI/api';
-import { getContextProp } from '../../lib/vscode/context';
 import { optionalArrayEntry } from '../../lib/util/util';
 import { getAPI } from '../../lib/gerrit/gerritAPI';
 import { Refreshable } from './shared/refreshable';
@@ -30,6 +30,7 @@ export class SearchResultsTreeProvider
 		new Set();
 	private _disposables: Disposable[] = [];
 	private _lastQuery: string | null = null;
+	private _lastFocused: string | null = null;
 
 	protected _initialLimit: number = 100;
 	protected _fetchMoreCount: number = 100;
@@ -64,6 +65,31 @@ export class SearchResultsTreeProvider
 		offset: number,
 		count: number
 	): Promise<GerritChange[]> {
+		const singleChangeQuery = getContextProp('gerrit:searchChangeNumber');
+		if (singleChangeQuery) {
+			const api = await getAPI();
+			if (!api) {
+				await showInvalidSettingsMessage(
+					'Failed to perform search due to invalid API settings, please check your settings'
+				);
+				return [];
+			}
+
+			this._reset();
+			this._lastQuery = null;
+
+			const change = await GerritChange.getChangeCached(
+				String(singleChangeQuery)
+			);
+			if (!change) {
+				await setContextProp('gerrit:searchChangeNumber', null);
+				await showInvalidSettingsMessage('Failed to find change');
+				return [];
+			}
+
+			return [change];
+		}
+
 		const query = getContextProp('gerrit:searchQuery');
 		if (query !== this._lastQuery) {
 			this._reset();
@@ -106,14 +132,15 @@ export class SearchResultsTreeProvider
 
 	public clear(): void {
 		this._reset();
+		this._lastFocused = null;
 	}
 
 	public refresh(): void {
 		this.onDidChangeTreeDataEmitter.fire();
 	}
 
-	// We need to implement this but it'll never be called so it doesn't
-	// have to do anything...
+	// We need to implement this but it'll always return the root
+	// so no need to implement anything
 	public getParent(): undefined {
 		return undefined;
 	}
@@ -134,10 +161,27 @@ export class SearchResultsTreeProvider
 			return element.getChildren();
 		}
 
-		const changes = await this._fetch();
+		const changes = await this._fetch(this);
 		const hasMore =
 			changes.length > 0 &&
 			changes[changes.length - 1].change.moreChanges;
+
+		if (getContextProp('gerrit:searchChangeNumber')) {
+			// Only focus once per search result
+			if (this._lastFocused !== changes[0].change.changeID) {
+				setTimeout(() => {
+					void this.treeView.reveal(changes[0], {
+						expand: true,
+						focus: true,
+						select: true,
+					});
+				}, 50);
+				this._lastFocused = changes[0].change.changeID;
+			}
+		} else {
+			this._lastFocused = null;
+		}
+
 		return [
 			...changes,
 			...optionalArrayEntry(hasMore, () => new FetchMoreTreeItem(this)),

@@ -114,7 +114,7 @@ export class DocumentCommentManager {
 
 		const isPatchSetLevel = fileMeta.filePath === PATCHSET_LEVEL_KEY;
 		const comments =
-			(await GerritChange.getAllComments(fileMeta.changeID)).get(
+			(await GerritChange.getAllCommentsCached(fileMeta.changeID)).get(
 				fileMeta.filePath
 			) ?? [];
 		const thisSideComments = isPatchSetLevel

@@ -4,12 +4,14 @@ export interface ContextProps {
 	'gerrit:isUsingGerrit': boolean;
 	'gerrit:connected': boolean;
 	'gerrit:searchQuery': string | null;
+	'gerrit:searchChangeNumber': number | null;
 }
 
 const contextProps: ContextProps = {
 	'gerrit:isUsingGerrit': false,
 	'gerrit:connected': false,
 	'gerrit:searchQuery': null,
+	'gerrit:searchChangeNumber': null,
 };
 
 export async function setContextProp<K extends keyof ContextProps>(

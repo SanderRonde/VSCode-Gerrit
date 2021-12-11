@@ -42,7 +42,8 @@
 		"onCommand:gerrit.nextUnresolvedComment",
 		"onCommand:gerrit.previousUnresolvedComment",
 		"onCommand:gerrit.openCurrentOnline",
-		"onCommand:gerrit.openChangeSelector"
+		"onCommand:gerrit.openChangeSelector",
+		"onCommand:gerrit.focusChange"
 	],
 	"extensionKind": [
 		"workspace"
@@ -182,6 +183,10 @@
 			{
 				"command": "gerrit.openChangeSelector",
 				"title": "Open Change Selector"
+			},
+			{
+				"command": "gerrit.focusChange",
+				"title": "Focus Change In Change List Panel"
 			}
 		],
 		"keybindings": [
@@ -195,6 +200,10 @@
 			},
 			{
 				"command": "gerrit.openChangeSelector",
+				"when": "true"
+			},
+			{
+				"command": "gerrit.focusChange",
 				"when": "true"
 			}
 		],
@@ -278,7 +287,7 @@
 				},
 				{
 					"command": "gerrit.clearSearchResults",
-					"when": "gerrit:searchQuery"
+					"when": "gerrit:searchQuery || gerrit:searchChangeNumber"
 				},
 				{
 					"command": "gerrit.openInReview",
@@ -310,6 +319,10 @@
 				},
 				{
 					"command": "gerrit.openChangeSelector",
+					"when": "true"
+				},
+				{
+					"command": "gerrit.focusChange",
 					"when": "true"
 				}
 			],
@@ -461,7 +474,7 @@
 				},
 				{
 					"command": "gerrit.clearSearchResults",
-					"when": "view == gerrit:searchResults && gerrit:searchQuery",
+					"when": "view == gerrit:searchResults && (gerrit:searchQuery || gerrit:searchChangeNumber)",
 					"group": "navigation@1"
 				}
 			],
@@ -501,7 +514,7 @@
 					"name": "Search Results",
 					"type": "tree",
 					"visibility": "visible",
-					"when": "gerrit:searchQuery"
+					"when": "gerrit:searchQuery || gerrit:searchChangeNumber"
 				},
 				{
 					"id": "gerrit:review",

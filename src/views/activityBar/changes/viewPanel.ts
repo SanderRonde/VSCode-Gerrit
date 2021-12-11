@@ -16,7 +16,7 @@ import { optionalArrayEntry } from '../../../lib/util/util';
 import { ChangesPanel } from '../../../lib/vscode/config';
 import { FetchMoreTreeItem } from './fetchMoreTreeItem';
 import { RootTreeViewProvider } from './rootTreeView';
-import { ChangesTreeProvider } from '../changes';
+import { ChangeTreeView } from './changeTreeView';
 import { log } from '../../../lib/util/log';
 
 export enum DashboardGroupContainerGroup {
@@ -40,7 +40,7 @@ export class ViewPanel
 
 	public constructor(
 		context: ExtensionContext,
-		private readonly _root: ChangesTreeProvider,
+		public readonly parent: RootTreeViewProvider,
 		private readonly _panel: ChangesPanel
 	) {
 		super(context);
@@ -92,7 +92,11 @@ export class ViewPanel
 	}
 
 	public refresh(): void {
-		this._root.onDidChangeTreeDataEmitter.fire(this);
+		this.parent.root.onDidChangeTreeDataEmitter.fire(this);
+	}
+
+	public getRenderedChildren(): ChangeTreeView[] {
+		return [...this._fetchedChildren.values()];
 	}
 
 	public async getChildren(): Promise<TreeViewItem[]> {

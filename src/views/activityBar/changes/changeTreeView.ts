@@ -17,6 +17,7 @@ import { TreeItemWithChildren, TreeViewItem } from '../shared/treeTypes';
 import { StorageScope, storageSet } from '../../../lib/vscode/storage';
 import { GerritFile } from '../../../lib/gerrit/gerritAPI/gerritFile';
 import { FolderTreeView } from './changeTreeView/folderTreeView';
+import { SearchResultsTreeProvider } from '../searchResults';
 import { FileTreeView } from './changeTreeView/fileTreeView';
 import { optionalArrayEntry } from '../../../lib/util/util';
 import { getReviewWebviewProvider } from '../review';
@@ -47,7 +48,7 @@ export class ChangeTreeView implements TreeItemWithChildren {
 	public constructor(
 		private readonly _context: ExtensionContext,
 		public change: GerritChange,
-		private readonly _panel: ViewPanel | null
+		public readonly parent: ViewPanel | SearchResultsTreeProvider
 	) {}
 
 	public static getFilesAndFolders(
@@ -323,7 +324,7 @@ export class ChangeTreeView implements TreeItemWithChildren {
 	}
 
 	public async openPatchsetSelector(): Promise<void> {
-		if (!this._panel) {
+		if (!this.parent) {
 			// Should not be reachable, this command can only be ran on change explorer changes
 			return;
 		}
@@ -358,16 +359,16 @@ export class ChangeTreeView implements TreeItemWithChildren {
 							.revisionID,
 				  };
 
-		this._panel.refresh();
+		this.parent.refresh();
 	}
 
 	public resetPatchsetSelector(): void {
-		if (!this._panel) {
+		if (!this.parent) {
 			// Should not be reachable, this command can only be ran on change explorer changes
 			return;
 		}
 
 		this.patchSetBase = this.patchSetCurrent = null;
-		this._panel.refresh();
+		this.parent.refresh();
 	}
 }

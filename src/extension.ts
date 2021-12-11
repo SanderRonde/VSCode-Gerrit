@@ -4,9 +4,9 @@ import { getCommentDecorationProvider } from './providers/commentDecorationProvi
 import { getOrCreateReviewWebviewProvider } from './views/activityBar/review';
 import { CommentManager, DocumentManager } from './providers/commentProvider';
 import { SearchResultsTreeProvider } from './views/activityBar/searchResults';
+import { getOrCreateChangesTreeProvider } from './views/activityBar/changes';
 import { FileProvider, GERRIT_FILE_SCHEME } from './providers/fileProvider';
 import { setContextProp, setDefaultContexts } from './lib/vscode/context';
-import { ChangesTreeProvider } from './views/activityBar/changes';
 import { GerritUser } from './lib/gerrit/gerritAPI/gerritUser';
 import { ExtensionContext, window, workspace } from 'vscode';
 import { registerCommands } from './commands/commands';
@@ -45,12 +45,7 @@ export async function activate(context: ExtensionContext): Promise<void> {
 	await showStatusBarIcon(context);
 
 	// Register tree views
-	context.subscriptions.push(
-		window.createTreeView('gerrit:changeExplorer', {
-			treeDataProvider: new ChangesTreeProvider(context),
-			showCollapseAll: true,
-		})
-	);
+	context.subscriptions.push(getOrCreateChangesTreeProvider(context));
 	context.subscriptions.push(
 		window.registerWebviewViewProvider(
 			'gerrit:review',

@@ -33,6 +33,7 @@ export class TextContent {
 	public toVirtualFile(
 		forSide: GerritCommentSide | 'BOTH',
 		baseRevision: PatchsetDescription | null,
+		context: string[],
 		extra?: string
 	): Uri {
 		return Uri.from({
@@ -41,6 +42,7 @@ export class TextContent {
 			query: FileMetaWithSideAndBase.fromFileMeta(
 				FileMeta.createFileMeta({
 					...this.meta,
+					context: [...this.meta.context, ...context],
 					extra,
 				}),
 				forSide,
@@ -132,6 +134,7 @@ export class GerritFile extends DynamicallyFetchable {
 	public getLocalURI(
 		forSide: GerritCommentSide,
 		forBaseRevision: PatchsetDescription | null,
+		context: string[],
 		extra?: string
 	): Uri | null {
 		if (
@@ -143,12 +146,13 @@ export class GerritFile extends DynamicallyFetchable {
 		const workspaceFolder = workspace.workspaceFolders[0];
 		const filePath = Uri.joinPath(workspaceFolder.uri, this.filePath);
 		return filePath.with({
-			query: FileMetaWithSideAndBase.createFileMetaWithSide(
+			query: FileMetaWithSideAndBase.createFileMetaWithSideAndRevision(
 				{
 					project: this.change.project,
 					commit: this.currentRevision,
 					filePath: this.filePath,
 					changeID: this.change.id,
+					context,
 					extra,
 				},
 				forSide,
@@ -158,7 +162,7 @@ export class GerritFile extends DynamicallyFetchable {
 	}
 
 	public async isLocalFile(content: TextContent): Promise<boolean> {
-		const filePath = this.getLocalURI(GerritCommentSide.LEFT, null);
+		const filePath = this.getLocalURI(GerritCommentSide.LEFT, null, []);
 		if (!filePath) {
 			return false;
 		}

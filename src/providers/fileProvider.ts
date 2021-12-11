@@ -12,17 +12,23 @@ import { getAPI } from '../lib/gerrit/gerritAPI';
 
 export const GERRIT_FILE_SCHEME = 'gerrit-file';
 
-interface FileMetaCreate {
+export interface FileMetaCreate {
 	project: string;
 	changeID: string;
 	commit: PatchsetDescription;
 	filePath: string;
 	isVirtual?: boolean;
+	context?: string[];
 	content?: string;
 	extra?: string;
 }
 
-export class FileMeta {
+interface FileMetaCreateWithSideAndBase extends FileMetaCreate {
+	side: GerritCommentSide | 'BOTH';
+	baseRevision: PatchsetDescription | null;
+}
+
+export class FileMeta implements FileMetaCreate {
 	public static PATCHSET_LEVEL = new FileMeta(
 		'',
 		'',
@@ -30,7 +36,8 @@ export class FileMeta {
 			id: '',
 			number: -1,
 		},
-		''
+		'',
+		[]
 	);
 	public static EMPTY = new FileMeta(
 		'',
@@ -39,7 +46,8 @@ export class FileMeta {
 			id: '',
 			number: -1,
 		},
-		''
+		'',
+		[]
 	);
 
 	protected constructor(
@@ -47,26 +55,20 @@ export class FileMeta {
 		public changeID: string,
 		public commit: PatchsetDescription,
 		public filePath: string,
+		public context: string[] = [],
 		public isVirtual: boolean = false,
 		public content: string = '',
 		public extra: string = ''
 	) {}
 
 	public static from(uri: Uri): FileMeta {
-		const meta = JSON.parse(uri.query) as {
-			project?: string;
-			changeID?: string;
-			commit?: PatchsetDescription;
-			filePath?: string;
-			isVirtual?: boolean;
-			content?: string;
-			extra?: string;
-		};
+		const meta = JSON.parse(uri.query) as Partial<FileMetaCreate>;
 		if (
 			typeof meta.project !== 'string' ||
 			typeof meta.changeID !== 'string' ||
 			!meta.commit ||
-			typeof meta.filePath !== 'string'
+			typeof meta.filePath !== 'string' ||
+			!Array.isArray(meta.context)
 		) {
 			throw new Error('Invalid file meta');
 		}
@@ -75,6 +77,7 @@ export class FileMeta {
 			meta.changeID,
 			meta.commit,
 			meta.filePath,
+			meta.context,
 			meta.isVirtual,
 			meta.content,
 			meta.extra
@@ -95,13 +98,14 @@ export class FileMeta {
 			options.changeID,
 			options.commit,
 			options.filePath,
+			options.context,
 			options.isVirtual,
 			options.content,
 			options.extra
 		);
 	}
 
-	protected toObj(): Record<string, unknown> {
+	protected toObj(): FileMetaCreate {
 		return {
 			project: this.project,
 			changeID: this.changeID,
@@ -110,6 +114,7 @@ export class FileMeta {
 			isVirtual: this.isVirtual,
 			content: this.content,
 			extra: this.extra,
+			context: this.context.map((c) => `_ctx_${c}`),
 		};
 	}
 
@@ -127,7 +132,10 @@ export class FileMeta {
 	}
 }
 
-export class FileMetaWithSideAndBase extends FileMeta {
+export class FileMetaWithSideAndBase
+	extends FileMeta
+	implements FileMetaCreateWithSideAndBase
+{
 	public side!: GerritCommentSide | 'BOTH';
 	public baseRevision!: PatchsetDescription | null;
 
@@ -141,6 +149,7 @@ export class FileMetaWithSideAndBase extends FileMeta {
 			fileMeta.changeID,
 			fileMeta.commit,
 			fileMeta.filePath,
+			fileMeta.context,
 			fileMeta.isVirtual,
 			fileMeta.content,
 			fileMeta.extra
@@ -172,7 +181,7 @@ export class FileMetaWithSideAndBase extends FileMeta {
 		);
 	}
 
-	public static createFileMetaWithSide(
+	public static createFileMetaWithSideAndRevision(
 		options: FileMetaCreate,
 		side: GerritCommentSide | 'BOTH',
 		baseRevision: PatchsetDescription | null
@@ -192,7 +201,7 @@ export class FileMetaWithSideAndBase extends FileMeta {
 		}
 	}
 
-	protected override toObj(): Record<string, unknown> {
+	protected override toObj(): FileMetaCreateWithSideAndBase {
 		return {
 			...super.toObj(),
 			side: this.side,

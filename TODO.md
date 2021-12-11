@@ -24,11 +24,11 @@
             -   [-] V (not possible)
             -   [x] Maybe multiline?
         -   [ ] Rightclick on changes:
-            -   [ ] Checkout
+            -   [x] Checkout
                 -   [ ] Offer to stash and unstash
-            -   [ ] Checkout & Review
-            -   [ ] Toggle review mode
-            -   [ ] Open on gerrit
+            -   [x] Checkout & Review
+            -   [x] Toggle review mode
+            -   [x] Open on gerrit
             -   [ ] Notify when verified by administrator?
         -   [x] Add "refresh" button
             -   [x] Periodically refresh

@@ -14,7 +14,11 @@ export async function execAsync(
 	return new Promise<string>((resolve, reject) => {
 		exec(cmd, options, (err, stdout, stderr) => {
 			if (err) {
-				reject(stderr);
+				reject({
+					stdout,
+					stderr,
+					err,
+				});
 			} else {
 				resolve(stdout.toString());
 			}

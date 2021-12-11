@@ -3,6 +3,7 @@ import { PERIODICAL_GIT_FETCH_INTERVAL } from '../util/constants';
 import { getLastCommits, GitCommit, execAsync } from './gitCLI';
 import { window, Disposable, extensions } from 'vscode';
 import { createAwaitingInterval } from '../util/util';
+import { log } from '../util/log';
 
 export function getGitAPI(): API | null {
 	const extension = extensions.getExtension<GitExtension>('vscode.git');
@@ -50,6 +51,7 @@ export async function onChangeLastCommit(
 export async function gitCheckoutRemote(patchNumber: number): Promise<void> {
 	const api = getGitAPI();
 	if (!api || !api.repositories.length) {
+		void window.showErrorMessage('Multi-git-repo setups are not supported');
 		return;
 	}
 
@@ -57,11 +59,16 @@ export async function gitCheckoutRemote(patchNumber: number): Promise<void> {
 	try {
 		const stdout = await execAsync(`git-review -d ${String(patchNumber)}`, {
 			cwd: uri,
+			timeout: 10000,
 		});
-		await window.showInformationMessage(stdout);
-	} catch {
-		await window.showErrorMessage(
-			'Checkout failed. Please commit your changes or stash them before you switch branches'
+		void window.showInformationMessage(stdout);
+	} catch (e: unknown) {
+		const typedErr = e as { err: Error; stdout: string; stderr: string };
+		log(`Tried to run git-review -d ${String(patchNumber)}, but failed`);
+		log(`Stdout: ${typedErr.stdout}`);
+		log(`Stderr: ${typedErr.stderr}`);
+		void window.showErrorMessage(
+			'Checkout failed. Please see log for more details'
 		);
 	}
 }

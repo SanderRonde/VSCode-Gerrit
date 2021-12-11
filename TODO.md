@@ -87,6 +87,6 @@
             -   [-] Cancel review (if just reviewing)
         -   [ ] Instead make bottom bar a patch-selector (like git branch selector)
     -   [ ] Commands
-        -   [ ] Checkout patch X
+        -   [x] Checkout patch X
         -   [ ] Open patch X in changes pane
         -   [x] Add as startup events

@@ -41,7 +41,8 @@
 		"onCommand:gerrit.selectActiveView",
 		"onCommand:gerrit.nextUnresolvedComment",
 		"onCommand:gerrit.previousUnresolvedComment",
-		"onCommand:gerrit.openCurrentOnline"
+		"onCommand:gerrit.openCurrentOnline",
+		"onCommand:gerrit.openChangeSelector"
 	],
 	"extensionKind": [
 		"workspace"
@@ -177,6 +178,10 @@
 			{
 				"command": "gerrit.openCurrentOnline",
 				"title": "Open Current Change Online"
+			},
+			{
+				"command": "gerrit.openChangeSelector",
+				"title": "Open Change Selector"
 			}
 		],
 		"keybindings": [
@@ -187,6 +192,10 @@
 			{
 				"command": "gerrit.previousUnresolvedComment",
 				"when": "editorTextFocus"
+			},
+			{
+				"command": "gerrit.openChangeSelector",
+				"when": "true"
 			}
 		],
 		"menus": {
@@ -297,6 +306,10 @@
 				},
 				{
 					"command": "gerrit.openCurrentOnline",
+					"when": "true"
+				},
+				{
+					"command": "gerrit.openChangeSelector",
 					"when": "true"
 				}
 			],

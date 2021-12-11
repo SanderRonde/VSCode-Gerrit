@@ -28,10 +28,13 @@ import {
 	previousUnresolvedComment,
 } from '../providers/comments/commentCommands';
 import { fetchMoreTreeItemEntries } from '../views/activityBar/changes/fetchMoreTreeItem';
+import {
+	openChangeSelector,
+	openCurrentChangeOnline,
+} from '../views/statusBar';
 import { clearSearchResults, search } from '../views/activityBar/search/search';
 import { ChangeTreeView } from '../views/activityBar/changes/changeTreeView';
 import { enterCredentials } from '../lib/credentials/credentials';
-import { openCurrentChangeOnline } from '../views/statusBar';
 import { checkConnection } from '../lib/gerrit/gerritAPI';
 import { commands, ExtensionContext } from 'vscode';
 
@@ -52,7 +55,7 @@ export enum GerritExtensionCommands {
 	FILE_OPEN_MODIFIED = 'gerrit.openModified',
 	FILE_OPEN_ORIGINAL = 'gerrit.openOriginal',
 	FETCH_MORE = 'gerrit.fetchMore',
-	CLICK_STATUSBAR = 'gerrit.changeStatus',
+	OPEN_CHANGE_SELECTOR = 'gerrit.openChangeSelector',
 	REFRESH_CHANGES = 'gerrit.refreshChanges',
 	CONFIGURE_CHANGE_LIST = 'gerrit.configureChangeList',
 	SEARCH = 'gerrit.search',
@@ -182,8 +185,8 @@ export function registerCommands(context: ExtensionContext): void {
 	// Statusbar
 	context.subscriptions.push(
 		commands.registerCommand(
-			GerritExtensionCommands.CLICK_STATUSBAR,
-			openCurrentChangeOnline
+			GerritExtensionCommands.OPEN_CHANGE_SELECTOR,
+			openChangeSelector
 		)
 	);
 

@@ -40,7 +40,8 @@
 		"onCommand:gerrit.resetPatchsetSelection",
 		"onCommand:gerrit.selectActiveView",
 		"onCommand:gerrit.nextUnresolvedComment",
-		"onCommand:gerrit.previousUnresolvedComment"
+		"onCommand:gerrit.previousUnresolvedComment",
+		"onCommand:gerrit.openCurrentOnline"
 	],
 	"extensionKind": [
 		"workspace"
@@ -150,7 +151,7 @@
 			},
 			{
 				"command": "gerrit.resetPatchsetSelection",
-				"title": "Reset patchset selection"
+				"title": "Reset Patchset Selection"
 			},
 			{
 				"command": "gerrit.selectActiveView",
@@ -159,7 +160,7 @@
 			},
 			{
 				"command": "gerrit.nextUnresolvedComment",
-				"title": "Next unresolved comment",
+				"title": "Next Unresolved Comment",
 				"icon": {
 					"dark": "src/images/icons/comment-down-dark.svg",
 					"light": "src/images/icons/comment-down-light.svg"
@@ -167,11 +168,15 @@
 			},
 			{
 				"command": "gerrit.previousUnresolvedComment",
-				"title": "Previous unresolved comment",
+				"title": "Previous Unresolved Comment",
 				"icon": {
 					"dark": "src/images/icons/comment-up-dark.svg",
 					"light": "src/images/icons/comment-up-light.svg"
 				}
+			},
+			{
+				"command": "gerrit.openCurrentOnline",
+				"title": "Open Current Change Online"
 			}
 		],
 		"keybindings": [
@@ -288,6 +293,10 @@
 				},
 				{
 					"command": "gerrit.nextUnresolvedComment",
+					"when": "true"
+				},
+				{
+					"command": "gerrit.openCurrentOnline",
 					"when": "true"
 				}
 			],

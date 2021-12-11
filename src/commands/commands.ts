@@ -31,8 +31,8 @@ import { fetchMoreTreeItemEntries } from '../views/activityBar/changes/fetchMore
 import { clearSearchResults, search } from '../views/activityBar/search/search';
 import { ChangeTreeView } from '../views/activityBar/changes/changeTreeView';
 import { enterCredentials } from '../lib/credentials/credentials';
+import { openCurrentChangeOnline } from '../views/statusBar';
 import { checkConnection } from '../lib/gerrit/gerritAPI';
-import { onStatusBarClick } from '../views/statusBar';
 import { commands, ExtensionContext } from 'vscode';
 
 export enum GerritExtensionCommands {
@@ -65,6 +65,7 @@ export enum GerritExtensionCommands {
 	CHANGE_OPEN_ONLINE = 'gerrit.openChangeOnline',
 	NEXT_UNRESOLVED_COMMENT = 'gerrit.nextUnresolvedComment',
 	PREVIOUS_UNRESOLVED_COMMENT = 'gerrit.previousUnresolvedComment',
+	OPEN_CURRENT_CHANGE_ONLINE = 'gerrit.openCurrentOnline',
 }
 
 export function registerCommands(context: ExtensionContext): void {
@@ -182,7 +183,7 @@ export function registerCommands(context: ExtensionContext): void {
 	context.subscriptions.push(
 		commands.registerCommand(
 			GerritExtensionCommands.CLICK_STATUSBAR,
-			onStatusBarClick
+			openCurrentChangeOnline
 		)
 	);
 
@@ -244,7 +245,8 @@ export function registerCommands(context: ExtensionContext): void {
 			(e: ChangeTreeView) => e.resetPatchsetSelector()
 		)
 	);
-	// git
+
+	// Git
 	context.subscriptions.push(
 		commands.registerCommand(
 			GerritExtensionCommands.CHECKOUT_BRANCH,
@@ -255,6 +257,14 @@ export function registerCommands(context: ExtensionContext): void {
 		commands.registerCommand(
 			GerritExtensionCommands.CHANGE_OPEN_ONLINE,
 			openChangeOnline
+		)
+	);
+
+	// Non-button separate commands
+	context.subscriptions.push(
+		commands.registerCommand(
+			GerritExtensionCommands.OPEN_CURRENT_CHANGE_ONLINE,
+			openCurrentChangeOnline
 		)
 	);
 }

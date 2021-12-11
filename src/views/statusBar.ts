@@ -18,15 +18,21 @@ import { GerritAPIWith } from '../lib/gerrit/gerritAPI/api';
 import { getAPI } from '../lib/gerrit/gerritAPI';
 import { GitCommit } from '../lib/git/gitCLI';
 
-export async function onStatusBarClick(): Promise<void> {
+export async function openCurrentChangeOnline(): Promise<void> {
 	const changeID = await getCurrentChangeID();
 	const api = await getAPI();
-	if (!changeID || !api) {
+	if (!changeID) {
+		void window.showErrorMessage('Failed to find current change ID');
+		return;
+	}
+	if (!api) {
+		void window.showErrorMessage('Failed to connect to Gerrit API');
 		return;
 	}
 
 	const change = await GerritChange.getChangeCached(changeID);
 	if (!change) {
+		void window.showErrorMessage('Failed to find current change');
 		return;
 	}
 	await env.openExternal(

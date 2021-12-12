@@ -18,11 +18,14 @@ import {
 	GerritDraftComment,
 } from '../lib/gerrit/gerritAPI/gerritComment';
 import { PATCHSET_LEVEL_KEY } from '../views/activityBar/changes/changeTreeView/patchSetLevelCommentsTreeView';
+import {
+	GerritChangeStatus,
+	GerritCommentSide,
+} from '../lib/gerrit/gerritAPI/types';
 import { GerritCommentThread } from '../lib/gerrit/gerritAPI/gerritCommentThread';
 import { FileMetaWithSideAndBase, FileProvider } from './fileProvider';
 import { GerritChange } from '../lib/gerrit/gerritAPI/gerritChange';
 import { DateSortDirection, DateTime } from '../lib/util/dateTime';
-import { GerritCommentSide } from '../lib/gerrit/gerritAPI/types';
 import { GerritFile } from '../lib/gerrit/gerritAPI/gerritFile';
 import { getCurrentChangeIDCached } from '../lib/git/commit';
 import { GerritAPIWith } from '../lib/gerrit/gerritAPI/api';
@@ -418,7 +421,7 @@ export class CommentManager {
 			GerritAPIWith.CURRENT_REVISION,
 			GerritAPIWith.CURRENT_FILES
 		);
-		if (!change) {
+		if (!change || change.status !== GerritChangeStatus.NEW) {
 			return null;
 		}
 		const currentRevision = await change.getCurrentRevision();

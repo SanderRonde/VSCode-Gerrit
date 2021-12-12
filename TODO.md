@@ -94,7 +94,7 @@
             -   [-] Uncheckout
             -   [-] Uncheckout & unstash previous
             -   [-] Cancel review (if just reviewing)
-        -   [ ] Instead make bottom bar a patch-selector (like git branch selector)
+        -   [x] Instead make bottom bar a patch-selector (like git branch selector)
     -   [x] Commands
         -   [x] Checkout patch X
         -   [x] Open patch X in changes pane

@@ -867,7 +867,7 @@
 		"lint": "eslint src --ext ts",
 		"test": "node ./out/test/runTest.js",
 		"format": "pretty-quick src/",
-		"prepush": "yarn format && yarn lint && yarn compile"
+		"prepush": "yarn format && yarn lint --fix && yarn compile"
 	},
 	"devDependencies": {
 		"@emotion/react": "^11.7.0",
@@ -906,6 +906,7 @@
 	},
 	"dependencies": {
 		"eslint-plugin-prettier": "^4.0.0",
+		"gitdiff-parser": "^0.2.2",
 		"got": "^11.8.3"
 	}
 }

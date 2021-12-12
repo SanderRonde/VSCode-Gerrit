@@ -48,6 +48,7 @@
 		"@typescript-eslint/restrict-plus-operands": "warn",
 		"@typescript-eslint/restrict-template-expressions": "warn",
 		"@typescript-eslint/unbound-method": "warn",
+		"no-debugger": "warn",
 		"@typescript-eslint/no-inferrable-types": "off",
 		"node/no-unpublished-import": "off",
 		"react-hooks/exhaustive-deps": "warn",

@@ -232,15 +232,10 @@ export class FileProvider implements TextDocumentContentProvider {
 		);
 	}
 
-	public async provideTextDocumentContent(
-		uri: Uri,
-		token: CancellationToken
+	public static async provideMetaContent(
+		meta: FileMeta,
+		token?: CancellationToken
 	): Promise<string | null> {
-		const meta = FileMeta.tryFrom(uri);
-		if (!meta) {
-			return '';
-		}
-
 		if (meta.isVirtual) {
 			return meta.content;
 		}
@@ -256,10 +251,22 @@ export class FileProvider implements TextDocumentContentProvider {
 
 		const content = await api.getFileContent(meta);
 
-		if (!content || token.isCancellationRequested) {
+		if (!content || token?.isCancellationRequested) {
 			return null;
 		}
 
 		return content.getText();
+	}
+
+	public async provideTextDocumentContent(
+		uri: Uri,
+		token: CancellationToken
+	): Promise<string | null> {
+		const meta = FileMeta.tryFrom(uri);
+		if (!meta) {
+			return '';
+		}
+
+		return await FileProvider.provideMetaContent(meta, token);
 	}
 }

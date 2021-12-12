@@ -2,6 +2,15 @@ import {
 	PatchSetLevelCommentsTreeView,
 	PATCHSET_LEVEL_KEY,
 } from '../../views/activityBar/changes/changeTreeView/patchSetLevelCommentsTreeView';
+import {
+	commands,
+	Position,
+	Range,
+	Selection,
+	Uri,
+	window,
+	workspace,
+} from 'vscode';
 import { FileTreeView } from '../../views/activityBar/changes/changeTreeView/fileTreeView';
 import {
 	FileMeta,
@@ -9,13 +18,14 @@ import {
 	FileMetaWithSideAndBase,
 } from '../fileProvider';
 import { GerritCommentBase } from '../../lib/gerrit/gerritAPI/gerritComment';
+import { CommentManager, DocumentCommentManager } from '../commentProvider';
 import { OPEN_FILE_HAS_UNRESOLVED_COMMENTS } from '../../lib/util/magic';
 import { GerritChange } from '../../lib/gerrit/gerritAPI/gerritChange';
-import { commands, Position, Range, Selection, window } from 'vscode';
 import { TextContent } from '../../lib/gerrit/gerritAPI/gerritFile';
 import { avg, diff, uniqueComplex } from '../../lib/util/util';
-import { DocumentCommentManager } from '../commentProvider';
 import { getCurrentChangeID } from '../../lib/git/commit';
+import * as gitDiffParser from 'gitdiff-parser';
+import { getGitAPI } from '../../lib/git/git';
 
 function getCurrentMeta(): FileMeta | null {
 	// First check currently open editor's URI
@@ -28,7 +38,6 @@ type ThreadMap = Map<
 	string,
 	{
 		range: Range | null;
-		extendedRange: Range | null;
 		comments: GerritCommentBase[];
 	}[]
 >;
@@ -37,7 +46,6 @@ type ThreadMapWithRanges = Map<
 	string,
 	{
 		range: Range;
-		extendedRange: Range;
 		comments: GerritCommentBase[];
 	}[]
 >;
@@ -171,11 +179,9 @@ async function getAllComments(changeID: string): Promise<{
 
 			const baseEntries = [...allComments.entries()].map(
 				([filePath, comments]) => {
-					const threads = buildExpandedThreadRanges(
-						DocumentCommentManager.getThreadRanges(
-							DocumentCommentManager.buildThreadsFromComments(
-								comments
-							)
+					const threads = DocumentCommentManager.getThreadRanges(
+						DocumentCommentManager.buildThreadsFromComments(
+							comments
 						)
 					);
 					return [
@@ -229,15 +235,43 @@ async function getAllComments(changeID: string): Promise<{
 }
 
 function getCurrentComment(
-	meta: FileMeta,
+	meta: FileMeta | null,
 	allComments: ThreadMapWithRanges
 ): {
 	range: Range;
 	extendedRange: Range;
 	comments: GerritCommentBase[];
 } | null {
+	// If no meta, we have to apply the diff to find comment indices. So we find
+	// the comment manager (if any)
+	const manager = CommentManager.getFileManagerForUri(
+		window.activeTextEditor!.document.uri
+	);
+
 	// First find the correct comments
-	const comments = allComments.get(meta.filePath)!;
+	const comments = buildExpandedThreadRanges(
+		allComments
+			.get(
+				meta?.filePath ??
+					manager?.filePath ??
+					window.activeTextEditor!.document.uri.path
+			)!
+			.map((c) =>
+				!manager?.diff
+					? c
+					: {
+							range: DocumentCommentManager.applyDiffToCommentRange(
+								c.range,
+								manager?.diff
+							),
+							comments: c.comments,
+					  }
+			)
+	).filter((c) => !!c.extendedRange && !!c.range) as {
+		extendedRange: Range;
+		range: Range;
+		comments: GerritCommentBase[];
+	}[];
 
 	// Find cursor position within those comments
 	const cursorPosition = window.activeTextEditor!.selection.active;
@@ -318,13 +352,13 @@ function getClosestNumWithMaxDistance(
 async function getCurrentCommentData(): Promise<{
 	comment: {
 		range: Range | null;
-		extendedRange: Range | null;
 		comments: GerritCommentBase[];
 	} | null;
 	allThreads: ThreadMap;
 	unresolvedThreads: ThreadMap;
 	currentMeta: FileMeta | null;
 	changeID: string;
+	filePath: string | undefined;
 } | null> {
 	const meta = getCurrentMeta();
 	const changeID = meta?.changeID ?? (await getCurrentChangeID());
@@ -338,38 +372,56 @@ async function getCurrentCommentData(): Promise<{
 	const { unresolvedThreads, allThreads } = await getAllComments(changeID);
 
 	// If we have meta info, we want to start at the current position
-	const currentComment = (() => {
-		if (!meta || !unresolvedThreads.has(meta.filePath)) {
-			return null;
-		}
-		if (meta.filePath === PATCHSET_LEVEL_KEY) {
-			// Comment is equal to index in file
-			const comments = allThreads.get(meta.filePath)!;
-			const line = window.activeTextEditor!.selection.active.line;
-
-			const unresolvedComments = unresolvedThreads.get(meta.filePath)!;
-			if (unresolvedComments.includes(comments[line])) {
-				return comments[line];
+	const currentComment =
+		window.activeTextEditor &&
+		(() => {
+			if (meta && !unresolvedThreads.has(meta.filePath)) {
+				return null;
 			}
-			return comments[
-				getClosestNumWithMaxDistance(
-					unresolvedComments.map((c) => comments.indexOf(c)),
-					line,
-					3
+			if (
+				!meta &&
+				!unresolvedThreads.has(
+					workspace.asRelativePath(
+						window.activeTextEditor.document.uri
+					)
 				)
-			];
-		}
-		return getCurrentComment(
-			meta,
-			unresolvedThreads as ThreadMapWithRanges
-		);
-	})();
+			) {
+				return null;
+			}
+			if (meta && meta.filePath === PATCHSET_LEVEL_KEY) {
+				// Comment is equal to index in file
+				const comments = allThreads.get(meta.filePath)!;
+				const line = window.activeTextEditor.selection.active.line;
+
+				const unresolvedComments = unresolvedThreads.get(
+					meta.filePath
+				)!;
+				if (unresolvedComments.includes(comments[line])) {
+					return comments[line];
+				}
+				return comments[
+					getClosestNumWithMaxDistance(
+						unresolvedComments.map((c) => comments.indexOf(c)),
+						line,
+						3
+					)
+				];
+			}
+			return getCurrentComment(
+				meta,
+				unresolvedThreads as ThreadMapWithRanges
+			);
+		})();
 	return {
 		unresolvedThreads,
 		allThreads,
-		comment: currentComment,
+		comment: currentComment ?? null,
 		currentMeta: meta,
 		changeID,
+		filePath:
+			window.activeTextEditor &&
+			(meta?.filePath ??
+				workspace.asRelativePath(window.activeTextEditor.document.uri)),
 	};
 }
 
@@ -506,6 +558,11 @@ async function jumpToUnresolvedCommentShared(
 				// eslint-disable-next-line @typescript-eslint/no-unsafe-argument
 				...(cmd.arguments ?? [])
 			);
+		} else if (workspace.workspaceFolders?.length === 1) {
+			await commands.executeCommand(
+				'vscode.open',
+				Uri.joinPath(workspace.workspaceFolders[0].uri, filePath)
+			);
 		} else {
 			// Open in single-file editor
 			const content = TextContent.from(
@@ -544,13 +601,59 @@ async function jumpToUnresolvedCommentShared(
 			? 0
 			: fileComments.length - 1;
 	const comment = fileComments[index]!;
-	const pos =
-		filePath === PATCHSET_LEVEL_KEY
-			? new Position(data.allThreads.get(filePath)!.indexOf(comment), 0)
-			: new Position(
-					comment.range?.start.line ?? 0,
-					comment.range?.start.character ?? 0
-			  );
+
+	const manager = CommentManager.getFileManagerForUri(
+		window.activeTextEditor!.document.uri
+	);
+	// If there is a meta, that means that this is a diff view. In that case we
+	// don't need to apply any modifications since it's readonly.
+	const commentDiff = data.currentMeta
+		? null
+		: manager
+		? manager.diff
+		: await (async () => {
+				const file = await CommentManager.getFileFromOpenDocument(
+					window.activeTextEditor!.document
+				);
+				const gitAPI = getGitAPI();
+				if (!file || !gitAPI || gitAPI.repositories.length !== 1) {
+					return null;
+				}
+				const hashes = await CommentManager.getFileHashObjects(
+					file,
+					window.activeTextEditor!.document
+				);
+				if (!hashes) {
+					return null;
+				}
+
+				const parser =
+					gitDiffParser as unknown as typeof import('gitdiff-parser').default;
+				const diff = await gitAPI.repositories[0].diffBlobs(
+					hashes.newHash,
+					hashes.modifiedHash
+				);
+				return parser.parse(diff)[0];
+		  })();
+
+	const pos = (() => {
+		if (filePath === PATCHSET_LEVEL_KEY) {
+			return new Position(
+				data.allThreads.get(filePath)!.indexOf(comment),
+				0
+			);
+		}
+		if (!comment.range) {
+			return new Position(0, 0);
+		}
+		if (commentDiff) {
+			return DocumentCommentManager.applyDiffToCommentRange(
+				comment.range,
+				commentDiff
+			).start;
+		}
+		return comment.range.start;
+	})();
 	newEditor.selection = new Selection(pos, pos);
 
 	await commands.executeCommand('revealLine', {
@@ -570,8 +673,8 @@ export async function nextUnresolvedComment(): Promise<void> {
 			...data.unresolvedThreads.keys(),
 		]);
 
-		// If no meta, return first comment of first file
-		if (!data.currentMeta) {
+		// If no file path, return first comment of first file
+		if (!data.filePath) {
 			return {
 				filePath: allFilePaths[0],
 				commentIndex: COMMENT_POSITION.START,
@@ -581,15 +684,13 @@ export async function nextUnresolvedComment(): Promise<void> {
 		// If no comment in current file, get first comment
 		if (!data.comment) {
 			return {
-				filePath: data.currentMeta.filePath,
+				filePath: data.filePath,
 				commentIndex: COMMENT_POSITION.START,
 			};
 		}
 
 		// Find comment index in current file
-		const currentFileComments = data.unresolvedThreads.get(
-			data.currentMeta.filePath
-		);
+		const currentFileComments = data.unresolvedThreads.get(data.filePath);
 
 		if (!currentFileComments) {
 			return {
@@ -605,13 +706,13 @@ export async function nextUnresolvedComment(): Promise<void> {
 		// If not the last, return this + 1
 		if (commentIndex !== currentFileComments.length - 1) {
 			return {
-				filePath: data.currentMeta.filePath,
+				filePath: data.filePath,
 				commentIndex: commentIndex + 1,
 			};
 		}
 
 		// Find file index in all files
-		const fileIndex = allFilePaths.indexOf(data.currentMeta.filePath);
+		const fileIndex = allFilePaths.indexOf(data.filePath);
 		if (fileIndex === -1) {
 			return {
 				filePath: allFilePaths[0],
@@ -636,10 +737,10 @@ export async function previousUnresolvedComment(): Promise<void> {
 			...data.unresolvedThreads.keys(),
 		]);
 
-		// If no meta, return first comment of first file
-		if (!data.currentMeta) {
+		// If no file path, return first comment of last file
+		if (!data.filePath) {
 			return {
-				filePath: allFilePaths[0],
+				filePath: allFilePaths[allFilePaths.length - 1],
 				commentIndex: COMMENT_POSITION.END,
 			};
 		}
@@ -647,15 +748,13 @@ export async function previousUnresolvedComment(): Promise<void> {
 		// If no comment in current file, get first comment
 		if (!data.comment) {
 			return {
-				filePath: data.currentMeta.filePath,
+				filePath: data.filePath,
 				commentIndex: COMMENT_POSITION.END,
 			};
 		}
 
 		// Find comment index in current file
-		const currentFileComments = data.unresolvedThreads.get(
-			data.currentMeta.filePath
-		);
+		const currentFileComments = data.unresolvedThreads.get(data.filePath);
 
 		if (!currentFileComments) {
 			return {
@@ -671,13 +770,13 @@ export async function previousUnresolvedComment(): Promise<void> {
 		// If not the first, return this - 1
 		if (commentIndex !== 0) {
 			return {
-				filePath: data.currentMeta.filePath,
+				filePath: data.filePath,
 				commentIndex: commentIndex - 1,
 			};
 		}
 
 		// Find file index in all files
-		const fileIndex = allFilePaths.indexOf(data.currentMeta.filePath);
+		const fileIndex = allFilePaths.indexOf(data.filePath);
 		if (fileIndex === -1) {
 			return {
 				filePath: allFilePaths[0],

@@ -257,12 +257,12 @@ function getCurrentComment(
 					window.activeTextEditor!.document.uri.path
 			)!
 			.map((c) =>
-				!manager?.diff
+				!manager?.diffData?.diff
 					? c
 					: {
 							range: DocumentCommentManager.applyDiffToCommentRange(
 								c.range,
-								manager?.diff
+								manager?.diffData.diff
 							),
 							comments: c.comments,
 					  }
@@ -610,7 +610,7 @@ async function jumpToUnresolvedCommentShared(
 	const commentDiff = data.currentMeta
 		? null
 		: manager
-		? manager.diff
+		? manager.diffData?.diff
 		: await (async () => {
 				const file = await CommentManager.getFileFromOpenDocument(
 					window.activeTextEditor!.document

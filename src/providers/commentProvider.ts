@@ -58,7 +58,12 @@ export class DocumentCommentManager {
 		private readonly _document: Uri,
 		private readonly _commentController: CommentController,
 		public readonly filePath: string,
-		public readonly diff?: gitDiffParser.File
+		public readonly diffData?: {
+			diff: gitDiffParser.File;
+			file: GerritFile;
+			oldDiffParsed: gitDiffParser.File;
+			newHash: string;
+		}
 	) {}
 
 	public static applyDiffToCommentRange(
@@ -160,11 +165,11 @@ export class DocumentCommentManager {
 				thisSideComments
 			).filter((t) => t.length !== 0)
 		);
-		if (this.diff) {
+		if (this.diffData?.diff) {
 			threads = threads.map((t) => ({
 				range: DocumentCommentManager.applyDiffToCommentRange(
 					t.range!,
-					this.diff!
+					this.diffData!.diff
 				),
 				comments: t.comments,
 			}));
@@ -311,13 +316,18 @@ export class CommentManager {
 	private static _createManager(
 		document: TextDocument,
 		filePath: string,
-		diff?: gitDiffParser.File
+		diffData?: {
+			diff: gitDiffParser.File;
+			file: GerritFile;
+			oldDiffParsed: gitDiffParser.File;
+			newHash: string;
+		}
 	): DocumentCommentManager {
 		const manager = new DocumentCommentManager(
 			document.uri,
 			this._commentController,
 			filePath,
-			diff
+			diffData
 		);
 		this._commentManagersByURI.set(document.uri.toString(), manager);
 
@@ -326,31 +336,73 @@ export class CommentManager {
 
 	private static async _getFileRanges(
 		file: GerritFile,
-		document: TextDocument
+		document: TextDocument,
+		prevData?: {
+			oldDiffParsed: gitDiffParser.File;
+			newHash: string;
+		}
 	): Promise<{
 		ranges: Range[];
 		diff: gitDiffParser.File;
+		oldDiffParsed: gitDiffParser.File;
+		newHash: string;
 	} | null> {
-		const hashes = await this.getFileHashObjects(file, document);
-		if (!hashes) {
+		const result = await (async () => {
+			const repo = getGitAPI()!.repositories[0];
+			if (prevData) {
+				const hashes = await this.getFileHashObjects(file, document);
+				if (!hashes) {
+					return null;
+				}
+
+				const modifiedHash = await repo.hashObject(document.getText());
+				const modifiedDiff = await repo.diffBlobs(
+					prevData.newHash,
+					modifiedHash
+				);
+
+				const parser =
+					gitDiffParser as unknown as typeof import('gitdiff-parser').default;
+				const modifiedDiffParsed = parser.parse(modifiedDiff);
+
+				return {
+					oldDiffParsed: prevData.oldDiffParsed,
+					modifiedDiffParsed,
+					newHash: prevData.newHash,
+				};
+			}
+
+			const hashes = await this.getFileHashObjects(file, document);
+			if (!hashes) {
+				return null;
+			}
+
+			const { modifiedHash, newHash, oldHash } = hashes;
+
+			const [oldDiff, modifiedDiff] = await Promise.all([
+				repo.diffBlobs(oldHash, newHash),
+				repo.diffBlobs(newHash, modifiedHash),
+			]);
+
+			const parser =
+				gitDiffParser as unknown as typeof import('gitdiff-parser').default;
+			const oldDiffParsed = parser.parse(oldDiff);
+			const modifiedDiffParsed = parser.parse(modifiedDiff);
+
+			return {
+				oldDiffParsed: oldDiffParsed[0],
+				modifiedDiffParsed,
+				newHash,
+			};
+		})();
+		if (!result) {
 			return null;
 		}
 
-		const { modifiedHash, newHash, oldHash } = hashes;
-
-		const repo = getGitAPI()!.repositories[0];
-		const [oldDiff, modifiedDiff] = await Promise.all([
-			repo.diffBlobs(oldHash, newHash),
-			repo.diffBlobs(newHash, modifiedHash),
-		]);
-
-		const parser =
-			gitDiffParser as unknown as typeof import('gitdiff-parser').default;
-		const oldDiffParsed = parser.parse(oldDiff);
-		const modifiedDiffParsed = parser.parse(modifiedDiff);
+		const { modifiedDiffParsed, oldDiffParsed, newHash } = result;
 
 		const ranges: Range[] = [];
-		for (const hunk of oldDiffParsed[0]?.hunks ?? []) {
+		for (const hunk of oldDiffParsed?.hunks ?? []) {
 			const start = modifiedDiffParsed.length
 				? this.mapOldPositionToNew(modifiedDiffParsed[0], hunk.newStart)
 				: hunk.newStart;
@@ -368,6 +420,8 @@ export class CommentManager {
 		return {
 			ranges,
 			diff: modifiedDiffParsed[0],
+			oldDiffParsed,
+			newHash,
 		};
 	}
 
@@ -521,27 +575,69 @@ export class CommentManager {
 					}
 					return [new Range(0, 0, lineCount - 1, 0)];
 				} else {
-					const file = await CommentManager.getFileFromOpenDocument(
-						document
+					const manager = CommentManager._commentManagersByURI.get(
+						document.uri.toString()
 					);
-					if (!file) {
-						return null;
-					}
-					const result = await CommentManager._getFileRanges(
-						file,
-						document
-					);
+					const result = await (async () => {
+						if (manager?.diffData) {
+							const result = await CommentManager._getFileRanges(
+								manager.diffData.file,
+								document,
+								{
+									oldDiffParsed:
+										manager.diffData.oldDiffParsed,
+									newHash: manager.diffData.newHash,
+								}
+							);
+							if (!result) {
+								return null;
+							}
+
+							return {
+								...result,
+								file: manager.diffData.file,
+							};
+						}
+
+						const file =
+							await CommentManager.getFileFromOpenDocument(
+								document
+							);
+						if (!file) {
+							return null;
+						}
+						const result = await CommentManager._getFileRanges(
+							file,
+							document
+						);
+						if (!result) {
+							return null;
+						}
+
+						return {
+							...result,
+							file,
+						};
+					})();
+
 					if (!result) {
 						return null;
 					}
 
-					const { diff, ranges } = result;
+					const { diff, file, ranges, newHash, oldDiffParsed } =
+						result;
+
 					if (!hasManager) {
 						void (async () => {
 							const manager = CommentManager._createManager(
 								document,
 								file.filePath,
-								diff
+								{
+									diff,
+									oldDiffParsed: oldDiffParsed,
+									file: file,
+									newHash: newHash,
+								}
 							);
 							await manager.loadComments(file.filePath);
 						})();
@@ -595,10 +691,10 @@ async function createComment(
 	}
 
 	const manager = CommentManager.getFileManagerForUri(thread.thread.uri);
-	const range = manager?.diff
+	const range = manager?.diffData?.diff
 		? DocumentCommentManager.applyDiffToCommentRange(
 				thread.thread.range,
-				manager.diff
+				manager.diffData.diff
 		  )
 		: thread.thread.range;
 	const newComment = await GerritComment.create({

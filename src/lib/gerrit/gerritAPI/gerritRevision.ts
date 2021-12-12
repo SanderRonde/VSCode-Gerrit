@@ -94,7 +94,7 @@ export class GerritRevision extends DynamicallyFetchable {
 					GerritAPIWith.CURRENT_FILES,
 					...additionalWith,
 				],
-				async (c) => (await c.getCurrentRevision())?.files() ?? null
+				async (c) => (await c.getCurrentRevision())?.files(null) ?? null
 			);
 		} else {
 			const api = await getAPI();

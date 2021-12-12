@@ -34,9 +34,7 @@ export class GerritCommentThread extends OnceDisposable {
 	private readonly _filePath: string | undefined;
 
 	private get _manager(): DocumentCommentManager | null {
-		return (
-			CommentManager.getFileManagersForUri(this._thread.uri)[0] ?? null
-		);
+		return CommentManager.getFileManagerForUri(this._thread.uri);
 	}
 
 	public get lastComment(): Readonly<GerritCommentBase> | undefined {
@@ -55,7 +53,10 @@ export class GerritCommentThread extends OnceDisposable {
 		return !(this.lastComment?.unresolved ?? false);
 	}
 
-	private constructor(thread: CommentThread) {
+	private constructor(
+		thread: CommentThread,
+		private readonly _isInWritableEditor: boolean
+	) {
 		super();
 		this._threadID = GerritCommentThread._setThreadID(thread, this);
 		this._thread = thread as CommentThreadWithGerritComments;
@@ -93,9 +94,10 @@ export class GerritCommentThread extends OnceDisposable {
 		if (id && GerritCommentThread._threadMap.has(id)) {
 			return GerritCommentThread._threadMap.get(id)!;
 		}
-		const gthread = new GerritCommentThread(thread);
-		const managers = CommentManager.getFileManagersForUri(thread.uri);
-		if (managers.length === 0) {
+		const isInWritableEditor = !FileMeta.tryFrom(thread.uri);
+		const gthread = new GerritCommentThread(thread, isInWritableEditor);
+		const manager = CommentManager.getFileManagerForUri(thread.uri);
+		if (!manager) {
 			return null;
 		}
 
@@ -130,11 +132,10 @@ export class GerritCommentThread extends OnceDisposable {
 		if (!range) {
 			return false;
 		}
-		const managers = CommentManager.getFileManagersForUri(this.thread.uri);
-		let threadCount: number = 0;
-		managers.forEach((manager) => {
-			threadCount += manager.getLineThreadCount(range.start.line);
-		});
+		const manager = CommentManager.getFileManagerForUri(this.thread.uri);
+		const threadCount: number = manager
+			? manager.getLineThreadCount(range.start.line)
+			: 0;
 		if (threadCount > 1) {
 			return true;
 		}
@@ -145,8 +146,16 @@ export class GerritCommentThread extends OnceDisposable {
 		return this._filePath === PATCHSET_LEVEL_KEY;
 	}
 
-	private _shouldOverrideInitialExpand(): boolean {
-		return this._isMultipleOnLine() || this._isPatchsetLevel();
+	private _shouldOverrideInitialExpand(): CommentThreadCollapsibleState | null {
+		if (this._isInWritableEditor) {
+			return CommentThreadCollapsibleState.Collapsed;
+		}
+
+		if (this._isMultipleOnLine() || this._isPatchsetLevel()) {
+			return CommentThreadCollapsibleState.Expanded;
+		}
+
+		return null;
 	}
 
 	public async setResolved(newValue: boolean): Promise<void> {
@@ -172,10 +181,13 @@ export class GerritCommentThread extends OnceDisposable {
 			// If there are multiple threads on this line, expand them all.
 			// VSCode is really bad at showing multiple comments on a line.
 			const overrideExpand = this._shouldOverrideInitialExpand();
-			this._thread.collapsibleState =
-				overrideExpand || !this.resolved
+			if (overrideExpand !== null) {
+				this._thread.collapsibleState = overrideExpand;
+			} else {
+				this._thread.collapsibleState = !this.resolved
 					? CommentThreadCollapsibleState.Expanded
 					: CommentThreadCollapsibleState.Collapsed;
+			}
 		}
 	}
 

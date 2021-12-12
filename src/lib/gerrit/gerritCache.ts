@@ -1,8 +1,19 @@
 import { GerritChange } from './gerritAPI/gerritChange';
+import { CHANGE_CACHE_TIME } from '../util/constants';
 import { GerritAPIWith } from './gerritAPI/api';
+import { Disposable } from 'vscode';
 
-export class GerritChangeCache {
-	private _cache: Map<string, Map<GerritAPIWith[], GerritChange>> = new Map();
+export class GerritChangeCache implements Disposable {
+	private _cache: Map<
+		string,
+		Map<
+			GerritAPIWith[],
+			{
+				change: GerritChange;
+				clearTimer: () => void;
+			}
+		>
+	> = new Map();
 
 	private _withsSatisfyContraints(
 		expected: GerritAPIWith[],
@@ -31,7 +42,7 @@ export class GerritChangeCache {
 
 		for (const [withs, change] of changeCache.entries()) {
 			if (this._withsSatisfyContraints(withValues, withs)) {
-				return change;
+				return change.change;
 			}
 		}
 
@@ -46,7 +57,20 @@ export class GerritChangeCache {
 		if (!this._cache.has(changeID)) {
 			this._cache.set(changeID, new Map());
 		}
-		this._cache.get(changeID)!.set(withValues, change);
+		const prevValue = this._cache.get(changeID)!.get(withValues);
+		if (prevValue?.clearTimer) {
+			prevValue.clearTimer();
+		}
+
+		const timeout = setTimeout(() => {
+			this._cache.get(changeID)!.delete(withValues);
+		}, CHANGE_CACHE_TIME);
+		this._cache.get(changeID)!.set(withValues, {
+			change,
+			clearTimer: () => {
+				clearTimeout(timeout);
+			},
+		});
 	}
 
 	public has(changeID: string, withValues: GerritAPIWith[]): boolean {
@@ -58,6 +82,15 @@ export class GerritChangeCache {
 		withValues: GerritAPIWith[]
 	): GerritChange | null {
 		return this._findMatchingWith(changeID, withValues);
+	}
+
+	public dispose(): void {
+		[...this._cache.values()].forEach((changeCache) => {
+			[...changeCache.values()].forEach((change) => {
+				change.clearTimer();
+			});
+		});
+		this._cache.clear();
 	}
 }
 

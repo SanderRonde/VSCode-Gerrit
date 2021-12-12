@@ -67,7 +67,7 @@ export class FileTreeView implements TreeItemWithoutChildren {
 		return await file.getContent(patchsetBase);
 	}
 
-	private static async _getFileDiffContent(
+	public static async getFileDiffContent(
 		file: GerritFile,
 		patchsetBase: PatchsetDescription | null
 	): Promise<[TextContent | null, TextContent | null]> {
@@ -94,7 +94,7 @@ export class FileTreeView implements TreeItemWithoutChildren {
 		file: GerritFile,
 		patchsetBase: PatchsetDescription | null
 	): Promise<Command | null> {
-		const contents = await this._getFileDiffContent(file, patchsetBase);
+		const contents = await this.getFileDiffContent(file, patchsetBase);
 		if (!contents) {
 			return null;
 		}
@@ -198,7 +198,7 @@ export class FileTreeView implements TreeItemWithoutChildren {
 	}
 
 	private async _getFileUri(file: GerritFile): Promise<Uri | null> {
-		const contents = await FileTreeView._getFileDiffContent(
+		const contents = await FileTreeView.getFileDiffContent(
 			file,
 			this.patchsetBase
 		);
@@ -249,7 +249,7 @@ export class FileTreeView implements TreeItemWithoutChildren {
 			}
 
 			// Found the match, check if file contents have changed
-			const files = await FileTreeView._getFileDiffContent(
+			const files = await FileTreeView.getFileDiffContent(
 				this.file,
 				this.patchsetBase
 			);

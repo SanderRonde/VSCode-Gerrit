@@ -29,10 +29,10 @@ import { READONLY_MODE } from '../../util/constants';
 import { getChangeCache } from '../gerritCache';
 import { GerritProject } from './gerritProject';
 import { GerritChange } from './gerritChange';
+import { log, logDev } from '../../util/log';
 import { GerritGroup } from './gerritGroup';
 import { GerritUser } from './gerritUser';
 import { URLSearchParams } from 'url';
-import { log } from '../../util/log';
 import { window } from 'vscode';
 
 export enum GerritAPIWith {
@@ -306,7 +306,7 @@ export class GerritAPI {
 	): Promise<(Response<string> & { strippedBody: string }) | null> {
 		log(`${body?.method || 'GET'} request to "${url}"`);
 		if (shouldDebugRequests()) {
-			console.log({
+			logDev({
 				...body,
 				searchParams:
 					body?.searchParams instanceof URLSearchParams

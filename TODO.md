@@ -4,6 +4,13 @@
     -   [x] Caching?
     -   [x] Infer URL, port, project from `.gitreview` file
     -   [-] Join requests
+    -   [ ] Make everything invalidatable
+        -   [ ] Allow invalidating of changes, files etc
+        -   [ ] Only update UI when changes made (in how far is this possible?)
+            -   [ ] If known that an update is coming, let the user decide
+        -   [ ] Preserve
+            -   [ ] Caching
+            -   [ ] Proper garbage collection
 -   [ ] Visual
     -   [ ] Changes pane
         -   [x] Changeset selection
@@ -81,6 +88,7 @@
     -   [ ] Add "review" button in source control
         -   [ ] If first patchset, automatically open reply pane
             -   [ ] Allow disabling this in settings
+        -   [ ] This should also be a command
     -   [x] Add bottom bar showing currently checked-out change
         -   [-] Rightclicking:
             -   [-] Uncheckout
@@ -91,3 +99,4 @@
         -   [x] Checkout patch X
         -   [x] Open patch X in changes pane
         -   [x] Add as startup events
+        -   [ ] Rebase command

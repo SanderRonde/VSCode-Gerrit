@@ -51,6 +51,21 @@ export class ChangeTreeView implements TreeItemWithChildren {
 		public readonly parent: ViewPanel | SearchResultsTreeProvider
 	) {}
 
+	public static async openInReview(changeID: string): Promise<void> {
+		// Override
+		await storageSet(
+			'reviewChangeIDOverride',
+			changeID,
+			StorageScope.WORKSPACE
+		);
+
+		// Cause rerender
+		await getReviewWebviewProvider()?.updateAllStates();
+
+		// Focus panel
+		await getReviewWebviewProvider()?.revealAllStates();
+	}
+
 	public static getFilesAndFolders(
 		change: GerritChange,
 		fileMap: FileMap,
@@ -274,19 +289,7 @@ export class ChangeTreeView implements TreeItemWithChildren {
 	}
 
 	public async openInReview(): Promise<void> {
-		// Override
-		await storageSet(
-			this._context,
-			'reviewChangeIDOverride',
-			this.change.changeID,
-			StorageScope.WORKSPACE
-		);
-
-		// Cause rerender
-		await getReviewWebviewProvider()?.updateAllStates();
-
-		// Focus panel
-		await getReviewWebviewProvider()?.revealAllStates();
+		await ChangeTreeView.openInReview(this.change.changeID);
 	}
 
 	public async getItem(): Promise<TreeItem> {

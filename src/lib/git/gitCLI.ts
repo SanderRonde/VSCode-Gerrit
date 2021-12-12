@@ -14,6 +14,9 @@ export async function execAsync(
 	return new Promise<string>((resolve, reject) => {
 		exec(cmd, options, (err, stdout, stderr) => {
 			if (err) {
+				log(`Tried to run "${cmd}", but failed`);
+				log(`Stdout: ${stdout.toString()}`);
+				log(`Stderr: ${stderr.toString()}`);
 				reject({
 					stdout,
 					stderr,
@@ -22,6 +25,37 @@ export async function execAsync(
 			} else {
 				resolve(stdout.toString());
 			}
+		});
+	});
+}
+
+export async function tryExecAsync(
+	cmd: string,
+	options?: ExecOptions
+): Promise<{
+	success: boolean;
+	stdout: string;
+	stderr: string;
+	err: Error | null;
+}> {
+	return new Promise<{
+		success: boolean;
+		stdout: string;
+		stderr: string;
+		err: Error | null;
+	}>((resolve) => {
+		exec(cmd, options, (err, stdout, stderr) => {
+			if (err) {
+				log(`Tried to run "${cmd}", but failed`);
+				log(`Stdout: ${stdout.toString()}`);
+				log(`Stderr: ${stderr.toString()}`);
+			}
+			resolve({
+				success: !err,
+				stdout: stdout.toString(),
+				stderr: stderr.toString(),
+				err,
+			});
 		});
 	});
 }

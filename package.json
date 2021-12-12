@@ -44,7 +44,8 @@
 		"onCommand:gerrit.previousUnresolvedComment",
 		"onCommand:gerrit.openCurrentOnline",
 		"onCommand:gerrit.openChangeSelector",
-		"onCommand:gerrit.focusChange"
+		"onCommand:gerrit.focusChange",
+		"onCommand:gerrit.pushForReview"
 	],
 	"extensionKind": [
 		"workspace"
@@ -188,6 +189,11 @@
 			{
 				"command": "gerrit.focusChange",
 				"title": "Focus Change In Change List Panel"
+			},
+			{
+				"command": "gerrit.pushForReview",
+				"title": "Push for Review",
+				"icon": "$(git-commit)"
 			}
 		],
 		"keybindings": [
@@ -324,6 +330,10 @@
 				},
 				{
 					"command": "gerrit.focusChange",
+					"when": "true"
+				},
+				{
+					"command": "gerrit.pushForReview",
 					"when": "true"
 				}
 			],
@@ -490,6 +500,13 @@
 					"group": "navigation@1",
 					"when": "resource =~ /_ctx_gerritDiff/ || resource =~ /_ctx_hasUnresolved/ || resource =~ /_ctx_patchsetLevel/"
 				}
+			],
+			"scm/title": [
+				{
+					"command": "gerrit.pushForReview",
+					"when": "scmProvider =~ /git/",
+					"group": "navigation"
+				}
 			]
 		},
 		"viewsContainers": {
@@ -530,16 +547,25 @@
 			"type": "object",
 			"title": "Gerrit configuration",
 			"properties": {
+				"gerrit.messages.postReviewNotification": {
+					"type": "boolean",
+					"title": "Show notification after running `git review`",
+					"description": "Show notification after running `git review` that allows you to either open the change online or in the review panel",
+					"default": true
+				},
 				"gerrit.auth.username": {
 					"type": "string",
-					"title": "Gerrit username"
+					"title": "Gerrit username",
+					"description": "Gerrit login username"
 				},
 				"gerrit.auth.password": {
 					"type": "string",
+					"title": "Gerrit password",
 					"description": "Gerrit password (see https://{your_gerit_host}/settings/#HTTPCredentials)"
 				},
 				"gerrit.auth.url": {
 					"type": "string",
+					"title": "URL of the gerrit server to use",
 					"description": "URL of the gerrit server to use (inferred from `.gitreview` if not provided). Uses HTTPS if no scheme is provided"
 				},
 				"gerrit.selectedView": {
@@ -609,12 +635,12 @@
 										"filters": {
 											"type": "array",
 											"title": "Filters",
-											"description": "Filters to apply to the search, see [Gerrit docs](https://gerrit-review.googlesource.com/Documentation/user-search.html)",
+											"description": "Filters to apply to the search, see Gerrit docs: https://gerrit-review.googlesource.com/Documentation/user-search.html",
 											"minItems": 1,
 											"items": {
 												"type": "string",
 												"title": "Filter",
-												"description": "Gerrit filter to use. See [Gerrit docs](https://gerrit-review.googlesource.com/Documentation/user-search.html)"
+												"description": "Gerrit filter to use. See Gerrit docs: https://gerrit-review.googlesource.com/Documentation/user-search.html"
 											},
 											"default": [
 												"is:open",

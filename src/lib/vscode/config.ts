@@ -35,6 +35,7 @@ interface ConfigSettings {
 	'gerrit.changesViews': ChangesView[];
 	'gerrit.allowInvalidSSLCerts': boolean;
 	'gerrit.localGitRepoUri': string;
+	'gerrit.messages.postReviewNotification': boolean;
 }
 
 interface TypedWorkspaceConfiguration<T> extends WorkspaceConfiguration {

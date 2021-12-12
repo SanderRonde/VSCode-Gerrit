@@ -9,6 +9,7 @@ import { FileProvider, GERRIT_FILE_SCHEME } from './providers/fileProvider';
 import { setContextProp, setDefaultContexts } from './lib/vscode/context';
 import { GerritUser } from './lib/gerrit/gerritAPI/gerritUser';
 import { ExtensionContext, window, workspace } from 'vscode';
+import { updateUploaderState } from './lib/state/uploader';
 import { getChangeCache } from './lib/gerrit/gerritCache';
 import { registerCommands } from './commands/commands';
 import { setupChangeIDCache } from './lib/git/commit';
@@ -102,6 +103,7 @@ export async function activate(context: ExtensionContext): Promise<void> {
 	// Add disposables
 	context.subscriptions.push(getChangeCache());
 	context.subscriptions.push(await setupChangeIDCache());
+	context.subscriptions.push(await updateUploaderState());
 
 	// Warm up cache for self
 	void GerritUser.getSelf();

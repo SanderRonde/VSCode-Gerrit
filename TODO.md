@@ -11,6 +11,7 @@
         -   [ ] Preserve
             -   [ ] Caching
             -   [ ] Proper garbage collection
+    -   [ ] Better more central caching
 -   [ ] Visual
     -   [ ] Changes pane
         -   [x] Changeset selection
@@ -85,10 +86,10 @@
         -   [x] Shows this data for the currently checked-out change
             -   [x] If clicking "review" instead of "checkout & review" in changes, show it as well. Shows the reviewing change in the bottom bar. Can click that to stop reviewing (or the change itself).
                 -   [x] Also a "stop reviewing X" button below reply button.
-    -   [ ] Add "review" button in source control
-        -   [ ] If first patchset, automatically open reply pane
-            -   [ ] Allow disabling this in settings
-        -   [ ] This should also be a command
+    -   [x] Add "review" button in source control
+        -   [x] If first patchset, automatically open reply pane
+            -   [x] Allow disabling this in settings
+        -   [x] This should also be a command
     -   [x] Add bottom bar showing currently checked-out change
         -   [-] Rightclicking:
             -   [-] Uncheckout

@@ -5,6 +5,7 @@ export interface ContextProps {
 	'gerrit:connected': boolean;
 	'gerrit:searchQuery': string | null;
 	'gerrit:searchChangeNumber': number | null;
+	'gerrit:isUploader': boolean;
 }
 
 const contextProps: ContextProps = {
@@ -12,6 +13,7 @@ const contextProps: ContextProps = {
 	'gerrit:connected': false,
 	'gerrit:searchQuery': null,
 	'gerrit:searchChangeNumber': null,
+	'gerrit:isUploader': false,
 };
 
 export async function setContextProp<K extends keyof ContextProps>(

@@ -38,6 +38,7 @@ import { enterCredentials } from '../lib/credentials/credentials';
 import { focusChange } from '../lib/commandHandlers/focusChange';
 import { checkConnection } from '../lib/gerrit/gerritAPI';
 import { commands, ExtensionContext } from 'vscode';
+import { gitReview } from '../lib/git/git';
 
 export enum GerritExtensionCommands {
 	CREATE_COMMENT_RESOLVED = 'gerrit.createCommentResolved',
@@ -71,6 +72,7 @@ export enum GerritExtensionCommands {
 	PREVIOUS_UNRESOLVED_COMMENT = 'gerrit.previousUnresolvedComment',
 	OPEN_CURRENT_CHANGE_ONLINE = 'gerrit.openCurrentOnline',
 	FOCUS_CHANGE = 'gerrit.focusChange',
+	PUSH_FOR_REVIEW = 'gerrit.pushForReview',
 }
 
 export function registerCommands(context: ExtensionContext): void {
@@ -262,6 +264,12 @@ export function registerCommands(context: ExtensionContext): void {
 		commands.registerCommand(
 			GerritExtensionCommands.CHANGE_OPEN_ONLINE,
 			openChangeOnline
+		)
+	);
+	context.subscriptions.push(
+		commands.registerCommand(
+			GerritExtensionCommands.PUSH_FOR_REVIEW,
+			gitReview
 		)
 	);
 

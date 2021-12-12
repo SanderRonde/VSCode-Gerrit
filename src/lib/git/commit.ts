@@ -1,4 +1,5 @@
 import { getLastCommits, GitCommit } from './gitCLI';
+import { createInittableValue } from '../util/cache';
 import { onChangeLastCommit } from './git';
 import { Disposable } from 'vscode';
 
@@ -18,29 +19,20 @@ export async function getCurrentChangeID(): Promise<string | null> {
 	return getChangeID(lastCommit);
 }
 
-let lastCurrentChangeID: string | null = null;
-let resolveChangeIDCacheReady: (() => void) | null = null;
-let changeIDCacheReadyPromise: Promise<void> = new Promise((resolve) => {
-	resolveChangeIDCacheReady = resolve;
-});
+const lastCurrentChangeID = createInittableValue<string | null>();
+
 export async function setupChangeIDCache(): Promise<Disposable> {
 	return await onChangeLastCommit((lastCommit) => {
 		if (lastCommit && isGerritCommit(lastCommit)) {
-			lastCurrentChangeID = getChangeID(lastCommit);
+			lastCurrentChangeID.setValue(getChangeID(lastCommit));
 		} else {
-			lastCurrentChangeID = null;
-		}
-		if (!resolveChangeIDCacheReady) {
-			changeIDCacheReadyPromise = Promise.resolve();
-		} else {
-			resolveChangeIDCacheReady?.();
+			lastCurrentChangeID.setValue(null);
 		}
 	}, true);
 }
 
-export async function getCurrentChangeIDCached(): Promise<string | null> {
-	await changeIDCacheReadyPromise;
-	return lastCurrentChangeID;
+export function getCurrentChangeIDCached(): Promise<string | null> {
+	return lastCurrentChangeID.get();
 }
 
 export function isGerritCommit(commit: GitCommit): boolean {

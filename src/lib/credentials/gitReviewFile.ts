@@ -1,13 +1,26 @@
 import { Uri, workspace } from 'vscode';
 import { log } from '../util/log';
 
-interface GitReviewFile {
-	host: string;
-	project: string;
+interface OptionalGitReviewProperties {
 	port?: string;
+	branch?: string;
+	remote?: string;
 	defaultbranch?: string;
 	defaultremote?: string;
 }
+
+interface GitReviewFile extends OptionalGitReviewProperties {
+	host: string;
+	project: string;
+}
+
+export const DEFAULT_GIT_REVIEW_FILE: Required<OptionalGitReviewProperties> = {
+	branch: 'master',
+	defaultbranch: 'master',
+	defaultremote: 'origin',
+	remote: 'origin',
+	port: '29418',
+};
 
 function parseGerritFile(fileContent: string): GitReviewFile | null {
 	if (!fileContent.includes('[gerrit]')) {

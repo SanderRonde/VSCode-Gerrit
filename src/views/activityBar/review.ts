@@ -53,8 +53,7 @@ class ReviewWebviewProvider implements WebviewViewProvider, Disposable {
 		initialState?: Partial<ChangeState>
 	): Promise<string> {
 		// First look in storage
-		const comment = storageGet(
-			this._context,
+		const comment = await storageGet(
 			'reviewComment',
 			StorageScope.WORKSPACE
 		);
@@ -221,8 +220,7 @@ class ReviewWebviewProvider implements WebviewViewProvider, Disposable {
 		forceUpdate: boolean = false
 	): Promise<ReviewWebviewState> {
 		const currentChangeID = await getCurrentChangeID();
-		const overriddenChangeID = storageGet(
-			this._context,
+		const overriddenChangeID = await storageGet(
 			'reviewChangeIDOverride',
 			StorageScope.WORKSPACE
 		);
@@ -292,7 +290,6 @@ class ReviewWebviewProvider implements WebviewViewProvider, Disposable {
 			(revision) => revision.number
 		);
 		await storageSet(
-			this._context,
 			'reviewComment',
 			{
 				comment: msg.body.text,
@@ -346,12 +343,7 @@ class ReviewWebviewProvider implements WebviewViewProvider, Disposable {
 			}
 		);
 		if (setReviewSuccess) {
-			await storageSet(
-				this._context,
-				'reviewComment',
-				null,
-				StorageScope.WORKSPACE
-			);
+			await storageSet('reviewComment', null, StorageScope.WORKSPACE);
 			await srcView.postMessage({
 				type: 'publishSuccess',
 			});
@@ -372,7 +364,6 @@ class ReviewWebviewProvider implements WebviewViewProvider, Disposable {
 			return;
 		} else if (msg.type === 'backToCurrent') {
 			await storageSet(
-				this._context,
 				'reviewChangeIDOverride',
 				null,
 				StorageScope.WORKSPACE

@@ -1,3 +1,4 @@
+import { createInittableValue } from '../util/cache';
 import { ExtensionContext } from 'vscode';
 
 export enum StorageScope {
@@ -24,43 +25,47 @@ interface StorageObj {
 
 const SYNC_KEYS: (keyof StorageObj)[] = [] as (keyof StorageObj)[];
 
+const ctx = createInittableValue<ExtensionContext>();
 export async function storageSet<K extends keyof StorageObj>(
-	ctx: ExtensionContext,
 	key: K,
 	value: StorageObj[K],
 	scope: StorageScope
 ): Promise<void> {
 	if (scope === StorageScope.WORKSPACE) {
-		await ctx.workspaceState.update(key, value);
+		await (await ctx.get()).workspaceState.update(key, value);
 	} else {
-		await ctx.globalState.update(key, value);
+		await (await ctx.get()).globalState.update(key, value);
 	}
 }
 
-export function storageGet<K extends keyof StorageObj>(
-	ctx: ExtensionContext,
+export async function storageGet<K extends keyof StorageObj>(
 	key: K,
 	scope: StorageScope,
 	defaultValue: StorageObj[K]
-): StorageObj[K];
-export function storageGet<K extends keyof StorageObj>(
-	ctx: ExtensionContext,
+): Promise<StorageObj[K]>;
+export async function storageGet<K extends keyof StorageObj>(
 	key: K,
 	scope: StorageScope
-): StorageObj[K] | undefined;
-export function storageGet<K extends keyof StorageObj>(
-	ctx: ExtensionContext,
+): Promise<StorageObj[K] | undefined>;
+export async function storageGet<K extends keyof StorageObj>(
 	key: K,
 	scope: StorageScope,
 	defaultValue?: StorageObj[K]
-): StorageObj[K] | undefined {
+): Promise<StorageObj[K] | undefined> {
 	if (scope === StorageScope.WORKSPACE) {
-		return ctx.workspaceState.get<StorageObj[K]>(key) ?? defaultValue;
+		return (
+			(await ctx.get()).workspaceState.get<StorageObj[K]>(key) ??
+			defaultValue
+		);
 	} else {
-		return ctx.globalState.get<StorageObj[K]>(key) ?? defaultValue;
+		return (
+			(await ctx.get()).globalState.get<StorageObj[K]>(key) ??
+			defaultValue
+		);
 	}
 }
 
-export function storageInit(ctx: ExtensionContext): void {
-	ctx.globalState.setKeysForSync(SYNC_KEYS);
+export function storageInit(context: ExtensionContext): void {
+	ctx.init(context);
+	context.globalState.setKeysForSync(SYNC_KEYS);
 }

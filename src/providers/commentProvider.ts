@@ -194,7 +194,7 @@ export class DocumentCommentManager {
 			if (typeof firstComment.patchSet !== 'number') {
 				return true;
 			}
-			return firstComment.patchSet >= fileMeta.commit.number;
+			return firstComment.patchSet <= fileMeta.commit.number;
 		});
 		for (const thread of threads) {
 			const line = thread.range?.start.line ?? -1;

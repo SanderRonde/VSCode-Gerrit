@@ -1,5 +1,6 @@
 import { FileModificationStatusProvider } from './providers/fileModificationStatusProvider';
-import { FileCache } from './views/activityBar/changes/changeTreeView/file/fileCache';
+import { filesCache } from './views/activityBar/changes/changeTreeView/file/filesCache';
+import { fileCache } from './views/activityBar/changes/changeTreeView/file/fileCache';
 import { getCommentDecorationProvider } from './providers/commentDecorationProvider';
 import { getOrCreateReviewWebviewProvider } from './views/activityBar/review';
 import { CommentManager, DocumentManager } from './providers/commentProvider';
@@ -104,11 +105,11 @@ export async function activate(context: ExtensionContext): Promise<void> {
 	context.subscriptions.push(getChangeCache());
 	context.subscriptions.push(await setupChangeIDCache());
 	context.subscriptions.push(await updateUploaderState());
+	context.subscriptions.push(fileCache);
+	context.subscriptions.push(filesCache);
 
 	// Warm up cache for self
 	void GerritUser.getSelf();
 }
 
-export function deactivate(): void {
-	FileCache.clear();
-}
+export function deactivate(): void {}

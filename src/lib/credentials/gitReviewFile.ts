@@ -1,3 +1,4 @@
+import { createCacheWrapper } from '../util/cache';
 import { Uri, workspace } from 'vscode';
 import { log } from '../util/log';
 
@@ -49,7 +50,6 @@ function parseGerritFile(fileContent: string): GitReviewFile | null {
 	return file as GitReviewFile;
 }
 
-let gitReviewFile: GitReviewFile | null = null;
 export async function getGitReviewFile(): Promise<GitReviewFile | null> {
 	for (const folder of workspace.workspaceFolders || []) {
 		const fileContent = await (async (): Promise<string | null> => {
@@ -75,9 +75,4 @@ export async function getGitReviewFile(): Promise<GitReviewFile | null> {
 	return null;
 }
 
-export async function getGitReviewFileCached(): Promise<GitReviewFile | null> {
-	if (gitReviewFile) {
-		return gitReviewFile;
-	}
-	return (gitReviewFile = await getGitReviewFile());
-}
+export const getGitReviewFileCached = createCacheWrapper(getGitReviewFile);

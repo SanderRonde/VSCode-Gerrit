@@ -11,7 +11,7 @@
         -   [ ] Preserve
             -   [ ] Caching
             -   [ ] Proper garbage collection
-    -   [ ] Better more central caching
+    -   [x] Better more central caching
 -   [ ] Visual
     -   [ ] Changes pane
         -   [x] Changeset selection

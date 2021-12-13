@@ -5,7 +5,7 @@ import {
 	Uri,
 	workspace,
 } from 'vscode';
-import { FileCache } from '../views/activityBar/changes/changeTreeView/file/fileCache';
+import { fileCache } from '../views/activityBar/changes/changeTreeView/file/fileCache';
 import { PatchsetDescription } from '../views/activityBar/changes/changeTreeView';
 import { GerritCommentSide } from '../lib/gerrit/gerritAPI/types';
 import { getAPI } from '../lib/gerrit/gerritAPI';
@@ -221,11 +221,11 @@ export class FileProvider implements TextDocumentContentProvider {
 				if (doc.uri.scheme === GERRIT_FILE_SCHEME) {
 					const meta = FileMeta.tryFrom(doc.uri);
 					if (meta) {
-						FileCache.delete(
-							meta.project,
-							meta.commit.id,
-							meta.filePath
-						);
+						fileCache.delete({
+							project: meta.project,
+							path: meta.filePath,
+							revision: meta.commit.id,
+						});
 					}
 				}
 			})

@@ -24,6 +24,7 @@ import { GerritChange } from '../../lib/gerrit/gerritAPI/gerritChange';
 import { TextContent } from '../../lib/gerrit/gerritAPI/gerritFile';
 import { avg, diff, uniqueComplex } from '../../lib/util/util';
 import { getCurrentChangeID } from '../../lib/git/commit';
+import { CacheContainer } from '../../lib/util/cache';
 import * as gitDiffParser from 'gitdiff-parser';
 import { getGitAPI } from '../../lib/git/git';
 
@@ -50,16 +51,14 @@ type ThreadMapWithRanges = Map<
 	}[]
 >;
 
-const allCommentsCache: Map<
+const COMMENT_RETAIN_TIME = 1000 * 60 * 10;
+const commentCache = new CacheContainer<
 	string,
 	{
-		comments: {
-			allThreads: ThreadMap;
-			resolvedThreadMap: ThreadMap;
-		};
-		timer: NodeJS.Timeout;
+		allThreads: ThreadMap;
+		resolvedThreadMap: ThreadMap;
 	}
-> = new Map();
+>(COMMENT_RETAIN_TIME);
 
 function iterateUntilTrue<T>(
 	arr: T[],
@@ -163,15 +162,14 @@ function buildExpandedThreadRanges(
 	return expandedThreads;
 }
 
-const COMMENT_RETAIN_TIME = 1000 * 60 * 10;
 async function getAllComments(changeID: string): Promise<{
 	allThreads: ThreadMap;
 	unresolvedThreads: ThreadMap;
 }> {
 	const { allThreads, resolvedThreadMap: unresolvedThreadMap } =
 		await (async () => {
-			if (allCommentsCache.has(changeID)) {
-				return allCommentsCache.get(changeID)!.comments;
+			if (commentCache.has(changeID)) {
+				return commentCache.get(changeID)!;
 			}
 			const allComments = await GerritChange.getAllCommentsCached(
 				changeID
@@ -213,20 +211,10 @@ async function getAllComments(changeID: string): Promise<{
 				resolvedThreadMap,
 			};
 		})();
-	const timer = allCommentsCache.get(changeID)?.timer ?? null;
 
-	// Extend timer
-	if (timer) {
-		clearTimeout(timer);
-	}
-	allCommentsCache.set(changeID, {
-		comments: {
-			resolvedThreadMap: unresolvedThreadMap,
-			allThreads: allThreads,
-		},
-		timer: setTimeout(() => {
-			allCommentsCache.delete(changeID);
-		}, COMMENT_RETAIN_TIME),
+	commentCache.set(changeID, {
+		resolvedThreadMap: unresolvedThreadMap,
+		allThreads: allThreads,
 	});
 	return {
 		unresolvedThreads: unresolvedThreadMap,

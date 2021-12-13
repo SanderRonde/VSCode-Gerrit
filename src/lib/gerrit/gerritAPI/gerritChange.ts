@@ -5,11 +5,15 @@ import {
 	GerritDetailedChangeLabels,
 	GerritUserResponse,
 } from './types';
+import {
+	CacheContainer,
+	createCacheGetter,
+	createCacheSetter,
+} from '../../util/cache';
 import { PatchsetDescription } from '../../../views/activityBar/changes/changeTreeView';
 import { DefaultChangeFilter, GerritChangeFilter } from './filters';
 import { GerritComment, GerritDraftComment } from './gerritComment';
 import { ChangesOffsetParams, GerritAPIWith } from './api';
-import { TemporaryCache } from '../../util/temporaryCache';
 import { GerritChangeDetail } from './gerritChangeDetail';
 import { GerritRevision } from './gerritRevision';
 import { DynamicallyFetchable } from './shared';
@@ -22,8 +26,45 @@ import { getAPI } from '../gerritAPI';
 export type CommentMap = Map<string, (GerritComment | GerritDraftComment)[]>;
 
 export class GerritChange extends DynamicallyFetchable {
-	private static _commentMap: TemporaryCache<string, CommentMap> =
-		new TemporaryCache(1000 * 60);
+	private static _commentMap: CacheContainer<string, CommentMap> =
+		new CacheContainer(1000 * 60);
+
+	public static getAllComments = createCacheSetter(
+		'gerritChange.getAllComments',
+		async (changeID: string): Promise<CommentMap> => {
+			const api = await getAPI();
+			if (!api) {
+				return new Map();
+			}
+
+			const [comments, draftComments] = await Promise.all([
+				api.getComments(changeID),
+				api.getDraftComments(changeID),
+			]);
+
+			const mergedMap: Map<
+				string,
+				(GerritComment | GerritDraftComment)[]
+			> = new Map();
+			for (const [key, entries] of [
+				...comments.entries(),
+				...draftComments.entries(),
+			]) {
+				if (!mergedMap.has(key)) {
+					mergedMap.set(key, []);
+				}
+				mergedMap.get(key)!.push(...entries);
+			}
+
+			GerritChange._commentMap.set(changeID, mergedMap);
+			return mergedMap;
+		}
+	);
+
+	public static getAllCommentsCached = createCacheGetter<
+		Promise<CommentMap>,
+		[changeID: string]
+	>('gerritChange.getAllComments');
 
 	public override changeID: string;
 	public id: string;
@@ -118,42 +159,6 @@ export class GerritChange extends DynamicallyFetchable {
 				this._revisions = this._currentRevisions;
 			}
 		}
-	}
-
-	public static async getAllComments(changeID: string): Promise<CommentMap> {
-		const api = await getAPI();
-		if (!api) {
-			return new Map();
-		}
-
-		const [comments, draftComments] = await Promise.all([
-			api.getComments(changeID),
-			api.getDraftComments(changeID),
-		]);
-
-		const mergedMap: Map<string, (GerritComment | GerritDraftComment)[]> =
-			new Map();
-		for (const [key, entries] of [
-			...comments.entries(),
-			...draftComments.entries(),
-		]) {
-			if (!mergedMap.has(key)) {
-				mergedMap.set(key, []);
-			}
-			mergedMap.get(key)!.push(...entries);
-		}
-
-		GerritChange._commentMap.set(changeID, mergedMap);
-		return mergedMap;
-	}
-
-	public static async getAllCommentsCached(
-		changeID: string
-	): Promise<CommentMap> {
-		if (GerritChange._commentMap.has(changeID)) {
-			return GerritChange._commentMap.get(changeID)!;
-		}
-		return this.getAllComments(changeID);
 	}
 
 	/**

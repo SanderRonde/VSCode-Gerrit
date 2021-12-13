@@ -13,11 +13,12 @@ import {
 	GerritTopicResponse,
 } from './types';
 import { PATCHSET_LEVEL_KEY } from '../../../views/activityBar/changes/changeTreeView/patchSetLevelCommentsTreeView';
-import { FilesCache } from '../../../views/activityBar/changes/changeTreeView/file/filesCache';
-import { FileCache } from '../../../views/activityBar/changes/changeTreeView/file/fileCache';
+import { filesCache } from '../../../views/activityBar/changes/changeTreeView/file/filesCache';
+import { fileCache } from '../../../views/activityBar/changes/changeTreeView/file/fileCache';
 import { PatchsetDescription } from '../../../views/activityBar/changes/changeTreeView';
 import { optionalArrayEntry, optionalObjectProperty } from '../../util/util';
 import got, { OptionsOfTextResponseBody, Response } from 'got/dist/source';
+import { createCacheGetter, createCacheSetter } from '../../util/cache';
 import { DefaultChangeFilter, GerritChangeFilter } from './filters';
 import { GerritComment, GerritDraftComment } from './gerritComment';
 import { FileMeta } from '../../../providers/fileProvider';
@@ -142,8 +143,6 @@ class UserCache {
 }
 
 export class GerritAPI {
-	private static _groups: GerritGroup[] | null = null;
-	private static _projects: GerritProject[] | null = null;
 	private static _reviewerSuggestionCache: Map<
 		string,
 		Map<string | undefined, (GerritUser | GerritGroup)[]>
@@ -155,6 +154,55 @@ export class GerritAPI {
 	private readonly _MAGIC_PREFIX = ")]}'";
 	private _inFlightRequests: Map<string, Promise<ResponseWithBody<string>>> =
 		new Map();
+
+	public getProjects = createCacheSetter(
+		'api.getProjects',
+		async (): Promise<GerritProject[]> => {
+			const response = await this._tryRequest(this.getURL('projects/'), {
+				searchParams: new URLSearchParams([['d', '']]),
+				...this._get,
+			});
+
+			const json = this._handleResponse<GerritProjectsResponse>(response);
+			if (!json) {
+				return [];
+			}
+
+			const projects = Object.entries(json).map(
+				([projectName, projectJson]) =>
+					new GerritProject(projectName, projectJson)
+			);
+			return projects;
+		}
+	);
+
+	public getProjectsCached = createCacheGetter<Promise<GerritProject[]>, []>(
+		'api.getProjects'
+	);
+
+	public getGroups = createCacheSetter(
+		'api.getGroups',
+		async (): Promise<GerritGroup[]> => {
+			const response = await this._tryRequest(
+				this.getURL('groups/'),
+				this._get
+			);
+
+			const json = this._handleResponse<GerritGroupsResponse>(response);
+			if (!json) {
+				return [];
+			}
+
+			return Object.entries(json).map(
+				([groupName, groupJson]) =>
+					new GerritGroup(groupName, groupJson)
+			);
+		}
+	);
+
+	public getGroupsCached = createCacheGetter<Promise<GerritGroup[]>, []>(
+		'api.getGroups'
+	);
 
 	private get _get(): OptionsOfTextResponseBody {
 		return {
@@ -791,12 +839,18 @@ export class GerritAPI {
 		revision: PatchsetDescription,
 		baseRevision?: PatchsetDescription
 	): Promise<GerritFile[]> {
-		if (FilesCache.has(change.project, change.changeID, revision.number)) {
-			return FilesCache.get(
-				change.project,
-				change.changeID,
-				revision.number
-			)!;
+		if (
+			filesCache.has({
+				changeID: change.changeID,
+				project: change.project,
+				revision: revision.number,
+			})
+		) {
+			return filesCache.get({
+				changeID: change.changeID,
+				project: change.project,
+				revision: revision.number,
+			})!;
 		}
 
 		const response = await this._tryRequest(
@@ -832,7 +886,14 @@ export class GerritAPI {
 					file
 				);
 			});
-		FilesCache.set(change.project, change.changeID, revision.number, files);
+		filesCache.set(
+			{
+				changeID: change.changeID,
+				project: change.project,
+				revision: revision.number,
+			},
+			files
+		);
 		return files;
 	}
 
@@ -857,8 +918,18 @@ export class GerritAPI {
 		changeID: string;
 		filePath: string;
 	}): Promise<TextContent | null> {
-		if (FileCache.has(project, commit.id, filePath)) {
-			return FileCache.get(project, commit.id, filePath);
+		if (
+			fileCache.has({
+				project,
+				path: filePath,
+				revision: commit.id,
+			})
+		) {
+			return fileCache.get({
+				project,
+				path: filePath,
+				revision: commit.id,
+			});
 		}
 
 		const response = await this._tryRequest(
@@ -891,7 +962,14 @@ export class GerritAPI {
 			return null;
 		}
 
-		FileCache.set(project, commit.id, filePath, textContent);
+		fileCache.set(
+			{
+				project,
+				path: filePath,
+				revision: commit.id,
+			},
+			textContent
+		);
 		return textContent;
 	}
 
@@ -1083,59 +1161,6 @@ export class GerritAPI {
 		const users = await this.getUsers(query, maxCount);
 		UserCache.set(query, users);
 		return users;
-	}
-
-	public async getGroups(): Promise<GerritGroup[]> {
-		const response = await this._tryRequest(
-			this.getURL('groups/'),
-			this._get
-		);
-
-		const json = this._handleResponse<GerritGroupsResponse>(response);
-		if (!json) {
-			return [];
-		}
-
-		const groups = Object.entries(json).map(
-			([groupName, groupJson]) => new GerritGroup(groupName, groupJson)
-		);
-		GerritAPI._groups = groups;
-		return groups;
-	}
-
-	public async getGroupsCached(): Promise<GerritGroup[]> {
-		if (GerritAPI._groups) {
-			return GerritAPI._groups;
-		}
-
-		return this.getGroups();
-	}
-
-	public async getProjects(): Promise<GerritProject[]> {
-		const response = await this._tryRequest(this.getURL('projects/'), {
-			searchParams: new URLSearchParams([['d', '']]),
-			...this._get,
-		});
-
-		const json = this._handleResponse<GerritProjectsResponse>(response);
-		if (!json) {
-			return [];
-		}
-
-		const projects = Object.entries(json).map(
-			([projectName, projectJson]) =>
-				new GerritProject(projectName, projectJson)
-		);
-		GerritAPI._projects = projects;
-		return projects;
-	}
-
-	public async getProjectsCached(): Promise<GerritProject[]> {
-		if (GerritAPI._projects) {
-			return GerritAPI._projects;
-		}
-
-		return this.getProjects();
 	}
 
 	public async getChangeDetail(

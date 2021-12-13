@@ -8,6 +8,8 @@ import {
 	setCommentResolved,
 	doneComment,
 	ackComment,
+	copyCommentLink,
+	openCommentOnline,
 } from '../providers/commentProvider';
 
 import {
@@ -73,6 +75,8 @@ export enum GerritExtensionCommands {
 	OPEN_CURRENT_CHANGE_ONLINE = 'gerrit.openCurrentOnline',
 	FOCUS_CHANGE = 'gerrit.focusChange',
 	PUSH_FOR_REVIEW = 'gerrit.pushForReview',
+	COPY_COMMENT_LINK = 'gerrit.copyCommentLink',
+	OPEN_COMMENT_ONLINE = 'gerrit.openCommentOnline',
 }
 
 export function registerCommands(context: ExtensionContext): void {
@@ -163,6 +167,18 @@ export function registerCommands(context: ExtensionContext): void {
 		commands.registerCommand(
 			GerritExtensionCommands.PREVIOUS_UNRESOLVED_COMMENT,
 			previousUnresolvedComment
+		)
+	);
+	context.subscriptions.push(
+		commands.registerCommand(
+			GerritExtensionCommands.COPY_COMMENT_LINK,
+			copyCommentLink
+		)
+	);
+	context.subscriptions.push(
+		commands.registerCommand(
+			GerritExtensionCommands.OPEN_COMMENT_ONLINE,
+			openCommentOnline
 		)
 	);
 

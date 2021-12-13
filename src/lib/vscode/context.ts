@@ -6,6 +6,7 @@ export interface ContextProps {
 	'gerrit:searchQuery': string | null;
 	'gerrit:searchChangeNumber': number | null;
 	'gerrit:isUploader': boolean;
+	'gerrit:hasCommentFeature': boolean;
 }
 
 const contextProps: ContextProps = {
@@ -14,6 +15,7 @@ const contextProps: ContextProps = {
 	'gerrit:searchQuery': null,
 	'gerrit:searchChangeNumber': null,
 	'gerrit:isUploader': false,
+	'gerrit:hasCommentFeature': false,
 };
 
 export async function setContextProp<K extends keyof ContextProps>(

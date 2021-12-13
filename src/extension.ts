@@ -17,7 +17,9 @@ import { setupChangeIDCache } from './lib/git/commit';
 import { showStatusBarIcon } from './views/statusBar';
 import { createOutputChannel } from './lib/util/log';
 import { isUsingGerrit } from './lib/gerrit/gerrit';
+import { VersionNumber } from './lib/util/version';
 import { storageInit } from './lib/vscode/storage';
+import { getAPI } from './lib/gerrit/gerritAPI';
 import { setDevContext } from './lib/util/dev';
 
 export async function activate(context: ExtensionContext): Promise<void> {
@@ -110,6 +112,15 @@ export async function activate(context: ExtensionContext): Promise<void> {
 
 	// Warm up cache for self
 	void GerritUser.getSelf();
+
+	// Get version number and enable/disable features
+	const version = await (await getAPI())?.getGerritVersion();
+	if (version) {
+		await setContextProp(
+			'gerrit:hasCommentFeature',
+			version.isGreaterThanOrEqual(new VersionNumber(3, 5, 0))
+		);
+	}
 }
 
 export function deactivate(): void {}

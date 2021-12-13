@@ -16,6 +16,7 @@ import { getLastCommits, GitCommit, tryExecAsync } from './gitCLI';
 import { PERIODICAL_GIT_FETCH_INTERVAL } from '../util/constants';
 import { createAwaitingInterval } from '../util/util';
 import { getConfiguration } from '../vscode/config';
+import { VersionNumber } from '../util/version';
 import { getCurrentChangeID } from './commit';
 
 export function getGitAPI(): API | null {
@@ -114,20 +115,18 @@ async function ensureNoRebaseErrors(): Promise<boolean> {
 		return false;
 	}
 
-	const gitVersion = await (async (): Promise<
-		[number, number, number] | null
-	> => {
+	const gitVersion = await (async (): Promise<VersionNumber | null> => {
 		const { stdout, success } = await tryExecAsync('git version');
 		if (!success) {
 			return null;
 		}
 
 		try {
-			return stdout.split(' ').pop()?.split('.').map(Number) as [
-				number,
-				number,
-				number
-			];
+			const str = stdout.split(' ').pop();
+			if (!str) {
+				return null;
+			}
+			return VersionNumber.from(str);
 		} catch (e) {
 			console.log(
 				`Failed to parse git version: ${(e as Error).toString()}`
@@ -144,10 +143,11 @@ async function ensureNoRebaseErrors(): Promise<boolean> {
 	}
 
 	{
-		const rebaseFlag =
-			gitVersion[0] > 2 || gitVersion[1] >= 18
-				? '--rebase-merges'
-				: '--preserve-merges';
+		const rebaseFlag = gitVersion.isGreaterThanOrEqual(
+			new VersionNumber(2, 18, 0)
+		)
+			? '--rebase-merges'
+			: '--preserve-merges';
 		const remoteBranch =
 			gitReviewFile.branch ??
 			gitReviewFile.defaultbranch ??

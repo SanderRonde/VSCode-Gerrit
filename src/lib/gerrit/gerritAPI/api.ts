@@ -27,6 +27,7 @@ import { GerritFile, TextContent } from './gerritFile';
 import { getConfiguration } from '../../vscode/config';
 import { shouldDebugRequests } from '../../util/dev';
 import { READONLY_MODE } from '../../util/constants';
+import { VersionNumber } from '../../util/version';
 import { getChangeCache } from '../gerritCache';
 import { GerritProject } from './gerritProject';
 import { GerritChange } from './gerritChange';
@@ -1318,5 +1319,19 @@ export class GerritAPI {
 		}
 
 		return true;
+	}
+
+	public async getGerritVersion(): Promise<VersionNumber | null> {
+		const response = await this._tryRequest(
+			this.getURL('config/server/version', false),
+			this._get
+		);
+
+		if (!response || !this._assertRequestSucceeded(response)) {
+			return null;
+		}
+
+		console.log(response.strippedBody);
+		return VersionNumber.from(response.strippedBody);
 	}
 }

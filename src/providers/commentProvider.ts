@@ -5,6 +5,7 @@ import {
 	CommentThread,
 	CommentThreadCollapsibleState,
 	Disposable,
+	env,
 	Position,
 	Range,
 	TextDocument,
@@ -34,6 +35,7 @@ import * as gitDiffParser from 'gitdiff-parser';
 import { getGitAPI } from '../lib/git/git';
 import path = require('path');
 import { FileTreeView } from '../views/activityBar/changes/changeTreeView/fileTreeView';
+import { getAPI } from '../lib/gerrit/gerritAPI';
 
 export interface GerritCommentReply {
 	text: string;
@@ -800,4 +802,42 @@ export async function ackComment(comment: GerritCommentBase): Promise<void> {
 		return;
 	}
 	await createComment(comment.thread, 'Ack', true, comment);
+}
+
+async function getThreadWebLink(thread: CommentThread): Promise<string | null> {
+	const gerritThread = GerritCommentThread.from(thread);
+	if (!gerritThread || !gerritThread.lastComment) {
+		void window.showErrorMessage('Failed to find comment');
+		return null;
+	}
+	const comment = gerritThread.lastComment;
+	const api = await getAPI();
+	const change = await GerritChange.getChangeCached(comment.changeID);
+	if (!api || !change) {
+		void window.showErrorMessage('Failed to get comment web link');
+		return null;
+	}
+
+	return api.getURL(
+		`/c/${change.project}/+/${change.number}/comments/${comment.id}`,
+		false
+	);
+}
+
+export async function copyCommentLink(thread: CommentThread): Promise<void> {
+	const url = await getThreadWebLink(thread);
+	if (!url) {
+		return;
+	}
+	await env.clipboard.writeText(url);
+	void window.showInformationMessage('Copied comment link!');
+}
+
+export async function openCommentOnline(thread: CommentThread): Promise<void> {
+	const url = await getThreadWebLink(thread);
+	if (!url) {
+		return;
+	}
+
+	await env.openExternal(Uri.parse(url));
 }

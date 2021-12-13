@@ -45,7 +45,8 @@
 		"onCommand:gerrit.openCurrentOnline",
 		"onCommand:gerrit.openChangeSelector",
 		"onCommand:gerrit.focusChange",
-		"onCommand:gerrit.pushForReview"
+		"onCommand:gerrit.pushForReview",
+		"onCommand:gerrit.copyCommentLink"
 	],
 	"extensionKind": [
 		"workspace"
@@ -194,6 +195,16 @@
 				"command": "gerrit.pushForReview",
 				"title": "Push for Review",
 				"icon": "$(git-commit)"
+			},
+			{
+				"command": "gerrit.copyCommentLink",
+				"title": "Copy weblink to this comment",
+				"icon": "$(link)"
+			},
+			{
+				"command": "gerrit.openCommentOnline",
+				"title": "Open comment on Gerrit",
+				"icon": "$(link-external)"
 			}
 		],
 		"keybindings": [
@@ -335,6 +346,14 @@
 				{
 					"command": "gerrit.pushForReview",
 					"when": "true"
+				},
+				{
+					"command": "gerrit.copyCommentLink",
+					"when": "false"
+				},
+				{
+					"command": "gerrit.openCommentOnline",
+					"when": "false"
 				}
 			],
 			"comments/comment/context": [
@@ -383,18 +402,28 @@
 			],
 			"comments/commentThread/title": [
 				{
-					"command": "gerrit.nextUnresolvedComment",
-					"group": "collapse@-3",
+					"command": "gerrit.previousUnresolvedComment",
+					"group": "collapse@-5",
 					"when": "commentController == gerrit"
 				},
 				{
-					"command": "gerrit.previousUnresolvedComment",
+					"command": "gerrit.nextUnresolvedComment",
 					"group": "collapse@-4",
 					"when": "commentController == gerrit"
 				},
 				{
-					"command": "gerrit.collapseAllComments",
+					"command": "gerrit.copyCommentLink",
+					"group": "collapse@-3",
+					"when": "commentController == gerrit && gerrit:hasCommentFeature"
+				},
+				{
+					"command": "gerrit.openCommentOnline",
 					"group": "collapse@-2",
+					"when": "commentController == gerrit && gerrit:hasCommentFeature"
+				},
+				{
+					"command": "gerrit.collapseAllComments",
+					"group": "collapse@-1",
 					"when": "commentController == gerrit"
 				}
 			],

@@ -30,6 +30,7 @@ import { GerritChange } from '../../../../lib/gerrit/gerritAPI/gerritChange';
 import { DocumentManager } from '../../../../providers/commentProvider';
 import { TreeItemWithoutChildren } from '../../shared/treeTypes';
 import { tertiaryWithFallback } from '../../../../lib/util/util';
+import { CacheContainer } from '../../../../lib/util/cache';
 import { PatchsetDescription } from '../changeTreeView';
 import * as path from 'path';
 
@@ -43,7 +44,8 @@ export interface DiffEditorMapEntry {
 
 export class FileTreeView implements TreeItemWithoutChildren {
 	private static _lastKey: number = 0;
-	private static _diffEditorMap: Map<string, DiffEditorMapEntry> = new Map();
+	private static _diffEditorMap: CacheContainer<string, DiffEditorMapEntry> =
+		new CacheContainer();
 	private static _disposables: Disposable[] = [];
 
 	public constructor(

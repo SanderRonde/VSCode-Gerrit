@@ -5,12 +5,8 @@ import {
 	GerritDetailedChangeLabels,
 	GerritUserResponse,
 } from './types';
-import {
-	CacheContainer,
-	createCacheGetter,
-	createCacheSetter,
-} from '../../util/cache';
 import { PatchsetDescription } from '../../../views/activityBar/changes/changeTreeView';
+import { createCacheGetter, createCacheSetter } from '../../util/cache';
 import { DefaultChangeFilter, GerritChangeFilter } from './filters';
 import { GerritComment, GerritDraftComment } from './gerritComment';
 import { ChangesOffsetParams, GerritAPIWith } from './api';
@@ -26,9 +22,6 @@ import { getAPI } from '../gerritAPI';
 export type CommentMap = Map<string, (GerritComment | GerritDraftComment)[]>;
 
 export class GerritChange extends DynamicallyFetchable {
-	private static _commentMap: CacheContainer<string, CommentMap> =
-		new CacheContainer(1000 * 60);
-
 	public static getAllComments = createCacheSetter(
 		'gerritChange.getAllComments',
 		async (changeID: string): Promise<CommentMap> => {
@@ -37,6 +30,7 @@ export class GerritChange extends DynamicallyFetchable {
 				return new Map();
 			}
 
+			// TODO: this probably needs to use some form of cache
 			const [comments, draftComments] = await Promise.all([
 				api.getComments(changeID),
 				api.getDraftComments(changeID),
@@ -56,7 +50,6 @@ export class GerritChange extends DynamicallyFetchable {
 				mergedMap.get(key)!.push(...entries);
 			}
 
-			GerritChange._commentMap.set(changeID, mergedMap);
 			return mergedMap;
 		}
 	);

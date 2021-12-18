@@ -1,15 +1,14 @@
 import {
+	TREE_ITEM_CHANGE_CUSTOM_PATCHSET_SELECTION,
+	TREE_ITEM_TYPE_CHANGE,
+} from '../../../lib/util/magic';
+import {
 	Disposable,
-	ExtensionContext,
 	ThemeIcon,
 	TreeItem,
 	TreeItemCollapsibleState,
 	window,
 } from 'vscode';
-import {
-	TREE_ITEM_CHANGE_CUSTOM_PATCHSET_SELECTION,
-	TREE_ITEM_TYPE_CHANGE,
-} from '../../../lib/util/magic';
 import { PatchSetLevelCommentsTreeView } from './changeTreeView/patchSetLevelCommentsTreeView';
 import { GerritRevision } from '../../../lib/gerrit/gerritAPI/gerritRevision';
 import { GerritChange } from '../../../lib/gerrit/gerritAPI/gerritChange';
@@ -46,7 +45,6 @@ export class ChangeTreeView implements TreeItemWithChildren {
 	public patchSetCurrent: PatchsetDescription | null = null;
 
 	public constructor(
-		private readonly _context: ExtensionContext,
 		public change: GerritChange,
 		public readonly parent: ViewPanel | SearchResultsTreeProvider
 	) {}

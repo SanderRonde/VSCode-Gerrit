@@ -35,7 +35,7 @@ function getCurrentMeta(): FileMeta | null {
 	return meta;
 }
 
-type ThreadMap = Map<
+type ThreadMap = CacheContainer<
 	string,
 	{
 		range: Range | null;
@@ -43,7 +43,7 @@ type ThreadMap = Map<
 	}[]
 >;
 
-type ThreadMapWithRanges = Map<
+type ThreadMapWithRanges = CacheContainer<
 	string,
 	{
 		range: Range;
@@ -191,7 +191,7 @@ async function getAllComments(changeID: string): Promise<{
 					] as const;
 				}
 			);
-			const resolvedThreadMap = new Map(
+			const resolvedThreadMap = CacheContainer.from(
 				baseEntries
 					.map(([key, threads]) => {
 						return [
@@ -205,7 +205,7 @@ async function getAllComments(changeID: string): Promise<{
 					})
 					.filter(([, threads]) => threads.length !== 0)
 			);
-			const threadMap = new Map(baseEntries);
+			const threadMap = CacheContainer.from(baseEntries);
 			return {
 				allThreads: threadMap,
 				resolvedThreadMap,
@@ -657,9 +657,7 @@ enum COMMENT_POSITION {
 
 export async function nextUnresolvedComment(): Promise<void> {
 	await jumpToUnresolvedCommentShared((data) => {
-		const allFilePaths = supersortFilePaths([
-			...data.unresolvedThreads.keys(),
-		]);
+		const allFilePaths = supersortFilePaths(data.unresolvedThreads.keys());
 
 		// If no file path, return first comment of first file
 		if (!data.filePath) {

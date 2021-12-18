@@ -2,7 +2,6 @@ import {
 	Disposable,
 	Event,
 	EventEmitter,
-	ExtensionContext,
 	TreeDataProvider,
 	TreeItem,
 	TreeView,
@@ -20,7 +19,7 @@ export class ChangesTreeProvider
 {
 	private static _instances: Set<ChangesTreeProvider> = new Set();
 	private _disposables: Disposable[] = [];
-	public rootViewProvider = new RootTreeViewProvider(this._context, this);
+	public rootViewProvider = new RootTreeViewProvider(this);
 
 	public onDidChangeTreeDataEmitter: EventEmitter<
 		TreeViewItem | undefined | null | void
@@ -29,7 +28,7 @@ export class ChangesTreeProvider
 		TreeViewItem | undefined | null | void
 	> = this.onDidChangeTreeDataEmitter.event;
 
-	public constructor(private readonly _context: ExtensionContext) {
+	public constructor() {
 		ChangesTreeProvider._instances.add(this);
 		this._disposables.push(FileTreeView.init());
 		const interval = setTimeout(() => {
@@ -86,16 +85,14 @@ export class ChangesTreeProvider
 }
 
 let changesTreeProvider: TreeView<TreeViewItem> | null = null;
-export function getOrCreateChangesTreeProvider(
-	context: ExtensionContext
-): TreeView<TreeViewItem> {
+export function getOrCreateChangesTreeProvider(): TreeView<TreeViewItem> {
 	if (changesTreeProvider) {
 		return changesTreeProvider;
 	}
 	return (changesTreeProvider = window.createTreeView(
 		'gerrit:changeExplorer',
 		{
-			treeDataProvider: new ChangesTreeProvider(context),
+			treeDataProvider: new ChangesTreeProvider(),
 			showCollapseAll: true,
 		}
 	));

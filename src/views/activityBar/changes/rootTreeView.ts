@@ -1,17 +1,14 @@
 import { getConfiguration } from '../../../lib/vscode/config';
-import { ExtensionContext, TreeItem, window } from 'vscode';
 import { TreeItemWithChildren } from '../shared/treeTypes';
 import { configureChangeLists } from './changeCommands';
 import { ChangesTreeProvider } from '../changes';
+import { TreeItem, window } from 'vscode';
 import { ViewPanel } from './viewPanel';
 
 export class RootTreeViewProvider implements TreeItemWithChildren {
 	private _lastChildren: ViewPanel[] = [];
 
-	public constructor(
-		private readonly _context: ExtensionContext,
-		public readonly root: ChangesTreeProvider
-	) {}
+	public constructor(public readonly root: ChangesTreeProvider) {}
 
 	public static async openConfigSettingsMessage(
 		message: string
@@ -60,7 +57,7 @@ export class RootTreeViewProvider implements TreeItemWithChildren {
 			}
 
 			return selectedView.panels.map((panel) => {
-				return new ViewPanel(this._context, this, panel);
+				return new ViewPanel(this, panel);
 			});
 		})();
 		return (this._lastChildren = children);

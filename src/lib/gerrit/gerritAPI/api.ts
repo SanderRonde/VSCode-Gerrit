@@ -12,13 +12,18 @@ import {
 	GerritSuggestedReviewerResponse,
 	GerritTopicResponse,
 } from './types';
+import {
+	CacheContainer,
+	createCacheGetter,
+	createCacheSetter,
+	MultiLevelCacheContainer,
+} from '../../util/cache';
 import { PATCHSET_LEVEL_KEY } from '../../../views/activityBar/changes/changeTreeView/patchSetLevelCommentsTreeView';
 import { filesCache } from '../../../views/activityBar/changes/changeTreeView/file/filesCache';
 import { fileCache } from '../../../views/activityBar/changes/changeTreeView/file/fileCache';
 import { PatchsetDescription } from '../../../views/activityBar/changes/changeTreeView';
 import { optionalArrayEntry, optionalObjectProperty } from '../../util/util';
 import got, { OptionsOfTextResponseBody, Response } from 'got/dist/source';
-import { createCacheGetter, createCacheSetter } from '../../util/cache';
 import { DefaultChangeFilter, GerritChangeFilter } from './filters';
 import { GerritComment, GerritDraftComment } from './gerritComment';
 import { FileMeta } from '../../../providers/fileProvider';
@@ -71,7 +76,7 @@ export interface ChangesOffsetParams {
 /**
  * A bit overengineered but hey who cares
  */
-type UserCacheMap = Map<
+type UserCacheMap = CacheContainer<
 	string,
 	{
 		map: UserCacheMap;
@@ -98,7 +103,7 @@ type UserCacheMap = Map<
 // field on the last match. If this is set, the server didn't send us
 // everything and we can't use that entry.
 class UserCache {
-	private static readonly _userCache: UserCacheMap = new Map();
+	private static readonly _userCache: UserCacheMap = new CacheContainer();
 
 	public static get(query: string): GerritUser[] | null {
 		let currentMap = this._userCache;
@@ -130,7 +135,7 @@ class UserCache {
 			const char = query[i];
 			if (!currentMap.has(char)) {
 				currentMap.set(char, {
-					map: new Map(),
+					map: new CacheContainer(),
 				});
 			}
 			currentMap = currentMap.get(char)!.map;
@@ -138,20 +143,22 @@ class UserCache {
 		currentMap.set(query[query.length - 1], {
 			entries: users,
 			complete: users.length === 0 || !users[users.length - 1].hasMore,
-			map: new Map(),
+			map: new CacheContainer(),
 		});
 	}
 }
 
 export class GerritAPI {
-	private static _reviewerSuggestionCache: Map<
+	private static _reviewerSuggestionCache: MultiLevelCacheContainer<
 		string,
-		Map<string | undefined, (GerritUser | GerritGroup)[]>
-	> = new Map();
-	private static _ccSuggestionCache: Map<
+		string | undefined,
+		(GerritUser | GerritGroup)[]
+	> = new MultiLevelCacheContainer();
+	private static _ccSuggestionCache: MultiLevelCacheContainer<
 		string,
-		Map<string | undefined, (GerritUser | GerritGroup)[]>
-	> = new Map();
+		string | undefined,
+		(GerritUser | GerritGroup)[]
+	> = new MultiLevelCacheContainer();
 	private readonly _MAGIC_PREFIX = ")]}'";
 	private _inFlightRequests: Map<string, Promise<ResponseWithBody<string>>> =
 		new Map();
@@ -1185,13 +1192,8 @@ export class GerritAPI {
 		query?: string,
 		maxCount: number = 10
 	): Promise<(GerritUser | GerritGroup)[]> {
-		if (
-			GerritAPI._reviewerSuggestionCache.has(changeID) &&
-			GerritAPI._reviewerSuggestionCache.get(changeID)!.has(query)
-		) {
-			return GerritAPI._reviewerSuggestionCache
-				.get(changeID)!
-				.get(query)!;
+		if (GerritAPI._reviewerSuggestionCache.has(changeID, query)) {
+			return GerritAPI._reviewerSuggestionCache.get(changeID, query)!;
 		}
 
 		const suggestions = await this._suggestPersonShared(
@@ -1199,12 +1201,7 @@ export class GerritAPI {
 			query,
 			maxCount
 		);
-		if (!GerritAPI._reviewerSuggestionCache.has(changeID)) {
-			GerritAPI._reviewerSuggestionCache.set(changeID, new Map());
-		}
-		GerritAPI._reviewerSuggestionCache
-			.get(changeID)!
-			.set(query, suggestions);
+		GerritAPI._reviewerSuggestionCache.set(changeID, query, suggestions);
 		return suggestions;
 	}
 
@@ -1213,11 +1210,8 @@ export class GerritAPI {
 		query?: string,
 		maxCount: number = 10
 	): Promise<(GerritUser | GerritGroup)[]> {
-		if (
-			GerritAPI._ccSuggestionCache.has(changeID) &&
-			GerritAPI._ccSuggestionCache.get(changeID)!.has(query)
-		) {
-			return GerritAPI._ccSuggestionCache.get(changeID)!.get(query)!;
+		if (GerritAPI._ccSuggestionCache.has(changeID, query)) {
+			return GerritAPI._ccSuggestionCache.get(changeID, query)!;
 		}
 
 		const suggestions = await this._suggestPersonShared(
@@ -1226,10 +1220,7 @@ export class GerritAPI {
 			maxCount,
 			['reviewer-state', 'CC']
 		);
-		if (!GerritAPI._ccSuggestionCache.has(changeID)) {
-			GerritAPI._ccSuggestionCache.set(changeID, new Map());
-		}
-		GerritAPI._ccSuggestionCache.get(changeID)!.set(query, suggestions);
+		GerritAPI._ccSuggestionCache.set(changeID, query, suggestions);
 		return suggestions;
 	}
 

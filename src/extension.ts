@@ -51,7 +51,7 @@ export async function activate(context: ExtensionContext): Promise<void> {
 	await showStatusBarIcon(context);
 
 	// Register tree views
-	context.subscriptions.push(getOrCreateChangesTreeProvider(context));
+	context.subscriptions.push(getOrCreateChangesTreeProvider());
 	context.subscriptions.push(
 		window.registerWebviewViewProvider(
 			'gerrit:review',
@@ -65,9 +65,7 @@ export async function activate(context: ExtensionContext): Promise<void> {
 	);
 	context.subscriptions.push(
 		(() => {
-			const searchResultsTreeProvider = new SearchResultsTreeProvider(
-				context
-			);
+			const searchResultsTreeProvider = new SearchResultsTreeProvider();
 			const treeView = window.createTreeView('gerrit:searchResults', {
 				treeDataProvider: searchResultsTreeProvider,
 				showCollapseAll: true,

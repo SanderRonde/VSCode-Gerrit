@@ -137,10 +137,47 @@ export function createCacheGetter<V, A extends unknown[]>(
 	};
 }
 
-export class CacheContainer<K, V, KK = K> implements Disposable {
-	private _cache: Map<KK, ValueWithTimer<V>> = new Map();
+class CacheContainerShared<K, V, V2 extends object> implements Disposable {
+	protected _cache: Map<K, V> = new Map();
+	protected _cached: WeakSet<V2> = new WeakSet();
 
-	public constructor(private readonly _refreshTimer?: number | null) {}
+	public get size(): number {
+		return this._cache.size;
+	}
+
+	public constructor(protected readonly _refreshTimer?: number | null) {
+		console.log(this._cached);
+		setInterval(() => {
+			console.log(this._cached);
+		}, 10000);
+	}
+
+	public dispose(): void {
+		this._cache.clear();
+	}
+
+	public keys(): K[] {
+		return [...this._cache.keys()];
+	}
+
+	public clear(): void {
+		this._cache.clear();
+	}
+}
+
+export class CacheContainer<K, V extends object, KK = K>
+	extends CacheContainerShared<KK, ValueWithTimer<V>, V>
+	implements Disposable
+{
+	public static from<K, V extends object, KK = K>(
+		entries: readonly (readonly [K, V])[]
+	): CacheContainer<K, V, KK> {
+		const container = new CacheContainer<K, V, KK>();
+		for (const [k1, v] of entries) {
+			container.set(k1, v);
+		}
+		return container;
+	}
 
 	protected getEntry(k1: K): ValueWithTimer<V> | null {
 		const key = this.getKey(k1);
@@ -160,6 +197,8 @@ export class CacheContainer<K, V, KK = K> implements Disposable {
 			prevValue.clearTimer();
 		}
 
+		this._cached.add(value);
+		console.log(this._cached);
 		const key = this.getKey(k1);
 		const timeout =
 			this._refreshTimer &&
@@ -189,11 +228,15 @@ export class CacheContainer<K, V, KK = K> implements Disposable {
 		this._cache.delete(key);
 	}
 
-	public dispose(): void {
+	public override dispose(): void {
 		[...this._cache.values()].forEach((entry) => {
 			entry.clearTimer?.();
 		});
-		this._cache.clear();
+		super.dispose();
+	}
+
+	public values(): V[] {
+		return [...this._cache.values()].map((entry) => entry.value);
 	}
 }
 
@@ -202,11 +245,10 @@ export type ValueWithTimer<V> = {
 	clearTimer?: () => void;
 };
 
-export class MultiLevelCacheContainer<K1, K2, V> implements Disposable {
-	protected _cache: Map<K1, Map<K2, ValueWithTimer<V>>> = new Map();
-
-	public constructor(private readonly _refreshTimer?: number | null) {}
-
+export class MultiLevelCacheContainer<K1, K2, V extends object>
+	extends CacheContainerShared<K1, Map<K2, ValueWithTimer<V>>, V>
+	implements Disposable
+{
 	protected getEntry(k1: K1, k2: K2): ValueWithTimer<V> | null {
 		if (!this._cache.has(k1)) {
 			return null;
@@ -232,6 +274,8 @@ export class MultiLevelCacheContainer<K1, K2, V> implements Disposable {
 			setTimeout(() => {
 				this._cache.get(k1)!.delete(k2);
 			}, this._refreshTimer);
+		this._cached.add(value);
+		console.log(this._cached);
 		this._cache.get(k1)!.set(k2, {
 			value,
 			clearTimer: timeout
@@ -250,13 +294,13 @@ export class MultiLevelCacheContainer<K1, K2, V> implements Disposable {
 		return this.getEntry(k1, k2)?.value ?? null;
 	}
 
-	public dispose(): void {
+	public override dispose(): void {
 		[...this._cache.values()].forEach((l1) => {
 			[...l1.values()].forEach((l2) => {
 				l2.clearTimer?.();
 			});
 			l1.clear();
 		});
-		this._cache.clear();
+		super.dispose();
 	}
 }

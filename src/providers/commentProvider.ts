@@ -23,6 +23,7 @@ import {
 	GerritChangeStatus,
 	GerritCommentSide,
 } from '../lib/gerrit/gerritAPI/types';
+import { FileTreeView } from '../views/activityBar/changes/changeTreeView/fileTreeView';
 import { GerritCommentThread } from '../lib/gerrit/gerritAPI/gerritCommentThread';
 import { FileMetaWithSideAndBase, FileProvider } from './fileProvider';
 import { GerritChange } from '../lib/gerrit/gerritAPI/gerritChange';
@@ -30,12 +31,12 @@ import { DateSortDirection, DateTime } from '../lib/util/dateTime';
 import { GerritFile } from '../lib/gerrit/gerritAPI/gerritFile';
 import { getCurrentChangeIDCached } from '../lib/git/commit';
 import { GerritAPIWith } from '../lib/gerrit/gerritAPI/api';
+import { CacheContainer } from '../lib/util/cache';
 import { uniqueComplex } from '../lib/util/util';
+import { getAPI } from '../lib/gerrit/gerritAPI';
 import * as gitDiffParser from 'gitdiff-parser';
 import { getGitAPI } from '../lib/git/git';
 import path = require('path');
-import { FileTreeView } from '../views/activityBar/changes/changeTreeView/fileTreeView';
-import { getAPI } from '../lib/gerrit/gerritAPI';
 
 export interface GerritCommentReply {
 	text: string;
@@ -53,7 +54,8 @@ interface GerritCommentThreadProps {
 }
 
 export class DocumentCommentManager {
-	private _threadMap: Map<string, GerritCommentThread> = new Map();
+	private _threadMap: CacheContainer<string, GerritCommentThread> =
+		new CacheContainer();
 	private _threadLineCount: Map<number, number> = new Map();
 
 	public constructor(
@@ -250,7 +252,7 @@ export class DocumentCommentManager {
 	}
 
 	public collapseAll(): void {
-		[...this._threadMap.values()].forEach((thread) => thread.collapse());
+		this._threadMap.values().forEach((thread) => thread.collapse());
 	}
 
 	public dispose(): void {

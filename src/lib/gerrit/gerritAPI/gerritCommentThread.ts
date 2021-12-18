@@ -12,6 +12,7 @@ import { GerritCommentBase, GerritDraftComment } from './gerritComment';
 import { CommentThread, CommentThreadCollapsibleState } from 'vscode';
 import { OnceDisposable } from '../../classes/onceDisposable';
 import { FileMeta } from '../../../providers/fileProvider';
+import { CacheContainer } from '../../util/cache';
 
 interface CommentThreadWithGerritComments
 	extends Omit<CommentThread, 'comments'> {
@@ -27,7 +28,8 @@ interface CommentThreadWithGerritComments
  */
 export class GerritCommentThread extends OnceDisposable {
 	private static _lastThreadID: number = 0;
-	private static _threadMap: Map<string, GerritCommentThread> = new Map();
+	private static _threadMap: CacheContainer<string, GerritCommentThread> =
+		new CacheContainer();
 
 	private readonly _threadID: string;
 	private _thread: CommentThreadWithGerritComments;

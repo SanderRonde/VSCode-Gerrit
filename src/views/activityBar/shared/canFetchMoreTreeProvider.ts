@@ -1,18 +1,17 @@
 import { GerritChange } from '../../../lib/gerrit/gerritAPI/gerritChange';
 import { SearchResultsTreeProvider } from '../searchResults';
 import { ChangeTreeView } from '../changes/changeTreeView';
+import { CacheContainer } from '../../../lib/util/cache';
 import { ViewPanel } from '../changes/viewPanel';
 import { Refreshable } from './refreshable';
-import { ExtensionContext } from 'vscode';
 
 export abstract class CanFetchMoreTreeProvider implements Refreshable {
 	private _cursor = 0;
 	private _limit: number | null = null;
-	protected _fetchedChildren: Map<number, ChangeTreeView> = new Map();
+	protected _fetchedChildren: CacheContainer<number, ChangeTreeView> =
+		new CacheContainer();
 	protected abstract get _initialLimit(): number;
 	protected abstract get _fetchMoreCount(): number;
-
-	public constructor(private readonly _context: ExtensionContext) {}
 
 	protected abstract _getChanges(
 		offset: number,
@@ -26,23 +25,32 @@ export abstract class CanFetchMoreTreeProvider implements Refreshable {
 			this._limit = this._initialLimit;
 		}
 
-		const changes = await this._getChanges(
-			this._cursor,
-			this._limit - this._cursor
-		);
-
-		const changeViews = changes.map(
-			(change) => new ChangeTreeView(this._context, change, parent)
-		);
+		// Doublecheck cursor
+		let cursor = 0;
 		for (
-			let i = this._cursor;
-			i < Math.min(this._limit, this._cursor + changeViews.length);
+			let i = 0;
+			i < Math.min(this._fetchedChildren.size, this._cursor);
 			i++
 		) {
-			this._fetchedChildren.set(i, changeViews[i - this._cursor]);
+			if (this._fetchedChildren.has(i)) {
+				cursor++;
+			}
 		}
 
-		this._cursor += changeViews.length;
+		const changes = await this._getChanges(cursor, this._limit - cursor);
+
+		const changeViews = changes.map(
+			(change) => new ChangeTreeView(change, parent)
+		);
+		for (
+			let i = cursor;
+			i < Math.min(this._limit, cursor + changeViews.length);
+			i++
+		) {
+			this._fetchedChildren.set(i, changeViews[i - cursor]);
+		}
+
+		this._cursor = this._limit;
 		const entries: ChangeTreeView[] = [];
 		for (let i = 0; i < this._limit; i++) {
 			const entry = this._fetchedChildren.get(i);

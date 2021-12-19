@@ -3,6 +3,10 @@ import {
 	TREE_ITEM_TYPE_CHANGE,
 } from '../../../lib/util/magic';
 import {
+	APISubscriptionManager,
+	Subscribable,
+} from '../../../lib/subscriptions/subscriptions';
+import {
 	Disposable,
 	ThemeIcon,
 	TreeItem,
@@ -14,7 +18,10 @@ import { GerritRevision } from '../../../lib/gerrit/gerritAPI/gerritRevision';
 import { GerritChange } from '../../../lib/gerrit/gerritAPI/gerritChange';
 import { TreeItemWithChildren, TreeViewItem } from '../shared/treeTypes';
 import { StorageScope, storageSet } from '../../../lib/vscode/storage';
+import { getAPIForSubscription } from '../../../lib/gerrit/gerritAPI';
 import { GerritFile } from '../../../lib/gerrit/gerritAPI/gerritFile';
+import { SelfDisposable } from '../../../lib/util/selfDisposable';
+import { GerritAPIWith } from '../../../lib/gerrit/gerritAPI/api';
 import { FolderTreeView } from './changeTreeView/folderTreeView';
 import { SearchResultsTreeProvider } from '../searchResults';
 import { FileTreeView } from './changeTreeView/fileTreeView';
@@ -40,14 +47,41 @@ export interface PatchsetDescription {
 	id: string;
 }
 
-export class ChangeTreeView implements TreeItemWithChildren {
+export class ChangeTreeView
+	extends SelfDisposable
+	implements TreeItemWithChildren
+{
 	public patchSetBase: PatchsetDescription | null = null;
 	public patchSetCurrent: PatchsetDescription | null = null;
 
-	public constructor(
-		public change: GerritChange,
-		public readonly parent: ViewPanel | SearchResultsTreeProvider
-	) {}
+	public get change(): Promise<GerritChange | null> {
+		return this._subscription.getValue();
+	}
+
+	private constructor(
+		private readonly _changeID: string,
+		public readonly parent: ViewPanel | SearchResultsTreeProvider,
+		private readonly _subscription: Subscribable<GerritChange | null>
+	) {
+		super(`changeTreeView.${_changeID}`);
+	}
+
+	public static async create(
+		changeID: string,
+		parent: ViewPanel | SearchResultsTreeProvider
+	): Promise<ChangeTreeView> {
+		const api = await getAPIForSubscription();
+		const subscription = api.getChange(
+			changeID,
+			null,
+			GerritAPIWith.DETAILED_ACCOUNTS
+		);
+
+		const instance = new this(changeID, parent, subscription);
+		instance._disposables.push(subscription.disposable);
+		subscription.subscribe(new WeakRef(() => parent.reload()));
+		return instance;
+	}
 
 	public static async openInReview(changeID: string): Promise<void> {
 		// Override
@@ -126,11 +160,13 @@ export class ChangeTreeView implements TreeItemWithChildren {
 		return map;
 	}
 
-	private async _getEndRevision(): Promise<GerritRevision | null> {
+	private async _getEndRevision(
+		change: GerritChange
+	): Promise<GerritRevision | null> {
 		if (this.patchSetCurrent === null) {
-			return await this.change.getCurrentRevision();
+			return await change.getCurrentRevision();
 		}
-		const revisions = await this.change.revisions();
+		const revisions = await change.revisions();
 		if (!revisions) {
 			return null;
 		}
@@ -142,16 +178,18 @@ export class ChangeTreeView implements TreeItemWithChildren {
 		);
 	}
 
-	private async _getFiles(): Promise<GerritFile[]> {
-		const currentRevision = await this._getEndRevision();
+	private async _getFiles(
+		change: GerritChange
+	): Promise<Subscribable<GerritFile[]>> {
+		const currentRevision = await this._getEndRevision(change);
 		if (!currentRevision) {
-			return [];
+			return APISubscriptionManager.getNullSubscription().mapSubscription(
+				() => []
+			);
 		}
-		const files = await currentRevision.files(this.patchSetBase);
-		if (!files) {
-			return [];
-		}
-		return Object.values(files);
+		return (await currentRevision.files(this.patchSetBase)).mapSubscription(
+			(i) => Object.values(i)
+		);
 	}
 
 	private _collapseFilePathMap(
@@ -287,18 +325,25 @@ export class ChangeTreeView implements TreeItemWithChildren {
 	}
 
 	public async openInReview(): Promise<void> {
-		await ChangeTreeView.openInReview(this.change.changeID);
+		await ChangeTreeView.openInReview(this._changeID);
 	}
 
 	public async getItem(): Promise<TreeItem> {
-		const changeNumber = `#${this.change.number}`;
+		const change = await this.change;
+		if (!change) {
+			return {
+				label: '?',
+			};
+		}
 
-		const owner = await this.change.detailedOwner();
+		const changeNumber = `#${change.number}`;
+
+		const owner = await change.detailedOwner();
 
 		return {
-			label: `${changeNumber}: ${this.change.subject}`,
+			label: `${changeNumber}: ${change.subject}`,
 			collapsibleState: TreeItemCollapsibleState.Collapsed,
-			tooltip: this.change.subject,
+			tooltip: change.subject,
 			contextValue: this._buildContextValue(),
 			iconPath: new ThemeIcon('git-pull-request'),
 			description: owner ? `by ${owner.getName(true)!}` : undefined,
@@ -306,18 +351,35 @@ export class ChangeTreeView implements TreeItemWithChildren {
 	}
 
 	public async getChildren(): Promise<TreeViewItem[]> {
-		const files = await this._getFiles();
+		const change = await this.change;
+		if (!change) {
+			return [];
+		}
+
+		const filesSubscription = await this._getFiles(change);
+		const files = await filesSubscription.getValue();
+		filesSubscription.subscribeOnce(
+			new WeakRef(() => {
+				this.parent.reload();
+			})
+		);
+
 		const collapsed = this._collapseFilePathMap(
 			this._getFilePathMap(files)
 		);
 
 		return [
 			...optionalArrayEntry(
-				await PatchSetLevelCommentsTreeView.isVisible(this.change),
-				() => new PatchSetLevelCommentsTreeView(this.change)
+				await PatchSetLevelCommentsTreeView.isVisible(change),
+				() =>
+					new PatchSetLevelCommentsTreeView(
+						change.changeID,
+						change.number,
+						this.parent
+					)
 			),
 			...ChangeTreeView.getFilesAndFolders(
-				this.change,
+				change,
 				collapsed,
 				this.patchSetBase
 			),
@@ -325,12 +387,13 @@ export class ChangeTreeView implements TreeItemWithChildren {
 	}
 
 	public async openPatchsetSelector(): Promise<void> {
-		if (!this.parent) {
+		if (!this.parent || !(await this.change)) {
 			// Should not be reachable, this command can only be ran on change explorer changes
 			return;
 		}
 
-		const revisions = await this.change.revisions();
+		const change = (await this.change)!;
+		const revisions = await change.revisions();
 		if (!revisions) {
 			void window.showErrorMessage('Failed to find change revisions');
 			return;
@@ -360,16 +423,16 @@ export class ChangeTreeView implements TreeItemWithChildren {
 							.revisionID,
 				  };
 
-		this.parent.refresh();
+		await this.parent.refresh();
 	}
 
-	public resetPatchsetSelector(): void {
+	public async resetPatchsetSelector(): Promise<void> {
 		if (!this.parent) {
 			// Should not be reachable, this command can only be ran on change explorer changes
 			return;
 		}
 
 		this.patchSetBase = this.patchSetCurrent = null;
-		this.parent.refresh();
+		await this.parent.refresh();
 	}
 }

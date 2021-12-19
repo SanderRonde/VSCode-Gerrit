@@ -1,3 +1,6 @@
+import { createWeakWrapperDisposer } from '../util/garbageCollection';
+import { GerritChange } from '../gerrit/gerritAPI/gerritChange';
+import { Subscribable } from '../subscriptions/subscriptions';
 import { getLastCommits, GitCommit } from './gitCLI';
 import { createInittableValue } from '../util/cache';
 import { onChangeLastCommit } from './git';
@@ -37,4 +40,43 @@ export function getCurrentChangeIDCached(): Promise<string | null> {
 
 export function isGerritCommit(commit: GitCommit): boolean {
 	return !!getChangeID(commit);
+}
+
+export async function onChangeLastCommitOrChange(
+	handler: (
+		change: GerritChange | null,
+		lastCommit: GitCommit
+	) => Promise<void> | void,
+	disposables: Disposable[],
+	callInitial?: boolean
+): Promise<void> {
+	let currentSubscription: {
+		value: Subscribable<GerritChange | null> | null;
+	} = { value: null };
+
+	disposables.push(
+		createWeakWrapperDisposer(new WeakRef(currentSubscription))
+	);
+	disposables.push(
+		await onChangeLastCommit(async (lastCommit) => {
+			if (currentSubscription.value) {
+				currentSubscription.value.unsubscribe();
+			}
+			currentSubscription = {
+				value:
+					isGerritCommit(lastCommit) && getChangeID(lastCommit)
+						? await GerritChange.getChange(getChangeID(lastCommit)!)
+						: null,
+			};
+
+			const change =
+				(await currentSubscription.value?.getValue()) ?? null;
+			currentSubscription.value?.subscribe(
+				new WeakRef(async (change) => {
+					await handler(change, lastCommit);
+				})
+			);
+			await handler(change, lastCommit);
+		}, callInitial)
+	);
 }

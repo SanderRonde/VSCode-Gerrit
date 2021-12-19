@@ -85,3 +85,15 @@ export async function getAPI(): Promise<GerritAPI | null> {
 
 	return (api = await createAPI());
 }
+
+export async function getAPIForSubscription(): Promise<GerritAPI> {
+	if (api) {
+		return api;
+	}
+
+	api = await createAPI();
+	if (api) {
+		return new GerritAPI(null, null, null);
+	}
+	return api!;
+}

@@ -19,7 +19,7 @@ export async function updateUploaderState(): Promise<Disposable> {
 			}
 
 			const [change, self] = await Promise.all([
-				GerritChange.getChangeCached(
+				GerritChange.getChangeOnce(
 					changeID,
 					GerritAPIWith.ALL_REVISIONS
 				),

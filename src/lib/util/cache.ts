@@ -145,12 +145,7 @@ class CacheContainerShared<K, V, V2 extends object> implements Disposable {
 		return this._cache.size;
 	}
 
-	public constructor(protected readonly _refreshTimer?: number | null) {
-		console.log(this._cached);
-		setInterval(() => {
-			console.log(this._cached);
-		}, 10000);
-	}
+	public constructor(protected readonly _refreshTimer?: number | null) {}
 
 	public dispose(): void {
 		this._cache.clear();
@@ -198,7 +193,6 @@ export class CacheContainer<K, V extends object, KK = K>
 		}
 
 		this._cached.add(value);
-		console.log(this._cached);
 		const key = this.getKey(k1);
 		const timeout =
 			this._refreshTimer &&
@@ -275,7 +269,6 @@ export class MultiLevelCacheContainer<K1, K2, V extends object>
 				this._cache.get(k1)!.delete(k2);
 			}, this._refreshTimer);
 		this._cached.add(value);
-		console.log(this._cached);
 		this._cache.get(k1)!.set(k2, {
 			value,
 			clearTimer: timeout

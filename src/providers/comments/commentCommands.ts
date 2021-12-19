@@ -51,15 +51,6 @@ type ThreadMapWithRanges = CacheContainer<
 	}[]
 >;
 
-const COMMENT_RETAIN_TIME = 1000 * 60 * 10;
-const commentCache = new CacheContainer<
-	string,
-	{
-		allThreads: ThreadMap;
-		resolvedThreadMap: ThreadMap;
-	}
->(COMMENT_RETAIN_TIME);
-
 function iterateUntilTrue<T>(
 	arr: T[],
 	index: number,
@@ -168,12 +159,9 @@ async function getAllComments(changeID: string): Promise<{
 }> {
 	const { allThreads, resolvedThreadMap: unresolvedThreadMap } =
 		await (async () => {
-			if (commentCache.has(changeID)) {
-				return commentCache.get(changeID)!;
-			}
-			const allComments = await GerritChange.getAllCommentsCached(
-				changeID
-			);
+			const allComments = await (
+				await GerritChange.getAllComments(changeID)
+			).getValue();
 
 			const baseEntries = [...allComments.entries()].map(
 				([filePath, comments]) => {
@@ -212,10 +200,6 @@ async function getAllComments(changeID: string): Promise<{
 			};
 		})();
 
-	commentCache.set(changeID, {
-		resolvedThreadMap: unresolvedThreadMap,
-		allThreads: allThreads,
-	});
 	return {
 		unresolvedThreads: unresolvedThreadMap,
 		allThreads: allThreads,
@@ -456,7 +440,7 @@ async function jumpToUnresolvedCommentShared(
 			return data.currentMeta;
 		}
 
-		const change = await GerritChange.getChangeCached(data.changeID);
+		const change = await GerritChange.getChangeOnce(data.changeID);
 		if (!change) {
 			void window.showInformationMessage('Failed to get current change');
 			return null;
@@ -515,17 +499,23 @@ async function jumpToUnresolvedCommentShared(
 			);
 			const lastRevision = await (async () => {
 				if (!diffEditor) {
-					const change = await GerritChange.getChangeCached(
+					const change = await GerritChange.getChangeOnce(
 						data.currentMeta!.changeID
 					);
 					return change?.getCurrentRevision();
 				}
-				const revisions = await diffEditor.change.revisions();
+				const change = await GerritChange.getChangeOnce(
+					diffEditor.changeID
+				);
+				if (!change) {
+					return null;
+				}
+				const revisions = await change.revisions();
 				return revisions?.[diffEditor.file.currentRevision.id];
 			})();
-			const files = (await lastRevision?.files(
+			const files = await (await lastRevision?.files(
 				diffEditor?.baseRevision ?? null
-			))!;
+			))!.getValue();
 			const file = files[filePath];
 			if (!file) {
 				void window.showInformationMessage('Failed to find file');

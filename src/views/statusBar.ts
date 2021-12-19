@@ -32,26 +32,28 @@ export async function selectChange(): Promise<number | null> {
 		return null;
 	}
 
-	const changes = await api.getChanges(
-		[
+	const changes = await api
+		.getChanges(
 			[
-				DefaultChangeFilter.IS_OPEN,
-				filterOr(
-					DefaultChangeFilter.HAS_DRAFT,
-					DefaultChangeFilter.ATTENTION_SELF,
-					DefaultChangeFilter.OWNER_SELF,
-					DefaultChangeFilter.CC_SELF,
-					DefaultChangeFilter.REVIEWER_SELF,
-					DefaultChangeFilter.ASSIGNEE_SELF
-				),
+				[
+					DefaultChangeFilter.IS_OPEN,
+					filterOr(
+						DefaultChangeFilter.HAS_DRAFT,
+						DefaultChangeFilter.ATTENTION_SELF,
+						DefaultChangeFilter.OWNER_SELF,
+						DefaultChangeFilter.CC_SELF,
+						DefaultChangeFilter.REVIEWER_SELF,
+						DefaultChangeFilter.ASSIGNEE_SELF
+					),
+				],
 			],
-		],
-		{
-			count: 100,
-		},
-		undefined,
-		GerritAPIWith.DETAILED_ACCOUNTS
-	);
+			{
+				count: 100,
+			},
+			undefined,
+			GerritAPIWith.DETAILED_ACCOUNTS
+		)
+		.getValue(true);
 
 	const quickPick = window.createQuickPick();
 	quickPick.items = await Promise.all(
@@ -117,7 +119,7 @@ export async function openCurrentChangeOnline(): Promise<void> {
 		return;
 	}
 
-	const change = await GerritChange.getChangeCached(changeID);
+	const change = await GerritChange.getChangeOnce(changeID);
 	if (!change) {
 		void window.showErrorMessage('Failed to find current change');
 		return;
@@ -127,13 +129,14 @@ export async function openCurrentChangeOnline(): Promise<void> {
 	);
 }
 
-async function updateStatusBarState(
-	statusBar: StatusBarItem,
-	lastCommit: GitCommit
+async function statusbarUpdateHandler(
+	lastCommit: GitCommit,
+	statusBar: StatusBarItem
 ): Promise<void> {
 	if (!isGerritCommit(lastCommit)) {
 		return statusBar.hide();
 	}
+
 	const changeID = getChangeID(lastCommit);
 	if (!changeID) {
 		statusBar.text = '$(git-commit) unpublished change';
@@ -141,7 +144,14 @@ async function updateStatusBarState(
 		return statusBar.show();
 	}
 
-	const change = await GerritChange.getChangeCached(changeID);
+	const subscription = await GerritChange.getChange(changeID);
+	subscription.subscribeOnce(
+		new WeakRef(async () => {
+			await statusbarUpdateHandler(lastCommit, statusBar);
+		})
+	);
+	const change = await subscription.getValue();
+
 	if (!change) {
 		return statusBar.hide();
 	}
@@ -169,7 +179,7 @@ export async function showStatusBarIcon(
 
 	context.subscriptions.push(
 		await onChangeLastCommit(async (lastCommit) => {
-			await updateStatusBarState(statusBar, lastCommit);
+			await statusbarUpdateHandler(lastCommit, statusBar);
 		}, true)
 	);
 }

@@ -5,8 +5,9 @@ import {
 import { CanFetchMoreTreeProvider } from '../shared/canFetchMoreTreeProvider';
 import { GerritChange } from '../../../lib/gerrit/gerritAPI/gerritChange';
 import { TreeItemWithChildren, TreeViewItem } from '../shared/treeTypes';
-import { Disposable, TreeItem, TreeItemCollapsibleState } from 'vscode';
+import { Subscribable } from '../../../lib/subscriptions/subscriptions';
 import { GerritAPIWith } from '../../../lib/gerrit/gerritAPI/api';
+import { TreeItem, TreeItemCollapsibleState } from 'vscode';
 import { optionalArrayEntry } from '../../../lib/util/util';
 import { ChangesPanel } from '../../../lib/vscode/config';
 import { FetchMoreTreeItem } from './fetchMoreTreeItem';
@@ -25,9 +26,9 @@ export enum DashboardGroupContainerGroup {
 
 export class ViewPanel
 	extends CanFetchMoreTreeProvider
-	implements TreeItemWithChildren, Disposable
+	implements TreeItemWithChildren
 {
-	private _disposables: Disposable[] = [];
+	private _lastSubscription: Subscribable<GerritChange[]> | null = null;
 
 	protected _initialLimit: number = this._getDefaultLimit();
 	protected _fetchMoreCount: number =
@@ -37,15 +38,41 @@ export class ViewPanel
 		public readonly parent: RootTreeViewProvider,
 		private readonly _panel: ChangesPanel
 	) {
-		super();
+		super(`ViewPanel.${_panel.title}`);
 		if (this._panel.refreshInterval) {
-			const interval = setInterval(() => {
-				this.refresh();
-			}, this._panel.refreshInterval * 1000);
+			const interval = ViewPanel._registerWeakInterval(
+				new WeakRef(this),
+				this._panel.refreshInterval * 1000
+			);
 			this._disposables.push({
 				dispose: () => clearInterval(interval),
 			});
 		}
+	}
+
+	private static _registerWeakInterval(
+		weakSelf: WeakRef<ViewPanel>,
+		time: number
+	): NodeJS.Timer {
+		const interval = setInterval(() => {
+			void weakSelf.deref()?.reload();
+		}, time);
+		return interval;
+	}
+
+	private static _createErrorLogger(
+		panelTitle: string
+	): (code: number | undefined, body: string) => Promise<void> {
+		return async (code, body): Promise<void> => {
+			log(
+				`Failed to fetch changes with filters for panel "${panelTitle}"`,
+				`Status code = ${code ?? '?'}`,
+				`response body = "${body}"`
+			);
+			await RootTreeViewProvider.openConfigSettingsMessage(
+				`Failed to fetch changs with filters for panel "${panelTitle}". Check log for response details`
+			);
+		};
 	}
 
 	private _getDefaultLimit(): number {
@@ -56,11 +83,11 @@ export class ViewPanel
 		return this._panel.filters;
 	}
 
-	protected _getChanges(
+	protected async _getChanges(
 		offset: number,
 		count: number
-	): Promise<GerritChange[]> {
-		return GerritChange.getChanges(
+	): Promise<Subscribable<GerritChange[]> | null> {
+		const subscription = await GerritChange.getChanges(
 			[
 				this._getFilters() as (
 					| DefaultChangeFilter
@@ -71,26 +98,30 @@ export class ViewPanel
 				offset,
 				count,
 			},
-			async (code, body): Promise<void> => {
-				log(
-					`Failed to fetch changes with filters for panel "${this._panel.title}"`,
-					`Status code = ${code ?? '?'}`,
-					`response body = "${body}"`
-				);
-				await RootTreeViewProvider.openConfigSettingsMessage(
-					`Failed to fetch changs with filters for panel "${this._panel.title}". Check log for response details`
-				);
-			},
+			ViewPanel._createErrorLogger(this._panel.title),
 			GerritAPIWith.DETAILED_ACCOUNTS
 		);
+		this._lastSubscription = subscription;
+		if (!subscription) {
+			return null;
+		}
+		this._disposables.push(subscription.disposable);
+		return subscription;
 	}
 
-	public refresh(): void {
+	public reload(): void {
 		this.parent.root.onDidChangeTreeDataEmitter.fire(this);
 	}
 
-	public getRenderedChildren(): ChangeTreeView[] {
-		return [...this._fetchedChildren.values()];
+	public async refresh(): Promise<void> {
+		if (this._lastSubscription) {
+			await this._lastSubscription.invalidate();
+		}
+		this.reload();
+	}
+
+	public async getRenderedChildren(): Promise<ChangeTreeView[]> {
+		return (await this._getAllChangeTreeViews()).map((c) => c.treeView);
 	}
 
 	public async getChildren(): Promise<TreeViewItem[]> {
@@ -99,7 +130,7 @@ export class ViewPanel
 			changes.length > 0 &&
 			changes[changes.length - 1].change.moreChanges;
 		return [
-			...changes,
+			...changes.map((c) => c.treeView),
 			...optionalArrayEntry(hasMore, () => new FetchMoreTreeItem(this)),
 		];
 	}
@@ -111,9 +142,5 @@ export class ViewPanel
 				? TreeItemCollapsibleState.Collapsed
 				: TreeItemCollapsibleState.Expanded,
 		});
-	}
-
-	public dispose(): void {
-		this._disposables.forEach((d) => void d.dispose());
 	}
 }

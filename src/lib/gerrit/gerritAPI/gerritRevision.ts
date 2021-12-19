@@ -5,13 +5,17 @@ import {
 	GerritUserResponse,
 	RevisionType,
 } from './types';
+import {
+	APISubscriptionManager,
+	Subscribable,
+} from '../../subscriptions/subscriptions';
 import { PatchsetDescription } from '../../../views/activityBar/changes/changeTreeView';
+import { ChangeField } from '../../subscriptions/changeSubscription';
+import { getAPIForSubscription } from '../gerritAPI';
 import { DynamicallyFetchable } from './shared';
 import { GerritCommit } from './gerritCommit';
-import { GerritChange } from './gerritChange';
 import { GerritFile } from './gerritFile';
 import { GerritAPIWith } from './api';
-import { getAPI } from '../gerritAPI';
 
 export class GerritRevision extends DynamicallyFetchable {
 	public kind: RevisionType;
@@ -30,7 +34,7 @@ export class GerritRevision extends DynamicallyFetchable {
 
 	public constructor(
 		public override changeID: string,
-		public change: GerritChange,
+		private readonly _changeProject: string,
 		public revisionID: string,
 		public isCurrentRevision: boolean,
 		response: GerritRevisionResponse
@@ -68,7 +72,7 @@ export class GerritRevision extends DynamicallyFetchable {
 							k,
 							new GerritFile(
 								this.changeID,
-								this.change,
+								this._changeProject,
 								{
 									id: this.revisionID,
 									number: this.number,
@@ -85,36 +89,57 @@ export class GerritRevision extends DynamicallyFetchable {
 	public async files(
 		baseRevision: PatchsetDescription | null = null,
 		...additionalWith: GerritAPIWith[]
-	): Promise<Record<string, GerritFile> | null> {
-		if (baseRevision === null && this.isCurrentRevision) {
-			return this._fieldFallbackGetter(
-				'_files',
-				[
-					GerritAPIWith.CURRENT_REVISION,
-					GerritAPIWith.CURRENT_FILES,
-					...additionalWith,
-				],
-				async (c) => (await c.getCurrentRevision())?.files(null) ?? null
-			);
-		} else {
-			const api = await getAPI();
-			if (!api) {
-				return null;
-			}
+	): Promise<Subscribable<Record<string, GerritFile>>> {
+		const api = await getAPIForSubscription();
 
-			const files = await api.getFiles(
-				this.change,
+		const subscription =
+			APISubscriptionManager.filesSubscriptions.createFetcher(
 				{
-					id: this.revisionID,
-					number: this.number,
+					changeID: this.changeID,
+					revision: {
+						id: this.revisionID,
+						number: this.number,
+					},
+					baseRevision: baseRevision,
 				},
-				baseRevision ?? undefined
+				async () => {
+					if (baseRevision === null && this.isCurrentRevision) {
+						const changeSubscription = api.getChange(
+							this.changeID,
+							ChangeField.FILES,
+							GerritAPIWith.CURRENT_REVISION,
+							GerritAPIWith.CURRENT_FILES,
+							...additionalWith
+						);
+						const change = await changeSubscription.getValue();
+						changeSubscription.subscribeOnce(
+							new WeakRef(subscription.invalidate)
+						);
+						if (!change) {
+							return {};
+						}
+						return (
+							(await change.getCurrentRevision())?._files ?? {}
+						);
+					} else {
+						const fileSubscription = api.getFiles(
+							this.changeID,
+							this._changeProject,
+							{
+								id: this.revisionID,
+								number: this.number,
+							},
+							baseRevision ?? undefined
+						);
+						const files = await fileSubscription.getValue();
+						fileSubscription.subscribeOnce(
+							new WeakRef(subscription.invalidate)
+						);
+						return files;
+					}
+				}
 			);
-			if (!files) {
-				return null;
-			}
-			return Object.fromEntries(files.map((f) => [f.filePath, f]));
-		}
+		return subscription;
 	}
 
 	public detailedUploader(

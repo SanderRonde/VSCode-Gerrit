@@ -143,6 +143,11 @@ export class DocumentCommentManager {
 		});
 	}
 
+	public async refreshComments(filePath: string): Promise<void> {
+		this.dispose();
+		await this.loadComments(filePath);
+	}
+
 	public async loadComments(filePath: string): Promise<this> {
 		const fileMeta = FileMetaWithSideAndBase.tryFrom(this._document);
 		if (fileMeta?.isEmpty()) {
@@ -151,12 +156,14 @@ export class DocumentCommentManager {
 
 		const isPatchSetLevel =
 			fileMeta && fileMeta.filePath === PATCHSET_LEVEL_KEY;
+		const commentSubscription = await GerritChange.getAllComments(
+			fileMeta?.changeID || (await getCurrentChangeIDCached())!
+		);
 		const comments =
-			(
-				await GerritChange.getAllCommentsCached(
-					fileMeta?.changeID || (await getCurrentChangeIDCached())!
-				)
-			).get(filePath) ?? [];
+			(await commentSubscription.getValue()).get(filePath) ?? [];
+		commentSubscription.subscribeOnce(
+			new WeakRef(() => this.refreshComments(filePath))
+		);
 		const thisSideComments =
 			isPatchSetLevel || !fileMeta
 				? comments
@@ -474,7 +481,7 @@ export class CommentManager {
 		if (!changeID || !gitAPI || gitAPI.repositories.length !== 1) {
 			return null;
 		}
-		const change = await GerritChange.getChangeCached(
+		const change = await GerritChange.getChangeOnce(
 			changeID,
 			GerritAPIWith.CURRENT_REVISION,
 			GerritAPIWith.CURRENT_FILES
@@ -486,7 +493,7 @@ export class CommentManager {
 		if (!currentRevision) {
 			return null;
 		}
-		const files = await currentRevision.files(null);
+		const files = await (await currentRevision.files(null)).getValue();
 		if (!files) {
 			return null;
 		}
@@ -814,7 +821,7 @@ async function getThreadWebLink(thread: CommentThread): Promise<string | null> {
 	}
 	const comment = gerritThread.lastComment;
 	const api = await getAPI();
-	const change = await GerritChange.getChangeCached(comment.changeID);
+	const change = await GerritChange.getChangeOnce(comment.changeID);
 	if (!api || !change) {
 		void window.showErrorMessage('Failed to get comment web link');
 		return null;

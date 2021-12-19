@@ -11,6 +11,7 @@ import { CanFetchMoreTreeProvider } from './shared/canFetchMoreTreeProvider';
 import { getContextProp, setContextProp } from '../../lib/vscode/context';
 import { showInvalidSettingsMessage } from '../../lib/vscode/messages';
 import { GerritChange } from '../../lib/gerrit/gerritAPI/gerritChange';
+import { Subscribable } from '../../lib/subscriptions/subscriptions';
 import { FetchMoreTreeItem } from './changes/fetchMoreTreeItem';
 import { GerritAPIWith } from '../../lib/gerrit/gerritAPI/api';
 import { optionalArrayEntry } from '../../lib/util/util';
@@ -27,7 +28,7 @@ export class SearchResultsTreeProvider
 {
 	private static _instances: Set<Refreshable & Focusable & Clearable> =
 		new Set();
-	private _disposables: Disposable[] = [];
+	private _lastSubscription: Subscribable<GerritChange[]> | null = null;
 	private _lastQuery: string | null = null;
 	private _lastFocused: string | null = null;
 
@@ -44,8 +45,19 @@ export class SearchResultsTreeProvider
 	public treeView!: TreeView<TreeViewItem>;
 
 	public constructor() {
-		super();
+		super('SearchResults');
 		SearchResultsTreeProvider._instances.add(this);
+	}
+
+	private static _createSingleItemMapper(
+		subscription: Subscribable<GerritChange | null>
+	): Subscribable<GerritChange[]> {
+		return subscription.mapSubscription((c) => {
+			if (c === null) {
+				return [];
+			}
+			return [c];
+		});
 	}
 
 	public static clear(): void {
@@ -63,7 +75,7 @@ export class SearchResultsTreeProvider
 	protected async _getChanges(
 		offset: number,
 		count: number
-	): Promise<GerritChange[]> {
+	): Promise<Subscribable<GerritChange[]> | null> {
 		const singleChangeQuery = getContextProp('gerrit:searchChangeNumber');
 		if (singleChangeQuery) {
 			const api = await getAPI();
@@ -71,22 +83,22 @@ export class SearchResultsTreeProvider
 				await showInvalidSettingsMessage(
 					'Failed to perform search due to invalid API settings, please check your settings'
 				);
-				return [];
+				return null;
 			}
 
 			this._reset();
 			this._lastQuery = null;
 
-			const change = await GerritChange.getChangeCached(
+			const change = await GerritChange.getChange(
 				String(singleChangeQuery)
 			);
 			if (!change) {
 				await setContextProp('gerrit:searchChangeNumber', null);
 				await showInvalidSettingsMessage('Failed to find change');
-				return [];
+				return null;
 			}
 
-			return [change];
+			return SearchResultsTreeProvider._createSingleItemMapper(change);
 		}
 
 		const query = getContextProp('gerrit:searchQuery');
@@ -98,7 +110,7 @@ export class SearchResultsTreeProvider
 		if (!query) {
 			// This shouldn't even be possible, fail silently because this
 			// panel should be hidden
-			return [];
+			return null;
 		}
 
 		const api = await getAPI();
@@ -106,10 +118,10 @@ export class SearchResultsTreeProvider
 			await showInvalidSettingsMessage(
 				'Failed to perform search due to invalid API settings, please check your settings'
 			);
-			return [];
+			return null;
 		}
 
-		const res = await api.searchChanges(
+		const subscription = api.searchChanges(
 			query,
 			{
 				offset,
@@ -126,7 +138,8 @@ export class SearchResultsTreeProvider
 			},
 			GerritAPIWith.DETAILED_ACCOUNTS
 		);
-		return res;
+		this._lastSubscription = subscription;
+		return subscription;
 	}
 
 	public clear(): void {
@@ -134,7 +147,12 @@ export class SearchResultsTreeProvider
 		this._lastFocused = null;
 	}
 
-	public refresh(): void {
+	public reload(): void {
+		this.onDidChangeTreeDataEmitter.fire();
+	}
+
+	public async refresh(): Promise<void> {
+		await this._lastSubscription?.invalidate();
 		this.onDidChangeTreeDataEmitter.fire();
 	}
 
@@ -169,7 +187,7 @@ export class SearchResultsTreeProvider
 			// Only focus once per search result
 			if (this._lastFocused !== changes[0].change.changeID) {
 				setTimeout(() => {
-					void this.treeView.reveal(changes[0], {
+					void this.treeView.reveal(changes[0].treeView, {
 						expand: true,
 						focus: true,
 						select: true,
@@ -182,7 +200,7 @@ export class SearchResultsTreeProvider
 		}
 
 		return [
-			...changes,
+			...changes.map((c) => c.treeView),
 			...optionalArrayEntry(hasMore, () => new FetchMoreTreeItem(this)),
 		];
 	}

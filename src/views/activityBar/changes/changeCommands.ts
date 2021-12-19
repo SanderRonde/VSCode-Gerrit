@@ -65,7 +65,11 @@ export function selectActiveView(): void {
 export async function checkoutBranch(
 	changeTreeView: ChangeTreeView
 ): Promise<void> {
-	await gitCheckoutRemote(changeTreeView.change.number);
+	const change = await changeTreeView.change;
+	if (!change) {
+		return;
+	}
+	await gitCheckoutRemote(change.number);
 }
 
 export async function openChangeOnline(
@@ -79,7 +83,13 @@ export async function openChangeOnline(
 		return;
 	}
 
-	const { number, project } = changeTreeView.change;
+	const change = await changeTreeView.change;
+	if (!change) {
+		void window.showErrorMessage('Failed to fetch change');
+		return;
+	}
+
+	const { number, project } = change;
 	await env.openExternal(
 		Uri.parse(api.getURL(`c/${project}/+/${number}`, false))
 	);

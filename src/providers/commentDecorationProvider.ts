@@ -19,9 +19,16 @@ class CommentDecorationProvider implements FileDecorationProvider {
 
 	private async _getUnresolvedCommentCount(
 		changeID: string,
-		filePath: string
+		filePath: string,
+		uri: Uri
 	): Promise<number> {
-		const allComments = await GerritChange.getAllComments(changeID);
+		const allCommentsSubscription = await GerritChange.getAllComments(
+			changeID
+		);
+		const allComments = await allCommentsSubscription.getValue();
+		allCommentsSubscription.subscribeOnce(
+			new WeakRef(() => this.refreshFileComments(uri))
+		);
 		const fileComments = allComments.get(filePath);
 		if (!fileComments) {
 			return 0;
@@ -36,10 +43,14 @@ class CommentDecorationProvider implements FileDecorationProvider {
 		}).length;
 	}
 
-	private async _setUnresolvedCommentCount(meta: FileMeta): Promise<number> {
+	private async _setUnresolvedCommentCount(
+		meta: FileMeta,
+		uri: Uri
+	): Promise<number> {
 		const count = await this._getUnresolvedCommentCount(
 			meta.changeID,
-			meta.filePath
+			meta.filePath,
+			uri
 		);
 		if (!this._fileUnresolvedCommentCounts.has(meta.changeID)) {
 			this._fileUnresolvedCommentCounts.set(meta.changeID, new Map());
@@ -68,7 +79,8 @@ class CommentDecorationProvider implements FileDecorationProvider {
 		}
 		const count = await this._getUnresolvedCommentCount(
 			meta.changeID,
-			meta.filePath
+			meta.filePath,
+			uri
 		);
 		const storedCount = this._getStoredCommentCount(meta);
 		if (storedCount !== count) {
@@ -95,7 +107,7 @@ class CommentDecorationProvider implements FileDecorationProvider {
 		const storedCount = this._getStoredCommentCount(meta);
 		const count =
 			storedCount === -1
-				? await this._setUnresolvedCommentCount(meta)
+				? await this._setUnresolvedCommentCount(meta, uri)
 				: storedCount;
 
 		if (count > 0) {

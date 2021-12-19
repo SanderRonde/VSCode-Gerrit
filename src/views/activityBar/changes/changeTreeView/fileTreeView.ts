@@ -27,25 +27,26 @@ import {
 	GERRIT_FILE_SCHEME,
 } from '../../../../providers/fileProvider';
 import { GerritChange } from '../../../../lib/gerrit/gerritAPI/gerritChange';
+import { getAPIForSubscription } from '../../../../lib/gerrit/gerritAPI';
+import { IterableWeakMap } from '../../../../lib/util/garbageCollection';
 import { DocumentManager } from '../../../../providers/commentProvider';
 import { TreeItemWithoutChildren } from '../../shared/treeTypes';
 import { tertiaryWithFallback } from '../../../../lib/util/util';
-import { CacheContainer } from '../../../../lib/util/cache';
 import { PatchsetDescription } from '../changeTreeView';
 import * as path from 'path';
 
 export interface DiffEditorMapEntry {
 	oldContent: TextContent | null;
 	newContent: TextContent | null;
-	change: GerritChange;
+	changeID: string;
 	file: GerritFile;
 	baseRevision: PatchsetDescription | null;
 }
 
 export class FileTreeView implements TreeItemWithoutChildren {
 	private static _lastKey: number = 0;
-	private static _diffEditorMap: CacheContainer<string, DiffEditorMapEntry> =
-		new CacheContainer();
+	private static _diffEditorMap: IterableWeakMap<string, DiffEditorMapEntry> =
+		new IterableWeakMap();
 	private static _disposables: Disposable[] = [];
 
 	public constructor(
@@ -135,11 +136,17 @@ export class FileTreeView implements TreeItemWithoutChildren {
 			newContent,
 			oldContent,
 			baseRevision: patchsetBase,
-			change: file.change,
+			changeID: file.changeID,
 			file,
 		});
 
-		const revisions = await file.change.revisions();
+		const change = await (await getAPIForSubscription())
+			.getChange(file.changeID, null)
+			.getValue();
+		if (!change) {
+			return null;
+		}
+		const revisions = await change.revisions();
 		if (!revisions) {
 			return null;
 		}

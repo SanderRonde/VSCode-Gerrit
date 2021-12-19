@@ -9,7 +9,7 @@ export function createOutputChannel(): void {
 
 export function logDev(...data: unknown[]): void {
 	if (isDev()) {
-		console.log('LOG:', ...data);
+		console.log(...data);
 	}
 }
 

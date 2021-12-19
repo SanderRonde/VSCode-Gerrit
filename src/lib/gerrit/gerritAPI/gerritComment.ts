@@ -18,8 +18,10 @@ import {
 	GerritCommentResponse,
 	GerritCommentSide,
 } from './types';
-import { getReviewWebviewProvider } from '../../../views/activityBar/review';
+import { APISubscriptionManager } from '../../subscriptions/subscriptions';
+import { MATCH_ANY } from '../../subscriptions/baseSubscriptions';
 import { GerritCommentThread } from './gerritCommentThread';
+import { FileMeta } from '../../../providers/fileProvider';
 import { DynamicallyFetchable } from './shared';
 import { DateTime } from '../../util/dateTime';
 import { GerritUser } from './gerritUser';
@@ -221,7 +223,13 @@ export class GerritDraftComment extends GerritCommentBase implements Comment {
 
 	public static async refreshComments(uri: Uri): Promise<void> {
 		await getCommentDecorationProvider().refreshFileComments(uri);
-		await getReviewWebviewProvider()?.updateAllStates();
+
+		const meta = FileMeta.tryFrom(uri);
+		await APISubscriptionManager.commentsSubscriptions.invalidate({
+			changeID: !meta ? MATCH_ANY : meta.changeID,
+			field: null,
+			withValues: [],
+		});
 	}
 
 	public getContextValues(): string[] {

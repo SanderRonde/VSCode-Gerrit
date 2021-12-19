@@ -66,7 +66,7 @@ export class GerritFile extends DynamicallyFetchable {
 
 	public constructor(
 		public override changeID: string,
-		public change: GerritChange,
+		public readonly changeProject: string,
 		public currentRevision: PatchsetDescription,
 		public filePath: string,
 		response: GerritRevisionFile
@@ -85,12 +85,11 @@ export class GerritFile extends DynamicallyFetchable {
 	}
 
 	public async getOldContent(): Promise<TextContent | null> {
-		const api = await getAPI();
-		if (!api) {
+		const change = await GerritChange.getChangeOnce(this.changeID);
+		if (!change) {
 			return null;
 		}
-
-		const commit = await this.change.getCurrentCommit(
+		const commit = await change.getCurrentCommit(
 			GerritAPIWith.CURRENT_FILES
 		);
 		if (!commit) {
@@ -119,9 +118,9 @@ export class GerritFile extends DynamicallyFetchable {
 		}
 
 		const content = await api.getFileContent({
-			project: this.change.project,
+			project: this.changeProject,
 			commit: revision,
-			changeID: this.change.id,
+			changeID: this.changeID,
 			filePath,
 		});
 		if (!content) {
@@ -148,10 +147,10 @@ export class GerritFile extends DynamicallyFetchable {
 		return filePath.with({
 			query: FileMetaWithSideAndBase.createFileMetaWithSideAndRevision(
 				{
-					project: this.change.project,
+					project: this.changeProject,
 					commit: this.currentRevision,
 					filePath: this.filePath,
-					changeID: this.change.id,
+					changeID: this.changeID,
 					context,
 					extra,
 				},

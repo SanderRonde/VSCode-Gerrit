@@ -1,73 +1,135 @@
 import { GerritChange } from '../../../lib/gerrit/gerritAPI/gerritChange';
+import { Subscribable } from '../../../lib/subscriptions/subscriptions';
+import { SelfDisposable } from '../../../lib/util/selfDisposable';
 import { SearchResultsTreeProvider } from '../searchResults';
 import { ChangeTreeView } from '../changes/changeTreeView';
-import { CacheContainer } from '../../../lib/util/cache';
+import { Refreshable, Reloadable } from './refreshable';
+import { uniqueSimple } from '../../../lib/util/util';
 import { ViewPanel } from '../changes/viewPanel';
-import { Refreshable } from './refreshable';
 
-export abstract class CanFetchMoreTreeProvider implements Refreshable {
+export abstract class CanFetchMoreTreeProvider
+	extends SelfDisposable
+	implements Refreshable, Reloadable
+{
 	private _cursor = 0;
 	private _limit: number | null = null;
-	protected _fetchedChildren: CacheContainer<number, ChangeTreeView> =
-		new CacheContainer();
+	protected _changeToTreeView: WeakMap<GerritChange, ChangeTreeView> =
+		new WeakMap();
+	protected _fetchedChildren: Map<
+		number,
+		{
+			offset: number;
+			subscription: Subscribable<GerritChange[]>;
+		}
+	> = new Map();
 	protected abstract get _initialLimit(): number;
 	protected abstract get _fetchMoreCount(): number;
+
+	protected constructor(description: string) {
+		super(description);
+	}
 
 	protected abstract _getChanges(
 		offset: number,
 		count: number
-	): Promise<GerritChange[]>;
+	): Promise<Subscribable<GerritChange[]> | null>;
 
+	protected async _getAllChangeTreeViews(
+		parent?: ViewPanel | SearchResultsTreeProvider
+	): Promise<
+		{
+			treeView: ChangeTreeView;
+			change: GerritChange;
+		}[]
+	> {
+		if (!this._limit) {
+			return [];
+		}
+		const entries: {
+			treeView: ChangeTreeView;
+			change: GerritChange;
+		}[] = [];
+		for (let i = 0; i < this._limit; i++) {
+			if (!this._fetchedChildren.has(i)) {
+				continue;
+			}
+			const entry = (
+				await this._fetchedChildren.get(i)!.subscription.getValue()
+			)[this._fetchedChildren.get(i)!.offset];
+
+			if (!this._changeToTreeView.has(entry)) {
+				if (parent) {
+					this._changeToTreeView.set(
+						entry,
+						await ChangeTreeView.create(entry.changeID, parent)
+					);
+				} else {
+					continue;
+				}
+			}
+			entries.push({
+				change: entry,
+				treeView: this._changeToTreeView.get(entry)!,
+			});
+		}
+		return entries;
+	}
 	protected async _fetch(
 		parent: ViewPanel | SearchResultsTreeProvider
-	): Promise<ChangeTreeView[]> {
+	): Promise<
+		{
+			treeView: ChangeTreeView;
+			change: GerritChange;
+		}[]
+	> {
 		if (this._limit === null) {
 			this._limit = this._initialLimit;
 		}
 
-		// Doublecheck cursor
-		let cursor = 0;
-		for (
-			let i = 0;
-			i < Math.min(this._fetchedChildren.size, this._cursor);
-			i++
-		) {
-			if (this._fetchedChildren.has(i)) {
-				cursor++;
-			}
-		}
-
-		const changes = await this._getChanges(cursor, this._limit - cursor);
-
-		const changeViews = changes.map(
-			(change) => new ChangeTreeView(change, parent)
+		const subscription = await this._getChanges(
+			this._cursor,
+			this._limit - this._cursor
 		);
-		for (
-			let i = cursor;
-			i < Math.min(this._limit, cursor + changeViews.length);
-			i++
-		) {
-			this._fetchedChildren.set(i, changeViews[i - cursor]);
+
+		if (subscription) {
+			const fetched = await subscription.getValue();
+			subscription.subscribe(new WeakRef(() => this.reload()));
+
+			// Register new subscriber
+			for (
+				let i = this._cursor;
+				i < Math.min(this._limit, this._cursor + fetched.length);
+				i++
+			) {
+				this._fetchedChildren.set(i, {
+					subscription,
+					offset: i - this._cursor,
+				});
+			}
+			this._cursor += fetched.length;
 		}
 
-		this._cursor = this._limit;
-		const entries: ChangeTreeView[] = [];
-		for (let i = 0; i < this._limit; i++) {
-			const entry = this._fetchedChildren.get(i);
-			if (entry) {
-				entries.push(entry);
-			}
-		}
-		return entries;
+		// Pre-fetch all values at the same time
+		await Promise.all(
+			uniqueSimple(
+				[...this._fetchedChildren.values()].map((x) => x.subscription)
+			).map((s) => s.getValue())
+		);
+
+		return this._getAllChangeTreeViews(parent);
 	}
 
 	protected _reset(): void {
 		this._cursor = 0;
 		this._limit = this._initialLimit;
+		uniqueSimple(
+			[...this._fetchedChildren.values()].map((c) => c.subscription)
+		).forEach((s) => s.unsubscribe());
 		this._fetchedChildren.clear();
 	}
 
 	public abstract refresh(): void;
+	public abstract reload(): void;
 
 	public fetchMore(): void {
 		this._limit ??= 0;

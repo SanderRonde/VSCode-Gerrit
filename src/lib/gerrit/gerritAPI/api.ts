@@ -19,11 +19,15 @@ import {
 	MultiLevelCacheContainer,
 } from '../../util/cache';
 import { PATCHSET_LEVEL_KEY } from '../../../views/activityBar/changes/changeTreeView/patchSetLevelCommentsTreeView';
-import { filesCache } from '../../../views/activityBar/changes/changeTreeView/file/filesCache';
 import { fileCache } from '../../../views/activityBar/changes/changeTreeView/file/fileCache';
+import {
+	APISubscriptionManager,
+	Subscribable,
+} from '../../subscriptions/subscriptions';
 import { PatchsetDescription } from '../../../views/activityBar/changes/changeTreeView';
 import { optionalArrayEntry, optionalObjectProperty } from '../../util/util';
 import got, { OptionsOfTextResponseBody, Response } from 'got/dist/source';
+import { ChangeField } from '../../subscriptions/changeSubscription';
 import { DefaultChangeFilter, GerritChangeFilter } from './filters';
 import { GerritComment, GerritDraftComment } from './gerritComment';
 import { FileMeta } from '../../../providers/fileProvider';
@@ -33,7 +37,6 @@ import { getConfiguration } from '../../vscode/config';
 import { shouldDebugRequests } from '../../util/dev';
 import { READONLY_MODE } from '../../util/constants';
 import { VersionNumber } from '../../util/version';
-import { getChangeCache } from '../gerritCache';
 import { GerritProject } from './gerritProject';
 import { GerritChange } from './gerritChange';
 import { log, logDev } from '../../util/log';
@@ -52,17 +55,6 @@ export enum GerritAPIWith {
 	ALL_FILES = 'ALL_FILES',
 	ALL_REVISIONS = 'ALL_REVISIONS',
 }
-
-type WithValue<
-	GC extends typeof GerritChange,
-	V extends keyof InstanceType<GC>
-> = {
-	new (...args: ConstructorParameters<GC>): Omit<InstanceType<GC>, V> & {
-		[K in V]: InstanceType<GC>[V] extends Promise<infer P>
-			? Promise<Exclude<P, null | undefined>>
-			: Exclude<InstanceType<GC>[V], null | undefined>;
-	};
-};
 
 interface ResponseWithBody<T> extends Response<T> {
 	strippedBody: string;
@@ -241,9 +233,9 @@ export class GerritAPI {
 	}
 
 	public constructor(
-		private readonly _url: string,
-		private readonly _username: string,
-		private readonly _password: string
+		private readonly _url: string | null,
+		private readonly _username: string | null,
+		private readonly _password: string | null
 	) {}
 
 	public static async performRequest(
@@ -265,9 +257,9 @@ export class GerritAPI {
 		return {
 			Authorization:
 				'Basic ' +
-				Buffer.from(`${this._username}:${this._password}`).toString(
-					'base64'
-				),
+				Buffer.from(
+					`${this._username ?? '?'}:${this._password ?? '?'}`
+				).toString('base64'),
 			...optionalObjectProperty({
 				'Content-Type': withContent ? 'application/json' : undefined,
 			}),
@@ -360,6 +352,10 @@ export class GerritAPI {
 			body: string
 		) => void | Promise<void>
 	): Promise<(Response<string> & { strippedBody: string }) | null> {
+		if (!this._username || !this._password || !this._url) {
+			return null;
+		}
+
 		log(`${body?.method || 'GET'} request to "${url}"`);
 		if (shouldDebugRequests()) {
 			logDev({
@@ -578,92 +574,51 @@ export class GerritAPI {
 	 * is included.
 	 */
 	public getURL(path: string, auth: boolean = true): string {
+		if (!this._url) {
+			return '';
+		}
 		const trailingSlash = this._url.endsWith('/') ? '' : '/';
 		const authStr = auth ? 'a/' : '';
 		return `${this._url}${trailingSlash}${authStr}${path}`;
 	}
 
-	public async getChange(
+	public getChange(
 		changeID: string,
-		...withValues: never[]
-	): Promise<GerritChange | null>;
-	public async getChange(
-		changeID: string,
-		...withValues: GerritAPIWith.LABELS[]
-	): Promise<InstanceType<WithValue<typeof GerritChange, 'labels'>> | null>;
-	public async getChange(
-		changeID: string,
-		...withValues: GerritAPIWith.DETAILED_LABELS[]
-	): Promise<InstanceType<
-		WithValue<typeof GerritChange, 'detailedLabels'>
-	> | null>;
-	public async getChange(
-		changeID: string,
+		field: ChangeField | null,
 		...withValues: GerritAPIWith[]
-	): Promise<GerritChange | null>;
-	public async getChange(
-		changeID: string,
-		...withValues: GerritAPIWith[]
-	): Promise<GerritChange | null> {
-		const response = await this._tryRequest(
-			this.getURL(`changes/${changeID}/detail/`),
+	): Subscribable<GerritChange | null> {
+		return APISubscriptionManager.changeSubscriptions.createFetcher(
 			{
-				...this._get,
-				searchParams: new URLSearchParams(
-					withValues.map((v) => ['o', v] as [string, string])
-				),
+				changeID,
+				withValues,
+				field,
+			},
+			async () => {
+				const response = await this._tryRequest(
+					this.getURL(`changes/${changeID}/detail/`),
+					{
+						...this._get,
+						searchParams: new URLSearchParams(
+							withValues.map((v) => ['o', v] as [string, string])
+						),
+					}
+				);
+
+				const json =
+					this._handleResponse<GerritChangeResponse>(response);
+				if (!json) {
+					return null;
+				}
+
+				return new GerritChange(
+					json,
+					withValues.includes(GerritAPIWith.ALL_REVISIONS)
+				);
 			}
 		);
-
-		const json = this._handleResponse<GerritChangeResponse>(response);
-		if (!json) {
-			return null;
-		}
-
-		const change = new GerritChange(
-			json,
-			withValues.includes(GerritAPIWith.ALL_REVISIONS)
-		);
-		getChangeCache().set(changeID, withValues, change);
-		return change;
 	}
 
-	public async getChanges(
-		filters: (DefaultChangeFilter | GerritChangeFilter)[][],
-		offsetParams: ChangesOffsetParams | undefined,
-		onError:
-			| undefined
-			| ((
-					code: number | undefined,
-					body: string
-			  ) => void | Promise<void>),
-		...withValues: never[]
-	): Promise<GerritChange[]>;
-	public async getChanges(
-		filters: (DefaultChangeFilter | GerritChangeFilter)[][],
-		offsetParams: ChangesOffsetParams | undefined,
-		onError:
-			| undefined
-			| ((
-					code: number | undefined,
-					body: string
-			  ) => void | Promise<void>),
-		...withValues: GerritAPIWith.LABELS[]
-	): Promise<InstanceType<WithValue<typeof GerritChange, 'labels'>>[]>;
-	public async getChanges(
-		filters: (DefaultChangeFilter | GerritChangeFilter)[][],
-		offsetParams: ChangesOffsetParams | undefined,
-		onError:
-			| undefined
-			| ((
-					code: number | undefined,
-					body: string
-			  ) => void | Promise<void>),
-		...withValues: GerritAPIWith.DETAILED_LABELS[]
-	): Promise<
-		InstanceType<WithValue<typeof GerritChange, 'detailedLabels'>>[]
-	>;
-	public async getChanges(
+	public getChanges(
 		filters: (DefaultChangeFilter | GerritChangeFilter)[][],
 		offsetParams: ChangesOffsetParams | undefined,
 		onError:
@@ -673,70 +628,70 @@ export class GerritAPI {
 					body: string
 			  ) => void | Promise<void>),
 		...withValues: GerritAPIWith[]
-	): Promise<GerritChange[]>;
-	public async getChanges(
-		filters: (DefaultChangeFilter | GerritChangeFilter)[][],
-		offsetParams: ChangesOffsetParams | undefined,
-		onError:
-			| undefined
-			| ((
-					code: number | undefined,
-					body: string
-			  ) => void | Promise<void>),
-		...withValues: GerritAPIWith[]
-	): Promise<GerritChange[]> {
-		const response = await this._tryRequest(
-			this.getURL('changes/'),
+	): Subscribable<GerritChange[]> {
+		return APISubscriptionManager.changesSubscriptions.createFetcher(
 			{
-				...this._get,
-				searchParams: new URLSearchParams([
-					...filters.map((filter) => {
-						return ['q', filter.join(' ')] as [string, string];
-					}),
-					...withValues.map((v) => ['o', v] as [string, string]),
-					...optionalArrayEntry(
-						typeof offsetParams?.count === 'number',
-						() => [
-							['n', String(offsetParams!.count)] as [
-								string,
-								string
-							],
-						]
-					),
-					...optionalArrayEntry(
-						typeof offsetParams?.offset === 'number',
-						() => [
-							['S', String(offsetParams!.offset)] as [
-								string,
-								string
-							],
-						]
-					),
-				]),
+				filters,
+				offsetParams,
+				withValues,
+				query: '',
 			},
-			onError
-		);
+			async () => {
+				const response = await this._tryRequest(
+					this.getURL('changes/'),
+					{
+						...this._get,
+						searchParams: new URLSearchParams([
+							...filters.map((filter) => {
+								return ['q', filter.join(' ')] as [
+									string,
+									string
+								];
+							}),
+							...withValues.map(
+								(v) => ['o', v] as [string, string]
+							),
+							...optionalArrayEntry(
+								typeof offsetParams?.count === 'number',
+								() => [
+									['n', String(offsetParams!.count)] as [
+										string,
+										string
+									],
+								]
+							),
+							...optionalArrayEntry(
+								typeof offsetParams?.offset === 'number',
+								() => [
+									['S', String(offsetParams!.offset)] as [
+										string,
+										string
+									],
+								]
+							),
+						]),
+					},
+					onError
+				);
 
-		const json = this._handleResponse<GerritChangeResponse[]>(response);
-		if (!json) {
-			return [];
-		}
+				const json =
+					this._handleResponse<GerritChangeResponse[]>(response);
+				if (!json) {
+					return [];
+				}
 
-		const changes = json.map(
-			(p) =>
-				new GerritChange(
-					p,
-					withValues.includes(GerritAPIWith.ALL_REVISIONS)
-				)
+				return json.map(
+					(p) =>
+						new GerritChange(
+							p,
+							withValues.includes(GerritAPIWith.ALL_REVISIONS)
+						)
+				);
+			}
 		);
-		const cache = getChangeCache();
-		changes.forEach((change) =>
-			cache.set(change.change_id, withValues, change)
-		);
-		return changes;
 	}
 
-	public async searchChanges(
+	public searchChanges(
 		query: string,
 		offsetParams: ChangesOffsetParams | undefined,
 		onError:
@@ -746,163 +701,185 @@ export class GerritAPI {
 					body: string
 			  ) => void | Promise<void>),
 		...withValues: GerritAPIWith[]
-	): Promise<GerritChange[]> {
-		const response = await this._tryRequest(
-			this.getURL('changes/'),
+	): Subscribable<GerritChange[]> {
+		return APISubscriptionManager.changesSubscriptions.createFetcher(
 			{
-				...this._get,
-				searchParams: new URLSearchParams([
-					['q', query],
-					...withValues.map((v) => ['o', v] as [string, string]),
-					...optionalArrayEntry(
-						typeof offsetParams?.count === 'number',
-						() => [
-							['n', String(offsetParams!.count)] as [
-								string,
-								string
-							],
-						]
-					),
-					...optionalArrayEntry(
-						typeof offsetParams?.offset === 'number',
-						() => [
-							['S', String(offsetParams!.offset)] as [
-								string,
-								string
-							],
-						]
-					),
-				]),
+				query,
+				filters: [],
+				offsetParams,
+				withValues,
 			},
-			onError
-		);
+			async () => {
+				const response = await this._tryRequest(
+					this.getURL('changes/'),
+					{
+						...this._get,
+						searchParams: new URLSearchParams([
+							['q', query],
+							...withValues.map(
+								(v) => ['o', v] as [string, string]
+							),
+							...optionalArrayEntry(
+								typeof offsetParams?.count === 'number',
+								() => [
+									['n', String(offsetParams!.count)] as [
+										string,
+										string
+									],
+								]
+							),
+							...optionalArrayEntry(
+								typeof offsetParams?.offset === 'number',
+								() => [
+									['S', String(offsetParams!.offset)] as [
+										string,
+										string
+									],
+								]
+							),
+						]),
+					},
+					onError
+				);
 
-		const json = this._handleResponse<GerritChangeResponse[]>(response);
-		if (!json) {
-			return [];
-		}
+				const json =
+					this._handleResponse<GerritChangeResponse[]>(response);
+				if (!json) {
+					return [];
+				}
 
-		const changes = json.map(
-			(p) =>
-				new GerritChange(
-					p,
-					withValues.includes(GerritAPIWith.ALL_REVISIONS)
-				)
-		);
-		const cache = getChangeCache();
-		changes.forEach((change) =>
-			cache.set(change.change_id, withValues, change)
-		);
-		return changes;
-	}
-
-	public async getComments(
-		changeID: string
-	): Promise<Map<string, GerritComment[]>> {
-		const json = await this._getCommentsShared(changeID, 'comments');
-		if (!json) {
-			return new Map();
-		}
-
-		const map = new Map<string, GerritComment[]>();
-		for (const filePath in json) {
-			const comments = json[filePath];
-			map.set(
-				filePath,
-				await Promise.all(
-					comments.map((c) =>
-						GerritComment.from(changeID, filePath, c)
-					)
-				)
-			);
-		}
-		return map;
-	}
-
-	public async getDraftComments(
-		changeID: string
-	): Promise<Map<string, GerritDraftComment[]>> {
-		const json = await this._getCommentsShared(changeID, 'drafts');
-		if (!json) {
-			return new Map();
-		}
-
-		const map = new Map<string, GerritDraftComment[]>();
-		for (const filePath in json) {
-			const comments = json[filePath];
-			map.set(
-				filePath,
-				await Promise.all(
-					comments.map((c) =>
-						GerritDraftComment.from(changeID, filePath, c)
-					)
-				)
-			);
-		}
-		return map;
-	}
-
-	public async getFiles(
-		change: GerritChange,
-		revision: PatchsetDescription,
-		baseRevision?: PatchsetDescription
-	): Promise<GerritFile[]> {
-		if (
-			filesCache.has({
-				changeID: change.changeID,
-				project: change.project,
-				revision: revision.number,
-			})
-		) {
-			return filesCache.get({
-				changeID: change.changeID,
-				project: change.project,
-				revision: revision.number,
-			})!;
-		}
-
-		const response = await this._tryRequest(
-			this.getURL(
-				`changes/${change.changeID}/revisions/${revision.id}/files`
-			),
-			{
-				...this._get,
-				searchParams: new URLSearchParams([
-					...optionalArrayEntry(!!baseRevision, () => [
-						['base', String(baseRevision!.number)] as [
-							string,
-							string
-						],
-					]),
-				]),
+				return json.map(
+					(p) =>
+						new GerritChange(
+							p,
+							withValues.includes(GerritAPIWith.ALL_REVISIONS)
+						)
+				);
 			}
 		);
+	}
 
-		const json = this._handleResponse<GerritFilesResponse>(response);
-		if (!json) {
-			return [];
-		}
-
-		const files = Object.entries(json)
-			.filter(([path]) => path !== '/COMMIT_MSG')
-			.map(([path, file]) => {
-				return new GerritFile(
-					change.changeID,
-					change,
-					revision,
-					path,
-					file
-				);
-			});
-		filesCache.set(
+	public getComments(
+		changeID: string
+	): Subscribable<Map<string, GerritComment[]>> {
+		return APISubscriptionManager.commentsSubscriptions.createFetcher(
 			{
-				changeID: change.changeID,
-				project: change.project,
-				revision: revision.number,
+				changeID,
+				withValues: [],
+				field: null,
 			},
-			files
+			async () => {
+				const json = await this._getCommentsShared(
+					changeID,
+					'comments'
+				);
+				if (!json) {
+					return new Map();
+				}
+
+				const map = new Map<string, GerritComment[]>();
+				for (const filePath in json) {
+					const comments = json[filePath];
+					map.set(
+						filePath,
+						await Promise.all(
+							comments.map((c) =>
+								GerritComment.from(changeID, filePath, c)
+							)
+						)
+					);
+				}
+				return map;
+			}
 		);
-		return files;
+	}
+
+	public getDraftComments(
+		changeID: string
+	): Subscribable<Map<string, GerritDraftComment[]>> {
+		return APISubscriptionManager.draftCommentsSubscriptions.createFetcher(
+			{
+				changeID,
+				withValues: [],
+				field: null,
+			},
+			async () => {
+				const json = await this._getCommentsShared(changeID, 'drafts');
+				if (!json) {
+					return new Map();
+				}
+
+				const map = new Map<string, GerritDraftComment[]>();
+				for (const filePath in json) {
+					const comments = json[filePath];
+					map.set(
+						filePath,
+						await Promise.all(
+							comments.map((c) =>
+								GerritDraftComment.from(changeID, filePath, c)
+							)
+						)
+					);
+				}
+				return map;
+			}
+		);
+	}
+
+	public getFiles(
+		changeID: string,
+		changeProject: string,
+		revision: PatchsetDescription,
+		baseRevision?: PatchsetDescription
+	): Subscribable<Record<string, GerritFile>> {
+		return APISubscriptionManager.filesSubscriptions.createFetcher(
+			{
+				changeID: changeID,
+				revision,
+				baseRevision: baseRevision ?? null,
+			},
+			async () => {
+				const response = await this._tryRequest(
+					this.getURL(
+						`changes/${changeID}/revisions/${revision.id}/files`
+					),
+					{
+						...this._get,
+						searchParams: new URLSearchParams([
+							...optionalArrayEntry(!!baseRevision, () => [
+								['base', String(baseRevision!.number)] as [
+									string,
+									string
+								],
+							]),
+						]),
+					}
+				);
+
+				const json =
+					this._handleResponse<GerritFilesResponse>(response);
+				if (!json) {
+					return {};
+				}
+
+				return Object.fromEntries(
+					Object.entries(json)
+						.filter(([path]) => path !== '/COMMIT_MSG')
+						.map(([path, file]) => {
+							return [
+								path,
+								new GerritFile(
+									changeID,
+									changeProject,
+									revision,
+									path,
+									file
+								),
+							];
+						})
+				);
+			}
+		);
 	}
 
 	public async getTopic(
@@ -1322,7 +1299,6 @@ export class GerritAPI {
 			return null;
 		}
 
-		console.log(response.strippedBody);
 		return VersionNumber.from(response.strippedBody);
 	}
 }

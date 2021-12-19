@@ -200,3 +200,28 @@ export function avg(...values: number[]): number {
 export function diff(a: number, b: number): number {
 	return Math.abs(a - b);
 }
+
+export function arrDiff<V>(
+	before: V[],
+	after: V[]
+): {
+	removed: V[];
+	added: V[];
+} {
+	const removed: V[] = [];
+	const added: V[] = [];
+	for (const item of before) {
+		if (!after.includes(item)) {
+			removed.push(item);
+		}
+	}
+	for (const item of after) {
+		if (!before.includes(item)) {
+			added.push(item);
+		}
+	}
+	return {
+		removed,
+		added,
+	};
+}

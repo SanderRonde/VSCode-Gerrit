@@ -18,6 +18,7 @@ import { createAwaitingInterval } from '../util/util';
 import { getConfiguration } from '../vscode/config';
 import { VersionNumber } from '../util/version';
 import { getCurrentChangeID } from './commit';
+import { log } from '../util/log';
 
 export function getGitAPI(): API | null {
 	const extension = extensions.getExtension<GitExtension>('vscode.git');
@@ -128,9 +129,7 @@ async function ensureNoRebaseErrors(): Promise<boolean> {
 			}
 			return VersionNumber.from(str);
 		} catch (e) {
-			console.log(
-				`Failed to parse git version: ${(e as Error).toString()}`
-			);
+			log(`Failed to parse git version: ${(e as Error).toString()}`);
 			return null;
 		}
 	})();

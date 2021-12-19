@@ -4,14 +4,17 @@
     -   [x] Caching?
     -   [x] Infer URL, port, project from `.gitreview` file
     -   [-] Join requests
-    -   [ ] Make everything invalidatable
-        -   [ ] Allow invalidating of changes, files etc
-        -   [ ] Only update UI when changes made (in how far is this possible?)
-            -   [ ] If known that an update is coming, let the user decide
-        -   [ ] Preserve
-            -   [ ] Caching
-            -   [ ] Proper garbage collection
+    -   [x] Make everything invalidatable
+        -   [x] Allow invalidating of changes, files etc
+            -   [-] Sync up invalidations. For example if change with withValues A and B is invalidated at the same time, fetch one change with A&B at the same time.
+        -   [-] Only update UI when changes made (in how far is this possible?)
+            -   [-] If known that an update is coming, let the user decide
+        -   [x] Preserve
+            -   [x] Caching
+            -   [x] Proper garbage collection
     -   [x] Better more central caching
+    -   [ ] Instant updates
+        -   [ ] Let the user decide whether to update the diff view if the latest patchset updates
 -   [ ] Visual
     -   [ ] Changes pane
         -   [x] Changeset selection

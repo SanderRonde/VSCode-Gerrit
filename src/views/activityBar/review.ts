@@ -37,8 +37,8 @@ class ReviewWebviewProvider implements WebviewViewProvider, Disposable {
 	});
 	private readonly _views: Set<TypedWebviewView<ReviewWebviewMessage>> =
 		new Set();
-	private _lastState: ReviewWebviewState | null = null;
 	private readonly _disposables: Disposable[] = [];
+	private _lastState: ReviewWebviewState | null = null;
 
 	private constructor(private readonly _context: ExtensionContext) {}
 
@@ -134,33 +134,37 @@ class ReviewWebviewProvider implements WebviewViewProvider, Disposable {
 
 	private async _getChangeState(
 		changeID: string,
-		initialState?: Partial<ChangeState> | undefined,
-		forceUpdate: boolean = false
+		initialState?: Partial<ChangeState> | undefined
 	): Promise<ChangeState | undefined> {
 		const api = await getAPI();
 		if (!api) {
 			return undefined;
 		}
 
+		const changeSubscription = await GerritChange.getChange(
+			changeID,
+			GerritAPIWith.DETAILED_ACCOUNTS,
+			GerritAPIWith.ALL_REVISIONS
+		);
+		const draftCommentSubscription = api.getDraftComments(changeID);
 		const [change, detail, reviewers, cc, draftComments, self] =
 			await Promise.all([
-				forceUpdate
-					? GerritChange.getChangeCached(
-							changeID,
-							GerritAPIWith.DETAILED_ACCOUNTS,
-							GerritAPIWith.ALL_REVISIONS
-					  )
-					: GerritChange.getChange(
-							changeID,
-							GerritAPIWith.DETAILED_ACCOUNTS,
-							GerritAPIWith.ALL_REVISIONS
-					  ),
+				changeSubscription.getValue(),
 				api.getChangeDetail(changeID),
 				api.suggestReviewers(changeID),
 				api.suggestCC(changeID),
-				api.getDraftComments(changeID),
+				draftCommentSubscription.getValue(),
 				api.getSelf(),
 			]);
+
+		[changeSubscription, draftCommentSubscription].map((s) =>
+			s.subscribeOnce(
+				new WeakRef(async () => {
+					await this.updateAllStates();
+				})
+			)
+		);
+
 		if (
 			!change ||
 			!detail ||
@@ -216,10 +220,10 @@ class ReviewWebviewProvider implements WebviewViewProvider, Disposable {
 	}
 
 	private async _getState(
-		initialState?: ReviewWebviewState,
-		forceUpdate: boolean = false
+		initialState?: ReviewWebviewState
 	): Promise<ReviewWebviewState> {
 		const currentChangeID = await getCurrentChangeID();
+
 		const overriddenChangeID = await storageGet(
 			'reviewChangeIDOverride',
 			StorageScope.WORKSPACE
@@ -230,15 +234,13 @@ class ReviewWebviewProvider implements WebviewViewProvider, Disposable {
 			overriddenChange: overriddenChangeID
 				? await this._getChangeState(
 						overriddenChangeID,
-						initialState?.overriddenChange,
-						forceUpdate
+						initialState?.overriddenChange
 				  )
 				: undefined,
 			currentChange: currentChangeID
 				? await this._getChangeState(
 						currentChangeID,
-						initialState?.currentChange,
-						forceUpdate
+						initialState?.currentChange
 				  )
 				: undefined,
 		};
@@ -272,7 +274,7 @@ class ReviewWebviewProvider implements WebviewViewProvider, Disposable {
 	private async _handleCommentUpdateMessage(
 		msg: CommentUpdateMessage
 	): Promise<void> {
-		const change = await GerritChange.getChangeCached(
+		const change = await GerritChange.getChangeOnce(
 			msg.body.changeID,
 			GerritAPIWith.ALL_REVISIONS
 		);
@@ -314,7 +316,8 @@ class ReviewWebviewProvider implements WebviewViewProvider, Disposable {
 			return;
 		}
 
-		const change = await GerritChange.getChangeCached(msg.body.changeID);
+		const subscription = await GerritChange.getChange(msg.body.changeID);
+		const change = await subscription.getValue();
 		if (!change) {
 			await srcView.postMessage({
 				type: 'publishFailed',
@@ -347,7 +350,7 @@ class ReviewWebviewProvider implements WebviewViewProvider, Disposable {
 			await srcView.postMessage({
 				type: 'publishSuccess',
 			});
-			await this.updateAllStates(undefined, true);
+			await subscription.invalidate();
 		} else {
 			await srcView.postMessage({
 				type: 'publishFailed',
@@ -391,16 +394,12 @@ class ReviewWebviewProvider implements WebviewViewProvider, Disposable {
 		await webviewView.webview.postMessage({ type: 'initialize' });
 	}
 
-	public async updateAllStates(
-		newState?: ReviewWebviewState,
-		forceUpdate: boolean = false
-	): Promise<void> {
+	public async updateAllStates(newState?: ReviewWebviewState): Promise<void> {
 		if (this._views.size === 0) {
 			return;
 		}
 		const state =
-			newState ??
-			(await this._getState(this._lastState ?? undefined, forceUpdate));
+			newState ?? (await this._getState(this._lastState ?? undefined));
 		await Promise.all(
 			[...this._views.values()].map((v) =>
 				v.webview.postMessage({

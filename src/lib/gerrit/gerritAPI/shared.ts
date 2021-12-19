@@ -32,7 +32,7 @@ export abstract class DynamicallyFetchable {
 				return null;
 			}
 
-			const res = await api.getChange(
+			const res = await GerritChange.getChangeOnce(
 				this.changeID,
 				...uniqueSimple(flags)
 			);

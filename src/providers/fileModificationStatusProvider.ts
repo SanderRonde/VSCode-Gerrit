@@ -78,7 +78,7 @@ export class FileModificationStatusProvider implements FileDecorationProvider {
 			return;
 		}
 
-		const change = await GerritChange.getChangeCached(meta.changeID);
+		const change = await GerritChange.getChangeOnce(meta.changeID);
 		if (!change || token.isCancellationRequested) {
 			return;
 		}
@@ -86,7 +86,9 @@ export class FileModificationStatusProvider implements FileDecorationProvider {
 		if (!revision || token.isCancellationRequested) {
 			return;
 		}
-		const files = await revision.files(meta.baseRevision);
+		const files = await (
+			await revision.files(meta.baseRevision)
+		).getValue();
 		if (!files || token.isCancellationRequested || !files[meta.filePath]) {
 			return;
 		}

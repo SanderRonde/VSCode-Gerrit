@@ -4,17 +4,26 @@ import { DocumentCommentManager } from '../../../../providers/commentProvider';
 import { OPEN_FILE_IS_PATCHSET_LEVEL_FILE } from '../../../../lib/util/magic';
 import { GerritChange } from '../../../../lib/gerrit/gerritAPI/gerritChange';
 import { TextContent } from '../../../../lib/gerrit/gerritAPI/gerritFile';
+import { GerritAPIWith } from '../../../../lib/gerrit/gerritAPI/api';
 import { TreeItemWithoutChildren } from '../../shared/treeTypes';
+import { SearchResultsTreeProvider } from '../../searchResults';
 import { FileMeta } from '../../../../providers/fileProvider';
 import { PatchsetDescription } from '../changeTreeView';
+import { ViewPanel } from '../viewPanel';
 
 export const PATCHSET_LEVEL_KEY = '/PATCHSET_LEVEL';
 
 export class PatchSetLevelCommentsTreeView implements TreeItemWithoutChildren {
-	public constructor(public change: GerritChange) {}
+	public constructor(
+		public changeID: string,
+		private readonly _changeNumber: number,
+		private readonly _parent: ViewPanel | SearchResultsTreeProvider
+	) {}
 
 	public static async isVisible(change: GerritChange): Promise<boolean> {
-		const comments = await GerritChange.getAllCommentsCached(change.id);
+		const comments = await (
+			await GerritChange.getAllComments(change.id)
+		).getValue();
 		const patchsetComments = comments.get(PATCHSET_LEVEL_KEY);
 		return !!patchsetComments && patchsetComments.length > 0;
 	}
@@ -62,16 +71,31 @@ export class PatchSetLevelCommentsTreeView implements TreeItemWithoutChildren {
 	private async _createCommand(): Promise<Command | null> {
 		// We create a file that has N number of lines, where N = number of comments.
 		// That way we can place one comment on every line
-		const comments = await GerritChange.getAllCommentsCached(
-			this.change.id
+		const commentSubscription = await GerritChange.getAllComments(
+			this.changeID
 		);
-		const revision = await this.change.currentRevision();
+		const changeSubscription = await GerritChange.getChange(
+			this.changeID,
+			GerritAPIWith.CURRENT_REVISION
+		);
+
+		[changeSubscription, commentSubscription].map((s) =>
+			s.subscribeOnce(new WeakRef(() => this._parent.reload()))
+		);
+		const [change, comments] = await Promise.all([
+			changeSubscription.getValue(),
+			commentSubscription.getValue(),
+		]);
+		const revision = await change?.currentRevision();
 		if (!revision) {
 			return null;
 		}
 
 		return PatchSetLevelCommentsTreeView.createCommand(
-			this.change,
+			{
+				id: this.changeID,
+				project: change!.project,
+			},
 			revision,
 			DocumentCommentManager.buildThreadsFromComments(
 				comments.get(PATCHSET_LEVEL_KEY)!
@@ -82,7 +106,7 @@ export class PatchSetLevelCommentsTreeView implements TreeItemWithoutChildren {
 	public async getItem(): Promise<TreeItem> {
 		return {
 			label: 'Patch-level comments',
-			tooltip: `View change #${this.change.number}'s patch-level comments`,
+			tooltip: `View change #${this._changeNumber}'s patch-level comments`,
 			contextValue: 'view-patch-level',
 			iconPath: new ThemeIcon('comment-discussion'),
 			command: (await this._createCommand()) ?? undefined,

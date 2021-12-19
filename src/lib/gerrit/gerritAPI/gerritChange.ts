@@ -6,59 +6,22 @@ import {
 	GerritUserResponse,
 } from './types';
 import { PatchsetDescription } from '../../../views/activityBar/changes/changeTreeView';
-import { createCacheGetter, createCacheSetter } from '../../util/cache';
+import { joinSubscribables } from '../../subscriptions/subscriptionUtil';
 import { DefaultChangeFilter, GerritChangeFilter } from './filters';
 import { GerritComment, GerritDraftComment } from './gerritComment';
+import { Subscribable } from '../../subscriptions/subscriptions';
+import { getAPI, getAPIForSubscription } from '../gerritAPI';
 import { ChangesOffsetParams, GerritAPIWith } from './api';
 import { GerritChangeDetail } from './gerritChangeDetail';
 import { GerritRevision } from './gerritRevision';
 import { DynamicallyFetchable } from './shared';
-import { getChangeCache } from '../gerritCache';
 import { DateTime } from '../../util/dateTime';
 import { GerritCommit } from './gerritCommit';
 import { GerritUser } from './gerritUser';
-import { getAPI } from '../gerritAPI';
 
 export type CommentMap = Map<string, (GerritComment | GerritDraftComment)[]>;
 
 export class GerritChange extends DynamicallyFetchable {
-	public static getAllComments = createCacheSetter(
-		'gerritChange.getAllComments',
-		async (changeID: string): Promise<CommentMap> => {
-			const api = await getAPI();
-			if (!api) {
-				return new Map();
-			}
-
-			// TODO: this probably needs to use some form of cache
-			const [comments, draftComments] = await Promise.all([
-				api.getComments(changeID),
-				api.getDraftComments(changeID),
-			]);
-
-			const mergedMap: Map<
-				string,
-				(GerritComment | GerritDraftComment)[]
-			> = new Map();
-			for (const [key, entries] of [
-				...comments.entries(),
-				...draftComments.entries(),
-			]) {
-				if (!mergedMap.has(key)) {
-					mergedMap.set(key, []);
-				}
-				mergedMap.get(key)!.push(...entries);
-			}
-
-			return mergedMap;
-		}
-	);
-
-	public static getAllCommentsCached = createCacheGetter<
-		Promise<CommentMap>,
-		[changeID: string]
-	>('gerritChange.getAllComments');
-
 	public override changeID: string;
 	public id: string;
 	public project: string;
@@ -140,7 +103,7 @@ export class GerritChange extends DynamicallyFetchable {
 							k,
 							new GerritRevision(
 								this.changeID,
-								this,
+								this.project,
 								k,
 								k === response.current_revision!,
 								v
@@ -152,6 +115,33 @@ export class GerritChange extends DynamicallyFetchable {
 				this._revisions = this._currentRevisions;
 			}
 		}
+	}
+
+	public static async getAllComments(
+		changeID: string
+	): Promise<Subscribable<CommentMap>> {
+		const api = await getAPIForSubscription();
+
+		return joinSubscribables(
+			(comments, draftComments): CommentMap => {
+				const mergedMap: Map<
+					string,
+					(GerritComment | GerritDraftComment)[]
+				> = new Map();
+				for (const [key, entries] of [
+					...comments.entries(),
+					...draftComments.entries(),
+				]) {
+					if (!mergedMap.has(key)) {
+						mergedMap.set(key, []);
+					}
+					mergedMap.get(key)!.push(...entries);
+				}
+				return mergedMap;
+			},
+			api.getComments(changeID),
+			api.getDraftComments(changeID)
+		);
 	}
 
 	/**
@@ -168,37 +158,28 @@ export class GerritChange extends DynamicallyFetchable {
 					body: string
 			  ) => void | Promise<void>),
 		...withValues: GerritAPIWith[]
-	): Promise<GerritChange[]> {
-		const api = await getAPI();
-		if (!api) {
-			return [] as GerritChange[];
-		}
-
-		return await api.getChanges(filters, offset, onError, ...withValues);
-	}
-
-	public static async getChange(
-		changeID: string,
-		...withValues: GerritAPIWith[]
-	): Promise<GerritChange | null> {
+	): Promise<Subscribable<GerritChange[]> | null> {
 		const api = await getAPI();
 		if (!api) {
 			return null;
 		}
 
-		return await api.getChange(changeID, ...withValues);
+		return api.getChanges(filters, offset, onError, ...withValues);
 	}
 
-	public static async getChangeCached(
+	public static async getChange(
+		changeID: string,
+		...withValues: GerritAPIWith[]
+	): Promise<Subscribable<GerritChange | null>> {
+		const api = await getAPIForSubscription();
+		return api.getChange(changeID, null, ...withValues);
+	}
+
+	public static async getChangeOnce(
 		changeID: string,
 		...withValues: GerritAPIWith[]
 	): Promise<GerritChange | null> {
-		const cache = getChangeCache();
-		if (cache.has(changeID, withValues)) {
-			return cache.get(changeID, withValues)!;
-		}
-
-		return this.getChange(changeID, ...withValues);
+		return (await this.getChange(changeID, ...withValues)).getValue();
 	}
 
 	public labels(

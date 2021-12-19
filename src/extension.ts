@@ -1,5 +1,4 @@
 import { FileModificationStatusProvider } from './providers/fileModificationStatusProvider';
-import { filesCache } from './views/activityBar/changes/changeTreeView/file/filesCache';
 import { fileCache } from './views/activityBar/changes/changeTreeView/file/fileCache';
 import { getCommentDecorationProvider } from './providers/commentDecorationProvider';
 import { getOrCreateReviewWebviewProvider } from './views/activityBar/review';
@@ -11,7 +10,6 @@ import { setContextProp, setDefaultContexts } from './lib/vscode/context';
 import { GerritUser } from './lib/gerrit/gerritAPI/gerritUser';
 import { ExtensionContext, window, workspace } from 'vscode';
 import { updateUploaderState } from './lib/state/uploader';
-import { getChangeCache } from './lib/gerrit/gerritCache';
 import { registerCommands } from './commands/commands';
 import { setupChangeIDCache } from './lib/git/commit';
 import { showStatusBarIcon } from './views/statusBar';
@@ -102,11 +100,9 @@ export async function activate(context: ExtensionContext): Promise<void> {
 	);
 
 	// Add disposables
-	context.subscriptions.push(getChangeCache());
 	context.subscriptions.push(await setupChangeIDCache());
 	context.subscriptions.push(await updateUploaderState());
 	context.subscriptions.push(fileCache);
-	context.subscriptions.push(filesCache);
 
 	// Warm up cache for self
 	void GerritUser.getSelf();

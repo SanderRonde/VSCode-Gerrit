@@ -41,3 +41,15 @@ export const shouldUseReadonlyMode = (): boolean => {
 	}
 };
 export const shouldDebugRequests = isDev;
+
+/**
+ * Log disposing of garbage collected items
+ */
+const DEBUG_GARBAGE_COLLECTION_DEFAULT: boolean = true;
+export const shouldDebugGarbageCollection = (): boolean => {
+	if (isDev()) {
+		return DEBUG_GARBAGE_COLLECTION_DEFAULT;
+	} else {
+		return false;
+	}
+};

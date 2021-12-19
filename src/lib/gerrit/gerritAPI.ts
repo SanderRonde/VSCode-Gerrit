@@ -92,8 +92,8 @@ export async function getAPIForSubscription(): Promise<GerritAPI> {
 	}
 
 	api = await createAPI();
-	if (api) {
+	if (!api) {
 		return new GerritAPI(null, null, null);
 	}
-	return api!;
+	return api;
 }

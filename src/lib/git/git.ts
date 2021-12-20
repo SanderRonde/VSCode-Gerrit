@@ -165,15 +165,28 @@ async function ensureNoRebaseErrors(): Promise<boolean> {
 			}
 
 			const OPEN_IN_TERMINAL_OPTION = 'Rebase in Terminal';
+			const RUN_GIT_REVIEW_OPTION = 'Run Git Review';
 			void (async () => {
 				const answer = await window.showErrorMessage(
 					'Failed to rebase, please check the log panel for details.',
-					OPEN_IN_TERMINAL_OPTION
+					OPEN_IN_TERMINAL_OPTION,
+					RUN_GIT_REVIEW_OPTION
 				);
 				if (answer === OPEN_IN_TERMINAL_OPTION) {
 					const terminal = window.createTerminal('Gerrit Rebase');
 					terminal.show(false);
 					terminal.sendText(rebaseCommand, true);
+				} else if (answer === RUN_GIT_REVIEW_OPTION) {
+					const api = getGitAPI();
+					if (!api || !api.repositories.length) {
+						return;
+					}
+
+					const uri = api.repositories[0].rootUri.fsPath;
+					await tryExecAsync('git-review', {
+						cwd: uri,
+						timeout: 10000,
+					});
 				}
 			})();
 

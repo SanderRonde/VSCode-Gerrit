@@ -151,22 +151,31 @@ async function ensureNoRebaseErrors(): Promise<boolean> {
 			gitReviewFile.branch ??
 			gitReviewFile.defaultbranch ??
 			DEFAULT_GIT_REVIEW_FILE.branch;
-		const { success } = await tryExecAsync(
-			`git rebase ${rebaseFlag} ${remoteBranch}`
-		);
+		const rebaseCommand = `git rebase ${rebaseFlag} ${remoteBranch}`;
+		const { success } = await tryExecAsync(rebaseCommand);
 		if (!success) {
-			void window.showErrorMessage(
-				'Failed to rebase, please check the log panel for details.'
-			);
-
 			const { success: abortSuccess } = await tryExecAsync(
 				'git rebase --abort'
 			);
 			if (!abortSuccess) {
 				void window.showErrorMessage(
-					'Failed to abort rebase, please check the log panel for details.'
+					'Rebase failed and abortion of rebase failed, please check the log panel for details.'
 				);
+				return false;
 			}
+
+			const OPEN_IN_TERMINAL_OPTION = 'Rebase in Terminal';
+			void (async () => {
+				const answer = await window.showErrorMessage(
+					'Failed to rebase, please check the log panel for details.',
+					OPEN_IN_TERMINAL_OPTION
+				);
+				if (answer === OPEN_IN_TERMINAL_OPTION) {
+					const terminal = window.createTerminal('Gerrit Rebase');
+					terminal.show(false);
+					terminal.sendText(rebaseCommand, true);
+				}
+			})();
 
 			return false;
 		}

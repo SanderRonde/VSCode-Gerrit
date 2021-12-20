@@ -10,7 +10,7 @@ interface OptionalGitReviewProperties {
 	defaultremote?: string;
 }
 
-interface GitReviewFile extends OptionalGitReviewProperties {
+export interface GitReviewFile extends OptionalGitReviewProperties {
 	host: string;
 	project: string;
 }

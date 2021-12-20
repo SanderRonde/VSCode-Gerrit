@@ -46,7 +46,8 @@
 		"onCommand:gerrit.openChangeSelector",
 		"onCommand:gerrit.focusChange",
 		"onCommand:gerrit.pushForReview",
-		"onCommand:gerrit.copyCommentLink"
+		"onCommand:gerrit.copyCommentLink",
+		"onCommand:gerrit.listenForStreamEvents"
 	],
 	"extensionKind": [
 		"workspace"
@@ -205,6 +206,10 @@
 				"command": "gerrit.openCommentOnline",
 				"title": "Open comment on Gerrit",
 				"icon": "$(link-external)"
+			},
+			{
+				"command": "gerrit.listenForStreamEvents",
+				"title": "Start listening for Gerrit stream events"
 			}
 		],
 		"keybindings": [
@@ -354,6 +359,10 @@
 				{
 					"command": "gerrit.openCommentOnline",
 					"when": "false"
+				},
+				{
+					"command": "gerrit.listenForStreamEvents",
+					"when": "true"
 				}
 			],
 			"comments/comment/context": [
@@ -576,6 +585,12 @@
 			"type": "object",
 			"title": "Gerrit configuration",
 			"properties": {
+				"gerrit.streamEvents": {
+					"type": "boolean",
+					"title": "Enable listening for events by SSH'ing to Gerrit",
+					"description": "Enable listening for events by SSH'ing to Gerrit. See https://gerrit-review.googlesource.com/Documentation/cmd-stream-events.html for more info",
+					"default": false
+				},
 				"gerrit.messages.postReviewNotification": {
 					"type": "boolean",
 					"title": "Show notification after running `git review`",

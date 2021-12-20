@@ -248,6 +248,7 @@ export class FileTreeView implements TreeItemWithoutChildren {
 
 	private async _checkForDiffUpdates(): Promise<void> {
 		const openDocs = DocumentManager.getAllDocs();
+		const updateFns: (() => Promise<void>)[] = [];
 		for (const doc of openDocs) {
 			if (doc.uri.scheme !== GERRIT_FILE_SCHEME) {
 				continue;
@@ -292,23 +293,39 @@ export class FileTreeView implements TreeItemWithoutChildren {
 					continue;
 				}
 
-				// Found the match, close old one
-				await window.showTextDocument(doc.uri, {
-					preview: true,
-					preserveFocus: false,
+				updateFns.push(async () => {
+					// Found the match, close old one
+					await window.showTextDocument(doc.uri, {
+						preview: true,
+						preserveFocus: false,
+					});
+					await commands.executeCommand(
+						'workbench.action.closeActiveEditor'
+					);
+
+					FileTreeView._diffEditorMap.delete(id);
+
+					// Open new one
+					await commands.executeCommand(
+						cmd.command,
+						// eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+						...(cmd.arguments ?? [])
+					);
 				});
-				await commands.executeCommand(
-					'workbench.action.closeActiveEditor'
-				);
+			}
+		}
 
-				FileTreeView._diffEditorMap.delete(id);
-
-				// Open new one
-				await commands.executeCommand(
-					cmd.command,
-					// eslint-disable-next-line @typescript-eslint/no-unsafe-argument
-					...(cmd.arguments ?? [])
-				);
+		if (updateFns.length > 0) {
+			const YES_OPTION = updateFns.length > 1 ? 'Update all' : 'Update';
+			const answer = await window.showInformationMessage(
+				`${
+					updateFns.length > 1 ? `${updateFns.length} diff` : 'Diff'
+				} editor contents outdated, do you want to reload with the new contents`,
+				YES_OPTION,
+				'No'
+			);
+			if (answer === YES_OPTION) {
+				await Promise.all(updateFns.map((fn) => fn()));
 			}
 		}
 	}

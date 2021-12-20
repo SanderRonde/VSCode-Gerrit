@@ -1,3 +1,7 @@
+import {
+	startListeningForStreamEvents,
+	testEnableStreamEvents,
+} from './lib/stream-events/stream-events';
 import { FileModificationStatusProvider } from './providers/fileModificationStatusProvider';
 import { fileCache } from './views/activityBar/changes/changeTreeView/file/fileCache';
 import { getCommentDecorationProvider } from './providers/commentDecorationProvider';
@@ -47,6 +51,13 @@ export async function activate(context: ExtensionContext): Promise<void> {
 
 	// Register status bar entry
 	await showStatusBarIcon(context);
+
+	// Test stream events
+	void (async () => {
+		if (await testEnableStreamEvents()) {
+			context.subscriptions.push(await startListeningForStreamEvents());
+		}
+	})();
 
 	// Register tree views
 	context.subscriptions.push(getOrCreateChangesTreeProvider());

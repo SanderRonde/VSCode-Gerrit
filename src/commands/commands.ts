@@ -36,6 +36,7 @@ import {
 } from '../views/statusBar';
 import { clearSearchResults, search } from '../views/activityBar/search/search';
 import { ChangeTreeView } from '../views/activityBar/changes/changeTreeView';
+import { listenForStreamEvents } from '../lib/stream-events/stream-events';
 import { enterCredentials } from '../lib/credentials/credentials';
 import { focusChange } from '../lib/commandHandlers/focusChange';
 import { checkConnection } from '../lib/gerrit/gerritAPI';
@@ -77,6 +78,7 @@ export enum GerritExtensionCommands {
 	PUSH_FOR_REVIEW = 'gerrit.pushForReview',
 	COPY_COMMENT_LINK = 'gerrit.copyCommentLink',
 	OPEN_COMMENT_ONLINE = 'gerrit.openCommentOnline',
+	RETRY_LISTEN_FOR_STREAM_EVENTS = 'gerrit.listenForStreamEvents',
 }
 
 export function registerCommands(context: ExtensionContext): void {
@@ -207,6 +209,12 @@ export function registerCommands(context: ExtensionContext): void {
 		commands.registerCommand(
 			GerritExtensionCommands.OPEN_CHANGE_SELECTOR,
 			openChangeSelector
+		)
+	);
+	context.subscriptions.push(
+		commands.registerCommand(
+			GerritExtensionCommands.RETRY_LISTEN_FOR_STREAM_EVENTS,
+			listenForStreamEvents
 		)
 	);
 

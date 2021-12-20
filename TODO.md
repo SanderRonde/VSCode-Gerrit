@@ -13,8 +13,8 @@
             -   [x] Caching
             -   [x] Proper garbage collection
     -   [x] Better more central caching
-    -   [ ] Instant updates
-        -   [ ] Let the user decide whether to update the diff view if the latest patchset updates
+    -   [x] Instant updates
+        -   [x] Let the user decide whether to update the diff view if the latest patchset updates
 -   [ ] Visual
     -   [ ] Changes pane
         -   [x] Changeset selection
@@ -40,14 +40,14 @@
             -   [x] Checkout & Review
             -   [x] Toggle review mode
             -   [x] Open on gerrit
-            -   [ ] Notify when verified by administrator?
+            -   [-] Notify when verified by administrator? // Not really possible with Stream Events. Also hard to generalize because workflows differ a lot.
         -   [x] Add "refresh" button
             -   [x] Periodically refresh
         -   [x] Add "fetch more" button
         -   [x] Change expands to:
             -   [x] Description
                 -   [-] Clicking opens inline gerrit webview // Not possible because Gerrit doesn't allow iframes or unauthorized fetching of the HTML. (would also be hard with cookies etc).
-                    -   [ ] Possible future TODO, create custom UI
+                    -   [-] Possible future TODO, create custom UI
             -   [x] Do something with comments that aren't inside of a file
             -   [x] All changed files by path
                 -   [x] Badges:
@@ -74,7 +74,7 @@
                             -   [x] Cancel, save, resolved
                         -   [x] Add "copy link" button (just like on the website)
     -   [x] Reply pane
-        -   [ ] Update draft comment counter when a comment is added
+        -   [x] Update draft comment counter when a comment is added
         -   [x] Contains everything under the "reply" button and some more:
             -   [x] Reviewers
             -   [x] CC

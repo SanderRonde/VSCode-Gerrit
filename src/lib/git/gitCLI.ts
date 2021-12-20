@@ -1,4 +1,4 @@
-import { exec, ExecOptions } from 'child_process';
+import { exec, ExecException, ExecOptions } from 'child_process';
 import { getGitAPI } from './git';
 import { log } from '../util/log';
 
@@ -36,7 +36,7 @@ export async function tryExecAsync(
 	success: boolean;
 	stdout: string;
 	stderr: string;
-	err: Error | null;
+	err: ExecException | null;
 }> {
 	return new Promise<{
 		success: boolean;

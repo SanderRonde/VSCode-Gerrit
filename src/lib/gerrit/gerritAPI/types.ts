@@ -46,6 +46,10 @@ export interface GerritDetailedUserResponse extends GerritUserResponse {
 
 export enum RevisionType {
 	REWORK = 'REWORK',
+	TRIVIAL_REBASE = 'TRIVIAL_REBASE',
+	MERGE_FIRST_PARENT_UPDATE = 'MERGE_FIRST_PARENT_UPDATE',
+	NO_CODE_CHANGE = 'NO_CODE_CHANGE',
+	NO_CHANGE = 'NO_CHANGE',
 }
 
 export interface FetchInstructions {

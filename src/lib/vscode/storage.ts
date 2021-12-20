@@ -6,7 +6,6 @@ export enum StorageScope {
 	GLOBAL,
 }
 
-// eslint-disable-next-line @typescript-eslint/no-empty-interface
 interface StorageObj {
 	reviewComment: {
 		project: string;
@@ -21,9 +20,14 @@ interface StorageObj {
 	 * instead of the current change
 	 */
 	reviewChangeIDOverride: string | null;
+	streamEventsAsked?: boolean;
 }
 
-const SYNC_KEYS: (keyof StorageObj)[] = [] as (keyof StorageObj)[];
+const SYNC_KEYS: (keyof StorageObj)[] = [
+	'reviewComment',
+	'reviewChangeIDOverride',
+	'streamEventsAsked',
+];
 
 const ctx = createInittableValue<ExtensionContext>();
 export async function storageSet<K extends keyof StorageObj>(

@@ -11,6 +11,7 @@ import { PERIODICAL_CHANGE_FETCH_INTERVAL } from '../../lib/util/constants';
 import { FileTreeView } from './changes/changeTreeView/fileTreeView';
 import { RootTreeViewProvider } from './changes/rootTreeView';
 import { ChangeTreeView } from './changes/changeTreeView';
+import { onChangeLastCommit } from '../../lib/git/git';
 import { TreeViewItem } from './shared/treeTypes';
 import { ViewPanel } from './changes/viewPanel';
 
@@ -37,6 +38,13 @@ export class ChangesTreeProvider
 		this._disposables.push({
 			dispose: () => clearInterval(interval),
 		});
+		void (async () => {
+			this._disposables.push(
+				await onChangeLastCommit(() => {
+					this.refresh();
+				}, false)
+			);
+		})();
 	}
 
 	public static refesh(): void {

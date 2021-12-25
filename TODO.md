@@ -94,12 +94,12 @@
         -   [x] If first patchset, automatically open reply pane
             -   [x] Allow disabling this in settings
         -   [x] This should also be a command
-        -   [ ] Add a bunch of gerrit commands in the ... button
-            -   [ ] Git review
-            -   [ ] Git add . && git commit --amend
-            -   [ ] Git add . && git commit --amend (no msg)
-            -   [ ] Git rebase
-            -   [ ] Recursive rebase
+        -   [x] Add a bunch of gerrit commands in the ... button
+            -   [x] Git review
+            -   [-] Git add . && git commit --amend
+            -   [-] Git add . && git commit --amend (no msg)
+            -   [x] Git rebase (sort of)
+            -   [x] Recursive rebase (sort of)
     -   [x] Add bottom bar showing currently checked-out change
         -   [-] Rightclicking:
             -   [-] Uncheckout
@@ -110,4 +110,4 @@
         -   [x] Checkout patch X
         -   [x] Open patch X in changes pane
         -   [x] Add as startup events
-        -   [ ] Rebase command
+        -   [x] Rebase command

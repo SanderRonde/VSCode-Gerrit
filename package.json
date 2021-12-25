@@ -47,7 +47,11 @@
 		"onCommand:gerrit.focusChange",
 		"onCommand:gerrit.pushForReview",
 		"onCommand:gerrit.copyCommentLink",
-		"onCommand:gerrit.listenForStreamEvents"
+		"onCommand:gerrit.listenForStreamEvents",
+		"onCommand:gerrit.rebase",
+		"onCommand:gerrit.recursiveRebase",
+		"onCommand:gerrit.rebaseCurrent",
+		"onCommand:gerrit.recursiveRebaseCurrent"
 	],
 	"extensionKind": [
 		"workspace"
@@ -58,6 +62,22 @@
 			{
 				"command": "gerrit.checkoutBranch",
 				"title": "Checkout Patch"
+			},
+			{
+				"command": "gerrit.rebase",
+				"title": "Checkout & Rebase"
+			},
+			{
+				"command": "gerrit.recursiveRebase",
+				"title": "Checkout & Rebase recursively"
+			},
+			{
+				"command": "gerrit.rebaseCurrent",
+				"title": "Rebase change"
+			},
+			{
+				"command": "gerrit.recursiveRebaseCurrent",
+				"title": "Rebase change recursively"
 			},
 			{
 				"command": "gerrit.createCommentResolved",
@@ -363,6 +383,14 @@
 				{
 					"command": "gerrit.listenForStreamEvents",
 					"when": "true"
+				},
+				{
+					"command": "gerrit.rebaseCurrent",
+					"when": "true"
+				},
+				{
+					"command": "gerrit.recursiveRebaseCurrent",
+					"when": "true"
 				}
 			],
 			"comments/comment/context": [
@@ -482,22 +510,42 @@
 				{
 					"command": "gerrit.checkoutBranch",
 					"when": "view == gerrit:changeExplorer && viewItem =~ /gerritchange/",
-					"group": "achange@1"
+					"group": "achange@2"
+				},
+				{
+					"command": "gerrit.rebase",
+					"when": "view == gerrit:changeExplorer && viewItem =~ /gerritchange/ && viewItem =~ noCurrent",
+					"group": "achange@3"
+				},
+				{
+					"command": "gerrit.recursiveRebase",
+					"when": "view == gerrit:changeExplorer && viewItem =~ /gerritchange/ && viewItem =~ noCurrent",
+					"group": "achange@4"
+				},
+				{
+					"command": "gerrit.rebaseCurrent",
+					"when": "view == gerrit:changeExplorer && viewItem =~ /gerritchange/ && viewItem =~ yesCurrent",
+					"group": "achange@3"
+				},
+				{
+					"command": "gerrit.recursiveRebaseCurrent",
+					"when": "view == gerrit:changeExplorer && viewItem =~ /gerritchange/ && viewItem =~ yesCurrent",
+					"group": "achange@4"
 				},
 				{
 					"command": "gerrit.openChangeOnline",
 					"when": "view == gerrit:changeExplorer && viewItem =~ /gerritchange/",
-					"group": "change@3"
+					"group": "change@7"
 				},
 				{
 					"command": "gerrit.openPatchsetSelector",
 					"when": "view == gerrit:changeExplorer && viewItem =~ /gerritchange/",
-					"group": "change@2"
+					"group": "change@5"
 				},
 				{
 					"command": "gerrit.resetPatchsetSelection",
 					"when": "view == gerrit:changeExplorer && viewItem =~ /gerritchange/ && viewItem =~ /customPatchset/",
-					"group": "change@3"
+					"group": "change@6"
 				}
 			],
 			"view/title": [
@@ -544,6 +592,25 @@
 					"command": "gerrit.pushForReview",
 					"when": "scmProvider =~ /git/",
 					"group": "navigation"
+				},
+				{
+					"submenu": "git.gerrit",
+					"when": "scmProvider =~ /git/ && gerrit:isUsingGerrit",
+					"group": "2_main@8"
+				}
+			],
+			"git.gerrit": [
+				{
+					"command": "gerrit.pushForReview",
+					"group": "git_gerrit@1"
+				},
+				{
+					"command": "gerrit.rebaseCurrent",
+					"group": "git_gerrit@4"
+				},
+				{
+					"command": "gerrit.recursiveRebaseCurrent",
+					"group": "git_gerrit@5"
 				}
 			]
 		},

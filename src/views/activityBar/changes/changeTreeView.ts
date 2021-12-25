@@ -1,5 +1,7 @@
 import {
 	TREE_ITEM_CHANGE_CUSTOM_PATCHSET_SELECTION,
+	TREE_ITEM_IS_CURRENT,
+	TREE_ITEM_IS_NOT_CURRENT,
 	TREE_ITEM_TYPE_CHANGE,
 } from '../../../lib/util/magic';
 import {
@@ -20,6 +22,7 @@ import { TreeItemWithChildren, TreeViewItem } from '../shared/treeTypes';
 import { StorageScope, storageSet } from '../../../lib/vscode/storage';
 import { getAPIForSubscription } from '../../../lib/gerrit/gerritAPI';
 import { GerritFile } from '../../../lib/gerrit/gerritAPI/gerritFile';
+import { getCurrentChangeIDCached } from '../../../lib/git/commit';
 import { SelfDisposable } from '../../../lib/util/selfDisposable';
 import { GerritAPIWith } from '../../../lib/gerrit/gerritAPI/api';
 import { FolderTreeView } from './changeTreeView/folderTreeView';
@@ -59,11 +62,11 @@ export class ChangeTreeView
 	}
 
 	private constructor(
-		private readonly _changeID: string,
+		public readonly changeID: string,
 		public readonly parent: ViewPanel | SearchResultsTreeProvider,
 		private readonly _subscription: Subscribable<GerritChange | null>
 	) {
-		super(`changeTreeView.${_changeID}`);
+		super(`changeTreeView.${changeID}`);
 	}
 
 	public static async create(
@@ -245,10 +248,16 @@ export class ChangeTreeView
 		return pathMap;
 	}
 
-	private _buildContextValue(): string {
+	private async _buildContextValue(): Promise<string> {
 		const values = [TREE_ITEM_TYPE_CHANGE];
 		if (this.patchSetBase !== null || this.patchSetCurrent !== null) {
 			values.push(TREE_ITEM_CHANGE_CUSTOM_PATCHSET_SELECTION);
+		}
+		const currentChangeID = await getCurrentChangeIDCached();
+		if (currentChangeID && currentChangeID === this.changeID) {
+			values.push(TREE_ITEM_IS_CURRENT);
+		} else {
+			values.push(TREE_ITEM_IS_NOT_CURRENT);
 		}
 		return values.join('.');
 	}
@@ -325,7 +334,7 @@ export class ChangeTreeView
 	}
 
 	public async openInReview(): Promise<void> {
-		await ChangeTreeView.openInReview(this._changeID);
+		await ChangeTreeView.openInReview(this.changeID);
 	}
 
 	public async getItem(): Promise<TreeItem> {
@@ -344,7 +353,7 @@ export class ChangeTreeView
 			label: `${changeNumber}: ${change.subject}`,
 			collapsibleState: TreeItemCollapsibleState.Collapsed,
 			tooltip: change.subject,
-			contextValue: this._buildContextValue(),
+			contextValue: await this._buildContextValue(),
 			iconPath: new ThemeIcon('git-pull-request'),
 			description: owner ? `by ${owner.getName(true)!}` : undefined,
 		};

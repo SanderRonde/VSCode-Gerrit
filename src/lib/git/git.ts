@@ -1,6 +1,7 @@
 import {
 	DEFAULT_GIT_REVIEW_FILE,
 	getGitReviewFileCached,
+	GitReviewFile,
 } from '../credentials/gitReviewFile';
 import {
 	window,
@@ -63,7 +64,7 @@ export async function onChangeLastCommit(
 	return interval;
 }
 
-async function ensureCleanWorkingTree(): Promise<boolean> {
+export async function ensureCleanWorkingTree(): Promise<boolean> {
 	{
 		const { success } = await tryExecAsync(
 			'git diff --ignore-submodules --quiet'
@@ -91,12 +92,9 @@ async function ensureCleanWorkingTree(): Promise<boolean> {
 	return true;
 }
 
-async function ensureNoRebaseErrors(): Promise<boolean> {
-	const gitReviewFile = await getGitReviewFileCached();
-	if (!gitReviewFile) {
-		return true;
-	}
-
+export async function ensureMainBranchUpdated(
+	gitReviewFile: GitReviewFile
+): Promise<string | false> {
 	const remote =
 		gitReviewFile.remote ??
 		gitReviewFile.defaultremote ??
@@ -112,10 +110,10 @@ async function ensureNoRebaseErrors(): Promise<boolean> {
 		}
 	}
 
-	if (!(await ensureCleanWorkingTree())) {
-		return false;
-	}
+	return remote;
+}
 
+export async function getGitVersion(): Promise<VersionNumber | null> {
 	const gitVersion = await (async (): Promise<VersionNumber | null> => {
 		const { stdout, success } = await tryExecAsync('git version');
 		if (!success) {
@@ -138,6 +136,20 @@ async function ensureNoRebaseErrors(): Promise<boolean> {
 		void window.showErrorMessage(
 			'Failed to get git version, please check the log panel for details.'
 		);
+		return null;
+	}
+	return gitVersion;
+}
+
+async function ensureNoRebaseErrors(): Promise<boolean> {
+	const gitReviewFile = await getGitReviewFileCached();
+
+	if (!gitReviewFile || !(await ensureCleanWorkingTree())) {
+		return false;
+	}
+
+	const gitVersion = await getGitVersion();
+	if (!gitVersion) {
 		return false;
 	}
 
@@ -177,16 +189,9 @@ async function ensureNoRebaseErrors(): Promise<boolean> {
 					terminal.show(false);
 					terminal.sendText(rebaseCommand, true);
 				} else if (answer === RUN_GIT_REVIEW_OPTION) {
-					const api = getGitAPI();
-					if (!api || !api.repositories.length) {
-						return;
-					}
-
-					const uri = api.repositories[0].rootUri.fsPath;
-					await tryExecAsync('git-review', {
-						cwd: uri,
-						timeout: 10000,
-					});
+					const terminal = window.createTerminal('Git Review');
+					terminal.show(false);
+					terminal.sendText('git review', true);
 				}
 			})();
 
@@ -197,15 +202,24 @@ async function ensureNoRebaseErrors(): Promise<boolean> {
 	return true;
 }
 
-export async function gitCheckoutRemote(patchNumber: number): Promise<void> {
+function getGitURI(): string | null {
 	const api = getGitAPI();
 	if (!api || !api.repositories.length) {
-		void window.showErrorMessage('Multi-git-repo setups are not supported');
-		return;
+		void window.showErrorMessage('No git repo found');
+		return null;
 	}
 
-	const uri = api.repositories[0].rootUri.fsPath;
-	if (!(await ensureCleanWorkingTree())) {
+	if (api.repositories.length > 1) {
+		void window.showErrorMessage('Multi-git-repo setups are not supported');
+		return null;
+	}
+
+	return api.repositories[0].rootUri.fsPath;
+}
+
+export async function gitCheckoutRemote(patchNumber: number): Promise<void> {
+	const uri = getGitURI();
+	if (!uri || !(await ensureCleanWorkingTree())) {
 		return;
 	}
 
@@ -228,13 +242,10 @@ export async function gitCheckoutRemote(patchNumber: number): Promise<void> {
 
 const URL_REGEX = /http(s)?[:\w./+]+/g;
 export async function gitReview(): Promise<void> {
-	const api = getGitAPI();
-	if (!api || !api.repositories.length) {
-		void window.showErrorMessage('Multi-git-repo setups are not supported');
+	const uri = getGitURI();
+	if (!uri) {
 		return;
 	}
-
-	const uri = api.repositories[0].rootUri.fsPath;
 
 	if (!(await ensureNoRebaseErrors())) {
 		return;
@@ -299,4 +310,26 @@ export async function gitReview(): Promise<void> {
 			'Git review failed, please see log for more details'
 		);
 	}
+}
+
+export async function getCurrentBranch(): Promise<string | null> {
+	const uri = getGitURI();
+	if (!uri) {
+		return null;
+	}
+	const { stdout, success } = await tryExecAsync(
+		'git rev-parse --abbrev-ref HEAD',
+		{
+			cwd: uri,
+		}
+	);
+
+	if (!success) {
+		void window.showErrorMessage(
+			'Failed to get current git branch, please see log for more details'
+		);
+		return null;
+	}
+
+	return stdout.trim();
 }

@@ -37,10 +37,12 @@ import {
 import { clearSearchResults, search } from '../views/activityBar/search/search';
 import { ChangeTreeView } from '../views/activityBar/changes/changeTreeView';
 import { listenForStreamEvents } from '../lib/stream-events/stream-events';
+import { rebaseOntoMain, recursiveRebase } from '../lib/git/rebase';
 import { enterCredentials } from '../lib/credentials/credentials';
 import { focusChange } from '../lib/commandHandlers/focusChange';
+import { commands, ExtensionContext, window } from 'vscode';
 import { checkConnection } from '../lib/gerrit/gerritAPI';
-import { commands, ExtensionContext } from 'vscode';
+import { tryExecAsync } from '../lib/git/gitCLI';
 import { gitReview } from '../lib/git/git';
 
 export enum GerritExtensionCommands {
@@ -79,6 +81,19 @@ export enum GerritExtensionCommands {
 	COPY_COMMENT_LINK = 'gerrit.copyCommentLink',
 	OPEN_COMMENT_ONLINE = 'gerrit.openCommentOnline',
 	RETRY_LISTEN_FOR_STREAM_EVENTS = 'gerrit.listenForStreamEvents',
+	REBASE = 'gerrit.rebase',
+	RECURSIVE_REBASE = 'gerrit.recursiveRebase',
+	REBASE_CURRENT = 'gerrit.rebaseCurrent',
+	RECURSIVE_REBASE_CURRENT = 'gerrit.recursiveRebaseCurrent',
+}
+
+async function checkoutChange(changeID: string): Promise<boolean> {
+	const { success } = await tryExecAsync(`git-review -d ${changeID}`);
+	if (!success) {
+		void window.showErrorMessage('Failed to checkout change');
+		return false;
+	}
+	return true;
 }
 
 export function registerCommands(context: ExtensionContext): void {
@@ -288,6 +303,50 @@ export function registerCommands(context: ExtensionContext): void {
 		commands.registerCommand(
 			GerritExtensionCommands.CHANGE_OPEN_ONLINE,
 			openChangeOnline
+		)
+	);
+	context.subscriptions.push(
+		commands.registerCommand(
+			GerritExtensionCommands.PUSH_FOR_REVIEW,
+			gitReview
+		)
+	);
+	context.subscriptions.push(
+		commands.registerCommand(
+			GerritExtensionCommands.REBASE,
+			async (changeTreeView: ChangeTreeView) => {
+				if (!(await checkoutChange(changeTreeView.changeID))) {
+					return;
+				}
+
+				await rebaseOntoMain();
+			}
+		)
+	);
+	context.subscriptions.push(
+		commands.registerCommand(
+			GerritExtensionCommands.REBASE_CURRENT,
+			// eslint-disable-next-line @typescript-eslint/no-unsafe-return
+			async () => await rebaseOntoMain()
+		)
+	);
+	context.subscriptions.push(
+		commands.registerCommand(
+			GerritExtensionCommands.RECURSIVE_REBASE,
+			async (changeTreeView: ChangeTreeView) => {
+				if (!(await checkoutChange(changeTreeView.changeID))) {
+					return;
+				}
+
+				await recursiveRebase();
+			}
+		)
+	);
+	context.subscriptions.push(
+		commands.registerCommand(
+			GerritExtensionCommands.RECURSIVE_REBASE_CURRENT,
+			// eslint-disable-next-line @typescript-eslint/no-unsafe-return
+			async () => await recursiveRebase()
 		)
 	);
 	context.subscriptions.push(

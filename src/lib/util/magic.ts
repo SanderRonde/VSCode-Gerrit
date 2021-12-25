@@ -20,6 +20,8 @@ export const TREE_ITEM_TYPE_CHANGE = 'gerritchange';
 // Contexts that signify status of tree items
 export const TREE_ITEM_CHANGE_CUSTOM_PATCHSET_SELECTION = 'customPatchset';
 export const TREE_ITEM_WAS_MODIFIED = 'modified';
+export const TREE_ITEM_IS_CURRENT = 'yesCurrent';
+export const TREE_ITEM_IS_NOT_CURRENT = 'noCurrent';
 
 // Contexts that signify status of in-editor file (and live in URI)
 export const OPEN_FILE_HAS_UNRESOLVED_COMMENTS = 'hasUnresolved';

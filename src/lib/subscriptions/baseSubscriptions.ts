@@ -67,6 +67,9 @@ export abstract class APISubSubscriptionManagerBase<V, C = string> {
 						once: true,
 					});
 				},
+				fetchOnce: async () => {
+					return mapper(await originalSubscription.fetchOnce());
+				},
 			};
 			return {
 				...joinedSubscription,
@@ -215,6 +218,9 @@ export abstract class APISubSubscriptionManagerBase<V, C = string> {
 				dispose: callDeref(weakUnsubscribe),
 			},
 			dispose: callDeref(weakUnsubscribe),
+			fetchOnce: async () => {
+				return await getter();
+			},
 		};
 		registerDisposer(
 			subscription,

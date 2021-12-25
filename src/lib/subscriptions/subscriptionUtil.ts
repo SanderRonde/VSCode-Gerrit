@@ -53,6 +53,14 @@ export function joinSubscribables<S extends Subscribable<unknown>[], R>(
 		unsubscribe: () => {
 			unsubscribeAll();
 		},
+		fetchOnce: async () => {
+			const values = await Promise.all(
+				subscribables.map((sub) => sub.fetchOnce())
+			);
+			// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+			// @ts-ignore
+			return mapper(...values);
+		},
 	};
 	return {
 		...subscription,

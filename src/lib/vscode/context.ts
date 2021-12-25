@@ -8,6 +8,7 @@ export interface ContextProps {
 	'gerrit:isUploader': boolean;
 	'gerrit:hasCommentFeature': boolean;
 	'gerrit.streamEvents': boolean;
+	'gerrit:currentChangeNumber': number | null;
 }
 
 const contextProps: ContextProps = {
@@ -18,6 +19,7 @@ const contextProps: ContextProps = {
 	'gerrit:isUploader': false,
 	'gerrit:hasCommentFeature': false,
 	'gerrit.streamEvents': false,
+	'gerrit:currentChangeNumber': null,
 };
 
 export async function setContextProp<K extends keyof ContextProps>(

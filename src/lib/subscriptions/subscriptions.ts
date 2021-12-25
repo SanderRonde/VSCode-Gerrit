@@ -28,6 +28,7 @@ export interface Subscribable<V> extends Disposable {
 	disposable: Disposable;
 	invalidate: () => Promise<void>;
 	mapSubscription: <O>(mapper: (input: V) => O) => Subscribable<O>;
+	fetchOnce: () => Promise<V>;
 }
 
 export class APISubscriptionManager {
@@ -52,6 +53,7 @@ export class APISubscriptionManager {
 			disposable: { dispose: APISubscriptionManager.NO_OP },
 			dispose: APISubscriptionManager.NO_OP,
 			invalidate: () => Promise.resolve(),
+			fetchOnce: () => Promise.resolve(null),
 		};
 		return {
 			...subscription,

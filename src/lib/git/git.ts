@@ -19,6 +19,7 @@ import { createAwaitingInterval } from '../util/util';
 import { getConfiguration } from '../vscode/config';
 import { VersionNumber } from '../util/version';
 import { getCurrentChangeID } from './commit';
+import { rebase } from './rebase';
 import { log } from '../util/log';
 
 export function getGitAPI(): API | null {
@@ -153,53 +154,18 @@ async function ensureNoRebaseErrors(): Promise<boolean> {
 		return false;
 	}
 
-	{
-		const rebaseFlag = gitVersion.isGreaterThanOrEqual(
-			new VersionNumber(2, 18, 0)
-		)
-			? '--rebase-merges'
-			: '--preserve-merges';
-		const remoteBranch =
-			gitReviewFile.branch ??
-			gitReviewFile.defaultbranch ??
-			DEFAULT_GIT_REVIEW_FILE.branch;
-		const rebaseCommand = `git rebase ${rebaseFlag} ${remoteBranch}`;
-		const { success } = await tryExecAsync(rebaseCommand);
-		if (!success) {
-			const { success: abortSuccess } = await tryExecAsync(
-				'git rebase --abort'
-			);
-			if (!abortSuccess) {
-				void window.showErrorMessage(
-					'Rebase failed and abortion of rebase failed, please check the log panel for details.'
-				);
-				return false;
-			}
-
-			const OPEN_IN_TERMINAL_OPTION = 'Rebase in Terminal';
-			const RUN_GIT_REVIEW_OPTION = 'Run Git Review';
-			void (async () => {
-				const answer = await window.showErrorMessage(
-					'Failed to rebase, please check the log panel for details.',
-					OPEN_IN_TERMINAL_OPTION,
-					RUN_GIT_REVIEW_OPTION
-				);
-				if (answer === OPEN_IN_TERMINAL_OPTION) {
-					const terminal = window.createTerminal('Gerrit Rebase');
-					terminal.show(false);
-					terminal.sendText(rebaseCommand, true);
-				} else if (answer === RUN_GIT_REVIEW_OPTION) {
-					const terminal = window.createTerminal('Git Review');
-					terminal.show(false);
-					terminal.sendText('git review', true);
-				}
-			})();
-
-			return false;
-		}
-	}
-
-	return true;
+	const remoteBranch =
+		gitReviewFile.branch ??
+		gitReviewFile.defaultbranch ??
+		DEFAULT_GIT_REVIEW_FILE.branch;
+	return rebase(remoteBranch, gitVersion, {
+		title: 'Run Git Review',
+		callback: () => {
+			const terminal = window.createTerminal('Git Review');
+			terminal.show(false);
+			terminal.sendText('git review', true);
+		},
+	});
 }
 
 function getGitURI(): string | null {

@@ -65,15 +65,19 @@ export async function onChangeLastCommit(
 	return interval;
 }
 
-export async function ensureCleanWorkingTree(): Promise<boolean> {
+export async function ensureCleanWorkingTree(
+	silent: boolean = false
+): Promise<boolean> {
 	{
 		const { success } = await tryExecAsync(
 			'git diff --ignore-submodules --quiet'
 		);
 		if (!success) {
-			void window.showErrorMessage(
-				'You have unstaged changes. Please commit or stash them and try again'
-			);
+			if (!silent) {
+				void window.showErrorMessage(
+					'You have unstaged changes. Please commit or stash them and try again'
+				);
+			}
 			return false;
 		}
 	}
@@ -83,9 +87,11 @@ export async function ensureCleanWorkingTree(): Promise<boolean> {
 			'git diff --cached --ignore-submodules --quiet'
 		);
 		if (!success) {
-			void window.showErrorMessage(
-				'You have uncommitted changes. Please commit or stash them and try again'
-			);
+			if (!silent) {
+				void window.showErrorMessage(
+					'You have uncommitted changes. Please commit or stash them and try again'
+				);
+			}
 			return false;
 		}
 	}

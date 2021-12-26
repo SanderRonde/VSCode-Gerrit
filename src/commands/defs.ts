@@ -234,6 +234,18 @@ export const COMMAND_DEFINITIONS: {
 		title: 'Resolve thread',
 		inCommandPalette: false,
 	},
+	'gerrit.quickCheckout': {
+		title: 'Quick checkout',
+		inCommandPalette: false,
+	},
+	'gerrit.applyQuickCheckout': {
+		title: 'Restore quick checkout',
+		inCommandPalette: false,
+	},
+	'gerrit.dropQuickCheckouts': {
+		title: 'Drop quick checkout stashes',
+		inCommandPalette: false,
+	},
 };
 
 export const VIEWS: {
@@ -418,14 +430,21 @@ export const VIEWS: {
 				command: GerritExtensionCommands.CHECKOUT_BRANCH,
 				when: and(
 					IS_GERRIT_CHANGE_EXPLORER_VIEW,
-					viewItemContains(TREE_ITEM_TYPE_FILE)
+					viewItemContains(TREE_ITEM_TYPE_CHANGE)
+				),
+			},
+			{
+				command: GerritExtensionCommands.QUICK_CHECKOUT,
+				when: and(
+					IS_GERRIT_CHANGE_EXPLORER_VIEW,
+					viewItemContains(TREE_ITEM_TYPE_CHANGE)
 				),
 			},
 			{
 				command: GerritExtensionCommands.REBASE,
 				when: and(
 					IS_GERRIT_CHANGE_EXPLORER_VIEW,
-					viewItemContains(TREE_ITEM_TYPE_FILE),
+					viewItemContains(TREE_ITEM_TYPE_CHANGE),
 					viewItemContains(TREE_ITEM_IS_NOT_CURRENT)
 				),
 			},
@@ -433,7 +452,7 @@ export const VIEWS: {
 				command: GerritExtensionCommands.REBASE_CURRENT,
 				when: and(
 					IS_GERRIT_CHANGE_EXPLORER_VIEW,
-					viewItemContains(TREE_ITEM_TYPE_FILE),
+					viewItemContains(TREE_ITEM_TYPE_CHANGE),
 					viewItemContains(TREE_ITEM_IS_CURRENT)
 				),
 			},
@@ -441,7 +460,7 @@ export const VIEWS: {
 				command: GerritExtensionCommands.RECURSIVE_REBASE,
 				when: and(
 					IS_GERRIT_CHANGE_EXPLORER_VIEW,
-					viewItemContains(TREE_ITEM_TYPE_FILE),
+					viewItemContains(TREE_ITEM_TYPE_CHANGE),
 					viewItemContains(TREE_ITEM_IS_NOT_CURRENT)
 				),
 			},
@@ -449,7 +468,7 @@ export const VIEWS: {
 				command: GerritExtensionCommands.RECURSIVE_REBASE_CURRENT,
 				when: and(
 					IS_GERRIT_CHANGE_EXPLORER_VIEW,
-					viewItemContains(TREE_ITEM_TYPE_FILE),
+					viewItemContains(TREE_ITEM_TYPE_CHANGE),
 					viewItemContains(TREE_ITEM_IS_CURRENT)
 				),
 			},

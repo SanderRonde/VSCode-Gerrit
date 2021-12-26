@@ -309,6 +309,26 @@ export function registerCommands(context: ExtensionContext): void {
 		)
 	);
 
+	// Quick-checkout
+	context.subscriptions.push(
+		commands.registerCommand(
+			GerritExtensionCommands.QUICK_CHECKOUT,
+			gitReview // TODO:
+		)
+	);
+	context.subscriptions.push(
+		commands.registerCommand(
+			GerritExtensionCommands.QUICK_CHECKOUT_BACK,
+			gitReview // TODO:
+		)
+	);
+	context.subscriptions.push(
+		commands.registerCommand(
+			GerritExtensionCommands.DROP_QUICK_CHECKOUTS,
+			gitReview // TODO:
+		)
+	);
+
 	// Non-button separate commands
 	context.subscriptions.push(
 		commands.registerCommand(

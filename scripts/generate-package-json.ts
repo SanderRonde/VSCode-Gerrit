@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-unsafe-return */
 /* eslint-disable @typescript-eslint/restrict-template-expressions */
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
+import { GerritExtensionCommands } from '../src/commands/command-names';
 import { COMMAND_DEFINITIONS, VIEWS } from '../src/commands/defs';
 import { optionalObjectProperty } from '../src/lib/util/util';
 import * as fs from 'fs-extra';
@@ -184,6 +185,20 @@ async function validatePackageJSON(): Promise<void> {
 				(c) => !('command' in c) || c.command
 			)}`
 		);
+	}
+
+	const commandRegistrationFile = await fs.readFile(
+		path.join(__dirname, '../src/commands/commands.ts'),
+		{
+			encoding: 'utf8',
+		}
+	);
+	for (const commandEnum in GerritExtensionCommands) {
+		if (!commandRegistrationFile.includes(commandEnum)) {
+			throw new Error(
+				`No handler defined for command: "${COMMAND_DEFINITIONS}"`
+			);
+		}
 	}
 
 	const packageString = JSON.stringify(packageJSON);

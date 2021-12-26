@@ -16,42 +16,45 @@
 		"onView:gerrit:changeExplorer",
 		"onView:gerrit:searchResults",
 		"onView:gerrit:review",
-		"onCommand:gerrit.checkoutBranch",
-		"onCommand:gerrit.createCommentResolved",
-		"onCommand:gerrit.createCommentUnresolved",
-		"onCommand:gerrit.cancelComment",
-		"onCommand:gerrit.ackCommentThread",
-		"onCommand:gerrit.doneCommentThread",
-		"onCommand:gerrit.deleteComment",
-		"onCommand:gerrit.editComment",
-		"onCommand:gerrit.toggleResolvedOn",
-		"onCommand:gerrit.toggleResolvedOff",
-		"onCommand:gerrit.collapseAllComments",
-		"onCommand:gerrit.openOnline",
-		"onCommand:gerrit.openChangeOnline",
-		"onCommand:gerrit.openModified",
-		"onCommand:gerrit.openOriginal",
-		"onCommand:gerrit.fetchMore",
-		"onCommand:gerrit.refreshChanges",
-		"onCommand:gerrit.configureChangeList",
-		"onCommand:gerrit.search",
-		"onCommand:gerrit.clearSearchResults",
-		"onCommand:gerrit.openInReview",
-		"onCommand:gerrit.openPatchsetSelector",
-		"onCommand:gerrit.resetPatchsetSelection",
-		"onCommand:gerrit.selectActiveView",
-		"onCommand:gerrit.nextUnresolvedComment",
-		"onCommand:gerrit.previousUnresolvedComment",
-		"onCommand:gerrit.openCurrentOnline",
-		"onCommand:gerrit.openChangeSelector",
-		"onCommand:gerrit.focusChange",
-		"onCommand:gerrit.pushForReview",
-		"onCommand:gerrit.copyCommentLink",
-		"onCommand:gerrit.listenForStreamEvents",
-		"onCommand:gerrit.rebase",
-		"onCommand:gerrit.recursiveRebase",
-		"onCommand:gerrit.rebaseCurrent",
-		"onCommand:gerrit.recursiveRebaseCurrent"
+		"onCommand:gerrit.gerrit.ackCommentThread",
+		"onCommand:gerrit.gerrit.cancelComment",
+		"onCommand:gerrit.gerrit.checkConnection",
+		"onCommand:gerrit.gerrit.checkoutBranch",
+		"onCommand:gerrit.gerrit.clearSearchResults",
+		"onCommand:gerrit.gerrit.collapseAllComments",
+		"onCommand:gerrit.gerrit.configureChangeList",
+		"onCommand:gerrit.gerrit.copyCommentLink",
+		"onCommand:gerrit.gerrit.createCommentResolved",
+		"onCommand:gerrit.gerrit.createCommentUnresolved",
+		"onCommand:gerrit.gerrit.deleteComment",
+		"onCommand:gerrit.gerrit.doneCommentThread",
+		"onCommand:gerrit.gerrit.editComment",
+		"onCommand:gerrit.gerrit.enterCredentials",
+		"onCommand:gerrit.gerrit.fetchMore",
+		"onCommand:gerrit.gerrit.focusChange",
+		"onCommand:gerrit.gerrit.listenForStreamEvents",
+		"onCommand:gerrit.gerrit.nextUnresolvedComment",
+		"onCommand:gerrit.gerrit.openChangeOnline",
+		"onCommand:gerrit.gerrit.openChangeSelector",
+		"onCommand:gerrit.gerrit.openCommentOnline",
+		"onCommand:gerrit.gerrit.openCurrentOnline",
+		"onCommand:gerrit.gerrit.openInReview",
+		"onCommand:gerrit.gerrit.openModified",
+		"onCommand:gerrit.gerrit.openOnline",
+		"onCommand:gerrit.gerrit.openOriginal",
+		"onCommand:gerrit.gerrit.openPatchsetSelector",
+		"onCommand:gerrit.gerrit.previousUnresolvedComment",
+		"onCommand:gerrit.gerrit.pushForReview",
+		"onCommand:gerrit.gerrit.rebase",
+		"onCommand:gerrit.gerrit.rebaseCurrent",
+		"onCommand:gerrit.gerrit.recursiveRebase",
+		"onCommand:gerrit.gerrit.recursiveRebaseCurrent",
+		"onCommand:gerrit.gerrit.refreshChanges",
+		"onCommand:gerrit.gerrit.resetPatchsetSelection",
+		"onCommand:gerrit.gerrit.search",
+		"onCommand:gerrit.gerrit.selectActiveView",
+		"onCommand:gerrit.gerrit.toggleResolvedOff",
+		"onCommand:gerrit.gerrit.toggleResolvedOn"
 	],
 	"extensionKind": [
 		"workspace"
@@ -60,24 +63,41 @@
 	"contributes": {
 		"commands": [
 			{
+				"command": "gerrit.ackCommentThread",
+				"title": "Ack",
+				"icon": "$(record)"
+			},
+			{
+				"command": "gerrit.cancelComment",
+				"title": "Cancel"
+			},
+			{
+				"command": "gerrit.checkConnection",
+				"title": "Check Connection"
+			},
+			{
 				"command": "gerrit.checkoutBranch",
-				"title": "Checkout Patch"
+				"title": "Checkout Change"
 			},
 			{
-				"command": "gerrit.rebase",
-				"title": "Checkout & Rebase"
+				"command": "gerrit.clearSearchResults",
+				"title": "Clear search results",
+				"icon": "$(clear-all)"
 			},
 			{
-				"command": "gerrit.recursiveRebase",
-				"title": "Checkout & Rebase recursively"
+				"command": "gerrit.collapseAllComments",
+				"title": "Collapse All Comments",
+				"icon": "$(collapse-all)"
 			},
 			{
-				"command": "gerrit.rebaseCurrent",
-				"title": "Rebase change"
+				"command": "gerrit.configureChangeList",
+				"title": "Configure filters",
+				"icon": "$(gear)"
 			},
 			{
-				"command": "gerrit.recursiveRebaseCurrent",
-				"title": "Rebase change recursively"
+				"command": "gerrit.copyCommentLink",
+				"title": "Copy weblink to this comment",
+				"icon": "$(link)"
 			},
 			{
 				"command": "gerrit.createCommentResolved",
@@ -90,13 +110,9 @@
 				"enablement": "!commentIsEmpty"
 			},
 			{
-				"command": "gerrit.cancelComment",
-				"title": "Cancel"
-			},
-			{
-				"command": "gerrit.ackCommentThread",
-				"title": "Ack",
-				"icon": "$(record)"
+				"command": "gerrit.deleteComment",
+				"title": "Delete comment",
+				"icon": "$(trash)"
 			},
 			{
 				"command": "gerrit.doneCommentThread",
@@ -104,85 +120,25 @@
 				"icon": "$(check)"
 			},
 			{
-				"command": "gerrit.deleteComment",
-				"title": "Delete comment",
-				"icon": "$(trash)"
-			},
-			{
 				"command": "gerrit.editComment",
 				"title": "Edit comment",
 				"icon": "$(edit)"
 			},
 			{
-				"command": "gerrit.toggleResolvedOn",
-				"title": "Resolve thread"
-			},
-			{
-				"command": "gerrit.toggleResolvedOff",
-				"title": "Unresolve thread"
-			},
-			{
-				"command": "gerrit.collapseAllComments",
-				"title": "Collapse All Comments",
-				"icon": "$(collapse-all)"
-			},
-			{
-				"command": "gerrit.openOnline",
-				"title": "Open On Gerrit"
-			},
-			{
-				"command": "gerrit.openChangeOnline",
-				"title": "Open On Gerrit"
-			},
-			{
-				"command": "gerrit.openModified",
-				"title": "Open Modified File"
-			},
-			{
-				"command": "gerrit.openOriginal",
-				"title": "Open Original File"
+				"command": "gerrit.enterCredentials",
+				"title": "Enter credentials"
 			},
 			{
 				"command": "gerrit.fetchMore",
 				"title": "Fetch More"
 			},
 			{
-				"command": "gerrit.refreshChanges",
-				"icon": "$(refresh)",
-				"title": "Refresh changes"
+				"command": "gerrit.focusChange",
+				"title": "Focus Change In Change List Panel"
 			},
 			{
-				"command": "gerrit.configureChangeList",
-				"title": "Configure filters",
-				"icon": "$(gear)"
-			},
-			{
-				"command": "gerrit.search",
-				"title": "Search",
-				"icon": "$(search)"
-			},
-			{
-				"command": "gerrit.clearSearchResults",
-				"title": "Clear search results",
-				"icon": "$(clear-all)"
-			},
-			{
-				"command": "gerrit.openInReview",
-				"title": "Open in Review panel",
-				"icon": "$(open-preview)"
-			},
-			{
-				"command": "gerrit.openPatchsetSelector",
-				"title": "Open Patchset Selector"
-			},
-			{
-				"command": "gerrit.resetPatchsetSelection",
-				"title": "Reset Patchset Selection"
-			},
-			{
-				"command": "gerrit.selectActiveView",
-				"title": "Select Active View",
-				"icon": "$(menu)"
+				"command": "gerrit.listenForStreamEvents",
+				"title": "Start listening for Gerrit stream events"
 			},
 			{
 				"command": "gerrit.nextUnresolvedComment",
@@ -193,6 +149,44 @@
 				}
 			},
 			{
+				"command": "gerrit.openChangeOnline",
+				"title": "Open On Gerrit"
+			},
+			{
+				"command": "gerrit.openChangeSelector",
+				"title": "Open Change Selector"
+			},
+			{
+				"command": "gerrit.openCommentOnline",
+				"title": "Open comment on Gerrit",
+				"icon": "$(link-external)"
+			},
+			{
+				"command": "gerrit.openCurrentOnline",
+				"title": "Open Current Change Online"
+			},
+			{
+				"command": "gerrit.openInReview",
+				"title": "Open in Review panel",
+				"icon": "$(open-preview)"
+			},
+			{
+				"command": "gerrit.openModified",
+				"title": "Open Modified File"
+			},
+			{
+				"command": "gerrit.openOnline",
+				"title": "Open On Gerrit"
+			},
+			{
+				"command": "gerrit.openOriginal",
+				"title": "Open Original File"
+			},
+			{
+				"command": "gerrit.openPatchsetSelector",
+				"title": "Open Patchset Selector"
+			},
+			{
 				"command": "gerrit.previousUnresolvedComment",
 				"title": "Previous Unresolved Comment",
 				"icon": {
@@ -201,44 +195,61 @@
 				}
 			},
 			{
-				"command": "gerrit.openCurrentOnline",
-				"title": "Open Current Change Online"
-			},
-			{
-				"command": "gerrit.openChangeSelector",
-				"title": "Open Change Selector"
-			},
-			{
-				"command": "gerrit.focusChange",
-				"title": "Focus Change In Change List Panel"
-			},
-			{
 				"command": "gerrit.pushForReview",
 				"title": "Push for Review",
 				"icon": "$(git-commit)"
 			},
 			{
-				"command": "gerrit.copyCommentLink",
-				"title": "Copy weblink to this comment",
-				"icon": "$(link)"
+				"command": "gerrit.rebase",
+				"title": "Checkout & Rebase"
 			},
 			{
-				"command": "gerrit.openCommentOnline",
-				"title": "Open comment on Gerrit",
-				"icon": "$(link-external)"
+				"command": "gerrit.rebaseCurrent",
+				"title": "Rebase change"
 			},
 			{
-				"command": "gerrit.listenForStreamEvents",
-				"title": "Start listening for Gerrit stream events"
+				"command": "gerrit.recursiveRebase",
+				"title": "Checkout & Rebase recursively"
+			},
+			{
+				"command": "gerrit.recursiveRebaseCurrent",
+				"title": "Checkout & Rebase recursively"
+			},
+			{
+				"command": "gerrit.refreshChanges",
+				"title": "Refresh changes",
+				"icon": "$(refresh)"
+			},
+			{
+				"command": "gerrit.resetPatchsetSelection",
+				"title": "Reset Patchset Selection"
+			},
+			{
+				"command": "gerrit.search",
+				"title": "Search",
+				"icon": "$(search)"
+			},
+			{
+				"command": "gerrit.selectActiveView",
+				"title": "Select Active View",
+				"icon": "$(menu)"
+			},
+			{
+				"command": "gerrit.toggleResolvedOff",
+				"title": "Unresolve thread"
+			},
+			{
+				"command": "gerrit.toggleResolvedOn",
+				"title": "Resolve thread"
 			}
 		],
 		"keybindings": [
 			{
-				"command": "gerrit.nextUnresolvedComment",
-				"when": "editorTextFocus"
+				"command": "gerrit.focusChange",
+				"when": "true"
 			},
 			{
-				"command": "gerrit.previousUnresolvedComment",
+				"command": "gerrit.nextUnresolvedComment",
 				"when": "editorTextFocus"
 			},
 			{
@@ -246,18 +257,42 @@
 				"when": "true"
 			},
 			{
-				"command": "gerrit.focusChange",
-				"when": "true"
+				"command": "gerrit.previousUnresolvedComment",
+				"when": "editorTextFocus"
 			}
 		],
 		"menus": {
 			"commandPalette": [
 				{
+					"command": "gerrit.ackCommentThread",
+					"when": "false"
+				},
+				{
+					"command": "gerrit.cancelComment",
+					"when": "false"
+				},
+				{
+					"command": "gerrit.checkConnection",
+					"when": "true"
+				},
+				{
 					"command": "gerrit.checkoutBranch",
 					"when": "false"
 				},
 				{
-					"command": "gerrit.openChangeOnline",
+					"command": "gerrit.clearSearchResults",
+					"when": "true"
+				},
+				{
+					"command": "gerrit.collapseAllComments",
+					"when": "true"
+				},
+				{
+					"command": "gerrit.configureChangeList",
+					"when": "true"
+				},
+				{
+					"command": "gerrit.copyCommentLink",
 					"when": "false"
 				},
 				{
@@ -269,11 +304,7 @@
 					"when": "false"
 				},
 				{
-					"command": "gerrit.cancelComment",
-					"when": "false"
-				},
-				{
-					"command": "gerrit.ackCommentThread",
+					"command": "gerrit.deleteComment",
 					"when": "false"
 				},
 				{
@@ -281,103 +312,19 @@
 					"when": "false"
 				},
 				{
-					"command": "gerrit.deleteComment",
-					"when": "false"
-				},
-				{
 					"command": "gerrit.editComment",
 					"when": "false"
 				},
 				{
-					"command": "gerrit.toggleResolvedOn",
-					"when": "false"
-				},
-				{
-					"command": "gerrit.toggleResolvedOff",
-					"when": "false"
-				},
-				{
-					"command": "gerrit.collapseAllComments",
+					"command": "gerrit.enterCredentials",
 					"when": "true"
-				},
-				{
-					"command": "gerrit.openOnline",
-					"when": "false"
-				},
-				{
-					"command": "gerrit.openModified",
-					"when": "false"
-				},
-				{
-					"command": "gerrit.openOriginal",
-					"when": "false"
 				},
 				{
 					"command": "gerrit.fetchMore",
 					"when": "false"
 				},
 				{
-					"command": "gerrit.refreshChanges",
-					"when": "gerrit:connected"
-				},
-				{
-					"command": "gerrit.configureChangeList",
-					"when": "true"
-				},
-				{
-					"command": "gerrit.search",
-					"when": "true"
-				},
-				{
-					"command": "gerrit.clearSearchResults",
-					"when": "gerrit:searchQuery || gerrit:searchChangeNumber"
-				},
-				{
-					"command": "gerrit.openInReview",
-					"when": "false"
-				},
-				{
-					"command": "gerrit.openPatchsetSelector",
-					"when": "false"
-				},
-				{
-					"command": "gerrit.resetPatchsetSelection",
-					"when": "false"
-				},
-				{
-					"command": "gerrit.selectActiveView",
-					"when": "true"
-				},
-				{
-					"command": "gerrit.previousUnresolvedComment",
-					"when": "true"
-				},
-				{
-					"command": "gerrit.nextUnresolvedComment",
-					"when": "true"
-				},
-				{
-					"command": "gerrit.openCurrentOnline",
-					"when": "true"
-				},
-				{
-					"command": "gerrit.openChangeSelector",
-					"when": "true"
-				},
-				{
 					"command": "gerrit.focusChange",
-					"when": "true"
-				},
-				{
-					"command": "gerrit.pushForReview",
-					"when": "true"
-				},
-				{
-					"command": "gerrit.copyCommentLink",
-					"when": "false"
-				},
-				{
-					"command": "gerrit.openCommentOnline",
 					"when": "false"
 				},
 				{
@@ -385,12 +332,92 @@
 					"when": "true"
 				},
 				{
-					"command": "gerrit.rebaseCurrent",
+					"command": "gerrit.nextUnresolvedComment",
 					"when": "true"
 				},
 				{
-					"command": "gerrit.recursiveRebaseCurrent",
+					"command": "gerrit.openChangeOnline",
+					"when": "false"
+				},
+				{
+					"command": "gerrit.openChangeSelector",
+					"when": "false"
+				},
+				{
+					"command": "gerrit.openCommentOnline",
+					"when": "false"
+				},
+				{
+					"command": "gerrit.openCurrentOnline",
 					"when": "true"
+				},
+				{
+					"command": "gerrit.openInReview",
+					"when": "false"
+				},
+				{
+					"command": "gerrit.openModified",
+					"when": "false"
+				},
+				{
+					"command": "gerrit.openOnline",
+					"when": "false"
+				},
+				{
+					"command": "gerrit.openOriginal",
+					"when": "false"
+				},
+				{
+					"command": "gerrit.openPatchsetSelector",
+					"when": "false"
+				},
+				{
+					"command": "gerrit.previousUnresolvedComment",
+					"when": "true"
+				},
+				{
+					"command": "gerrit.pushForReview",
+					"when": "true"
+				},
+				{
+					"command": "gerrit.rebase",
+					"when": "false"
+				},
+				{
+					"command": "gerrit.rebaseCurrent",
+					"when": "false"
+				},
+				{
+					"command": "gerrit.recursiveRebase",
+					"when": "false"
+				},
+				{
+					"command": "gerrit.recursiveRebaseCurrent",
+					"when": "false"
+				},
+				{
+					"command": "gerrit.refreshChanges",
+					"when": "true"
+				},
+				{
+					"command": "gerrit.resetPatchsetSelection",
+					"when": "true"
+				},
+				{
+					"command": "gerrit.search",
+					"when": "true"
+				},
+				{
+					"command": "gerrit.selectActiveView",
+					"when": "true"
+				},
+				{
+					"command": "gerrit.toggleResolvedOff",
+					"when": "false"
+				},
+				{
+					"command": "gerrit.toggleResolvedOn",
+					"when": "false"
 				}
 			],
 			"comments/comment/context": [
@@ -434,61 +461,61 @@
 				{
 					"command": "gerrit.toggleResolvedOff",
 					"when": "commentController == gerrit && commentIsEmpty && commentThread =~ /yesLastCommentDraft/ && commentThread =~ /yesResolved/",
-					"group": "newCommentButtons@4"
+					"group": "newCommentButtons@5"
 				}
 			],
 			"comments/commentThread/title": [
 				{
 					"command": "gerrit.previousUnresolvedComment",
-					"group": "collapse@-5",
-					"when": "commentController == gerrit"
+					"when": "commentController == gerrit",
+					"group": "collapse@1"
 				},
 				{
 					"command": "gerrit.nextUnresolvedComment",
-					"group": "collapse@-4",
-					"when": "commentController == gerrit"
+					"when": "commentController == gerrit",
+					"group": "collapse@2"
 				},
 				{
 					"command": "gerrit.copyCommentLink",
-					"group": "collapse@-3",
-					"when": "commentController == gerrit && gerrit:hasCommentFeature"
+					"when": "commentController == gerrit && gerrit:hasCommentFeature",
+					"group": "collapse@3"
 				},
 				{
 					"command": "gerrit.openCommentOnline",
-					"group": "collapse@-2",
-					"when": "commentController == gerrit && gerrit:hasCommentFeature"
+					"when": "commentController == gerrit && gerrit:hasCommentFeature",
+					"group": "collapse@4"
 				},
 				{
 					"command": "gerrit.collapseAllComments",
-					"group": "collapse@-1",
-					"when": "commentController == gerrit"
+					"when": "commentController == gerrit",
+					"group": "collapse@5"
 				}
 			],
 			"comments/comment/title": [
 				{
-					"command": "gerrit.ackCommentThread",
-					"when": "commentController == gerrit && comment =~ /quickActionable/",
-					"group": "inline@2"
+					"command": "gerrit.editComment",
+					"when": "commentController == gerrit && comment =~ /editable/",
+					"group": "inline@1"
 				},
 				{
 					"command": "gerrit.doneCommentThread",
 					"when": "commentController == gerrit && comment =~ /quickActionable/",
-					"group": "inline@1"
+					"group": "inline@2"
 				},
 				{
-					"command": "gerrit.editComment",
-					"group": "inline@1",
-					"when": "commentController == gerrit && comment =~ /editable/"
+					"command": "gerrit.ackCommentThread",
+					"when": "commentController == gerrit && comment =~ /quickActionable/",
+					"group": "inline@3"
 				},
 				{
 					"command": "gerrit.deleteComment",
-					"group": "inline@2",
-					"when": "commentController == gerrit && comment =~ /deletable/"
+					"when": "commentController == gerrit && comment =~ /deletable/",
+					"group": "inline@4"
 				}
 			],
 			"view/item/context": [
 				{
-					"command": "gerrit.openOnline",
+					"command": "gerrit.openCurrentOnline",
 					"when": "view == gerrit:changeExplorer && viewItem =~ /filechange/",
 					"group": "open@1"
 				},
@@ -508,47 +535,52 @@
 					"group": "change@1"
 				},
 				{
-					"command": "gerrit.checkoutBranch",
-					"when": "view == gerrit:changeExplorer && viewItem =~ /gerritchange/",
-					"group": "achange@2"
-				},
-				{
-					"command": "gerrit.rebase",
-					"when": "view == gerrit:changeExplorer && viewItem =~ /gerritchange/ && viewItem =~ noCurrent",
-					"group": "achange@3"
-				},
-				{
-					"command": "gerrit.recursiveRebase",
-					"when": "view == gerrit:changeExplorer && viewItem =~ /gerritchange/ && viewItem =~ noCurrent",
-					"group": "achange@4"
-				},
-				{
-					"command": "gerrit.rebaseCurrent",
-					"when": "view == gerrit:changeExplorer && viewItem =~ /gerritchange/ && viewItem =~ yesCurrent",
-					"group": "achange@3"
-				},
-				{
-					"command": "gerrit.recursiveRebaseCurrent",
-					"when": "view == gerrit:changeExplorer && viewItem =~ /gerritchange/ && viewItem =~ yesCurrent",
-					"group": "achange@4"
-				},
-				{
-					"command": "gerrit.openChangeOnline",
-					"when": "view == gerrit:changeExplorer && viewItem =~ /gerritchange/",
-					"group": "change@7"
-				},
-				{
 					"command": "gerrit.openPatchsetSelector",
 					"when": "view == gerrit:changeExplorer && viewItem =~ /gerritchange/",
-					"group": "change@5"
+					"group": "change@2"
 				},
 				{
 					"command": "gerrit.resetPatchsetSelection",
 					"when": "view == gerrit:changeExplorer && viewItem =~ /gerritchange/ && viewItem =~ /customPatchset/",
-					"group": "change@6"
+					"group": "change@3"
+				},
+				{
+					"command": "gerrit.checkoutBranch",
+					"when": "view == gerrit:changeExplorer && viewItem =~ /filechange/",
+					"group": "achange@1"
+				},
+				{
+					"command": "gerrit.rebase",
+					"when": "view == gerrit:changeExplorer && viewItem =~ /filechange/ && viewItem =~ /noCurrent/",
+					"group": "achange@2"
+				},
+				{
+					"command": "gerrit.rebaseCurrent",
+					"when": "view == gerrit:changeExplorer && viewItem =~ /filechange/ && viewItem =~ /yesCurrent/",
+					"group": "achange@3"
+				},
+				{
+					"command": "gerrit.recursiveRebase",
+					"when": "view == gerrit:changeExplorer && viewItem =~ /filechange/ && viewItem =~ /noCurrent/",
+					"group": "achange@4"
+				},
+				{
+					"command": "gerrit.recursiveRebaseCurrent",
+					"when": "view == gerrit:changeExplorer && viewItem =~ /filechange/ && viewItem =~ /yesCurrent/",
+					"group": "achange@5"
 				}
 			],
 			"view/title": [
+				{
+					"command": "gerrit.clearSearchResults",
+					"when": "view == gerrit:changeExplorer && (gerrit:searchQuery || gerrit:searchChangeNumber)",
+					"group": "navigation@1"
+				},
+				{
+					"command": "gerrit.search",
+					"when": "view == gerrit:searchResults || view == gerrit:changeExplorer",
+					"group": "navigation@2"
+				},
 				{
 					"command": "gerrit.refreshChanges",
 					"when": "gerrit:connected && view == gerrit:changeExplorer",
@@ -563,40 +595,30 @@
 					"command": "gerrit.configureChangeList",
 					"when": "view == gerrit:changeExplorer",
 					"group": "navigation@5"
-				},
-				{
-					"command": "gerrit.search",
-					"when": "view == gerrit:changeExplorer || view == gerrit:searchResults",
-					"group": "navigation@2"
-				},
-				{
-					"command": "gerrit.clearSearchResults",
-					"when": "view == gerrit:searchResults && (gerrit:searchQuery || gerrit:searchChangeNumber)",
-					"group": "navigation@1"
 				}
 			],
 			"editor/title": [
 				{
-					"command": "gerrit.nextUnresolvedComment",
-					"group": "navigation@2",
-					"when": "resource =~ /_ctx_gerritDiff/ || resource =~ /_ctx_hasUnresolved/ || resource =~ /_ctx_patchsetLevel/"
+					"command": "gerrit.previousUnresolvedComment",
+					"when": "resource =~ /_ctx_gerritDiff/ || resource =~ /_ctx_hasUnresolved/ || resource =~ /_ctx_patchsetLevel/",
+					"group": "navigation@1"
 				},
 				{
-					"command": "gerrit.previousUnresolvedComment",
-					"group": "navigation@1",
-					"when": "resource =~ /_ctx_gerritDiff/ || resource =~ /_ctx_hasUnresolved/ || resource =~ /_ctx_patchsetLevel/"
+					"command": "gerrit.nextUnresolvedComment",
+					"when": "resource =~ /_ctx_gerritDiff/ || resource =~ /_ctx_hasUnresolved/ || resource =~ /_ctx_patchsetLevel/",
+					"group": "navigation@2"
 				}
 			],
 			"scm/title": [
 				{
 					"command": "gerrit.pushForReview",
 					"when": "scmProvider =~ /git/",
-					"group": "navigation"
+					"group": "navigation@1"
 				},
 				{
 					"submenu": "git.gerrit",
 					"when": "scmProvider =~ /git/ && gerrit:isUsingGerrit",
-					"group": "2_main@8"
+					"group": "navigation@2"
 				}
 			],
 			"git.gerrit": [
@@ -606,11 +628,11 @@
 				},
 				{
 					"command": "gerrit.rebaseCurrent",
-					"group": "git_gerrit@4"
+					"group": "git_gerrit@2"
 				},
 				{
 					"command": "gerrit.recursiveRebaseCurrent",
-					"group": "git_gerrit@5"
+					"group": "git_gerrit@3"
 				}
 			]
 		},
@@ -994,22 +1016,24 @@
 	},
 	"scripts": {
 		"vscode:prepublish": "yarn run build && yarn run compile",
-		"compile": "tsc -p ./ && tsc -p src/views/activityBar/review/html/src/tsconfig.json",
+		"compile": "tsc -p ./src && tsc -p src/views/activityBar/review/html/src/tsconfig.json",
 		"watch": "npm-run-all -p watch:compile watch:build",
-		"watch:compile": "tsc -p ./ -w",
+		"watch:compile": "tsc -p ./src -w",
 		"watch:build": "yarn build:debug --watch",
 		"build": "esbuild --bundle --outfile=src/views/activityBar/review/html/dist/index.js src/views/activityBar/review/html/src/index.tsx --minify",
 		"build:debug": "esbuild --bundle --outfile=src/views/activityBar/review/html/dist/index.js src/views/activityBar/review/html/src/index.tsx",
 		"pretest": "yarn run compile && yarn run lint",
 		"lint": "eslint src --ext ts",
-		"test": "node ./out/test/runTest.js",
 		"format": "pretty-quick src/",
-		"prepush": "yarn format && yarn lint --fix && yarn compile"
+		"_generate-package": "ts-node -T ./scripts/generate-package-json.ts",
+		"generate-package": "yarn _generate-package --generate --validate && prettier --write package.json",
+		"prepush": "yarn generate-package && yarn format && yarn lint --fix && yarn compile && tsc -p ./scripts"
 	},
 	"devDependencies": {
 		"@emotion/react": "^11.7.0",
 		"@emotion/styled": "^11.6.0",
 		"@mui/material": "^5.2.3",
+		"@types/fs-extra": "^9.0.13",
 		"@types/glob": "^7.1.4",
 		"@types/mocha": "^9.0.0",
 		"@types/node": "14.x",
@@ -1039,6 +1063,7 @@
 		"react": "^17.0.2",
 		"react-dom": "^17.0.2",
 		"react-select-search": "^3.0.9",
+		"ts-node": "^10.4.0",
 		"typescript": "^4.5.2"
 	},
 	"dependencies": {

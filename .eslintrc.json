@@ -5,10 +5,11 @@
 		"plugin:@typescript-eslint/recommended-requiring-type-checking"
 	],
 	"parserOptions": {
-		"tsconfigRootDir": "./",
+		"tsconfigRootDir": "./src",
 		"project": [
 			"./tsconfig.json",
-			"src/views/activityBar/review/html/src/tsconfig.json"
+			"./views/activityBar/review/html/src/tsconfig.json",
+			"../scripts/tsconfig.json"
 		],
 		"createDefaultProgram": true
 	},

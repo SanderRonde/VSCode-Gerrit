@@ -7,7 +7,10 @@ import {
 	TreeView,
 	window,
 } from 'vscode';
-import { PERIODICAL_CHANGE_FETCH_INTERVAL } from '../../lib/util/constants';
+import {
+	GERRIT_CHANGE_EXPLORER_VIEW,
+	PERIODICAL_CHANGE_FETCH_INTERVAL,
+} from '../../lib/util/constants';
 import { FileTreeView } from './changes/changeTreeView/fileTreeView';
 import { RootTreeViewProvider } from './changes/rootTreeView';
 import { ChangeTreeView } from './changes/changeTreeView';
@@ -98,7 +101,7 @@ export function getOrCreateChangesTreeProvider(): TreeView<TreeViewItem> {
 		return changesTreeProvider;
 	}
 	return (changesTreeProvider = window.createTreeView(
-		'gerrit:changeExplorer',
+		GERRIT_CHANGE_EXPLORER_VIEW,
 		{
 			treeDataProvider: new ChangesTreeProvider(),
 			showCollapseAll: true,

@@ -1,5 +1,5 @@
 import { CanFetchMoreTreeProvider } from '../shared/canFetchMoreTreeProvider';
-import { GerritExtensionCommands } from '../../../commands/commands';
+import { GerritExtensionCommands } from '../../../commands/command-names';
 import { TreeItemWithoutChildren } from '../shared/treeTypes';
 import { Command, ThemeIcon, TreeItem } from 'vscode';
 

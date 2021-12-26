@@ -1,4 +1,4 @@
-import { GerritExtensionCommands } from '../../commands/commands';
+import { GerritExtensionCommands } from '../../commands/command-names';
 import { EXTENSION_ID } from '../util/constants';
 import { commands, window } from 'vscode';
 

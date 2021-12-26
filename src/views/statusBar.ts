@@ -18,8 +18,8 @@ import {
 	onChangeLastCommit,
 } from '../lib/git/git';
 import { DefaultChangeFilter, filterOr } from '../lib/gerrit/gerritAPI/filters';
+import { GerritExtensionCommands } from '../commands/command-names';
 import { GerritChange } from '../lib/gerrit/gerritAPI/gerritChange';
-import { GerritExtensionCommands } from '../commands/commands';
 import { GerritAPIWith } from '../lib/gerrit/gerritAPI/api';
 import { getAPI } from '../lib/gerrit/gerritAPI';
 import { GitCommit } from '../lib/git/gitCLI';

@@ -41,51 +41,10 @@ import { rebaseOntoMain, recursiveRebase } from '../lib/git/rebase';
 import { enterCredentials } from '../lib/credentials/credentials';
 import { focusChange } from '../lib/commandHandlers/focusChange';
 import { commands, ExtensionContext, window } from 'vscode';
+import { GerritExtensionCommands } from './command-names';
 import { checkConnection } from '../lib/gerrit/gerritAPI';
 import { tryExecAsync } from '../lib/git/gitCLI';
 import { gitReview } from '../lib/git/git';
-
-export enum GerritExtensionCommands {
-	CREATE_COMMENT_RESOLVED = 'gerrit.createCommentResolved',
-	CREATE_COMMENT_UNRESOLVED = 'gerrit.createCommentUnresolved',
-	CANCEL_COMMENT = 'gerrit.cancelComment',
-	ENTER_CREDENTIALS = 'gerrit.enterCredentials',
-	ACK_COMMENT_THREAD = 'gerrit.ackCommentThread',
-	DONE_COMMENT_THREAD = 'gerrit.doneCommentThread',
-	CHECK_CONNECTION = 'gerrit.checkConnection',
-	DELETE_COMMENT = 'gerrit.deleteComment',
-	EDIT_COMMENT = 'gerrit.editComment',
-	RESOLVE_COMMENT = 'gerrit.toggleResolvedOn',
-	UNRESOLVE_COMMENT = 'gerrit.toggleResolvedOff',
-	COLLAPSE_ALL_COMMENTS = 'gerrit.collapseAllComments',
-	FILE_OPEN_ONLINE = 'gerrit.openOnline',
-	FILE_OPEN_MODIFIED = 'gerrit.openModified',
-	FILE_OPEN_ORIGINAL = 'gerrit.openOriginal',
-	FETCH_MORE = 'gerrit.fetchMore',
-	OPEN_CHANGE_SELECTOR = 'gerrit.openChangeSelector',
-	REFRESH_CHANGES = 'gerrit.refreshChanges',
-	CONFIGURE_CHANGE_LIST = 'gerrit.configureChangeList',
-	SEARCH = 'gerrit.search',
-	CLEAR_SEARCH_RESULTS = 'gerrit.clearSearchResults',
-	OPEN_IN_REVIEW = 'gerrit.openInReview',
-	OPEN_PATCHSET_SELECTOR = 'gerrit.openPatchsetSelector',
-	RESET_PATCHSET_SELECTOR = 'gerrit.resetPatchsetSelection',
-	SELECT_ACTIVE_VIEW = 'gerrit.selectActiveView',
-	CHECKOUT_BRANCH = 'gerrit.checkoutBranch',
-	CHANGE_OPEN_ONLINE = 'gerrit.openChangeOnline',
-	NEXT_UNRESOLVED_COMMENT = 'gerrit.nextUnresolvedComment',
-	PREVIOUS_UNRESOLVED_COMMENT = 'gerrit.previousUnresolvedComment',
-	OPEN_CURRENT_CHANGE_ONLINE = 'gerrit.openCurrentOnline',
-	FOCUS_CHANGE = 'gerrit.focusChange',
-	PUSH_FOR_REVIEW = 'gerrit.pushForReview',
-	COPY_COMMENT_LINK = 'gerrit.copyCommentLink',
-	OPEN_COMMENT_ONLINE = 'gerrit.openCommentOnline',
-	RETRY_LISTEN_FOR_STREAM_EVENTS = 'gerrit.listenForStreamEvents',
-	REBASE = 'gerrit.rebase',
-	RECURSIVE_REBASE = 'gerrit.recursiveRebase',
-	REBASE_CURRENT = 'gerrit.rebaseCurrent',
-	RECURSIVE_REBASE_CURRENT = 'gerrit.recursiveRebaseCurrent',
-}
 
 async function checkoutChange(changeID: string): Promise<boolean> {
 	const { success } = await tryExecAsync(`git-review -d ${changeID}`);

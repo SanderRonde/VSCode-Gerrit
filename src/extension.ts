@@ -11,6 +11,7 @@ import { SearchResultsTreeProvider } from './views/activityBar/searchResults';
 import { getOrCreateChangesTreeProvider } from './views/activityBar/changes';
 import { FileProvider, GERRIT_FILE_SCHEME } from './providers/fileProvider';
 import { setContextProp, setDefaultContexts } from './lib/vscode/context';
+import { GERRIT_SEARCH_RESULTS_VIEW } from './lib/util/constants';
 import { GerritUser } from './lib/gerrit/gerritAPI/gerritUser';
 import { ExtensionContext, window, workspace } from 'vscode';
 import { updateUploaderState } from './lib/state/uploader';
@@ -75,7 +76,7 @@ export async function activate(context: ExtensionContext): Promise<void> {
 	context.subscriptions.push(
 		(() => {
 			const searchResultsTreeProvider = new SearchResultsTreeProvider();
-			const treeView = window.createTreeView('gerrit:searchResults', {
+			const treeView = window.createTreeView(GERRIT_SEARCH_RESULTS_VIEW, {
 				treeDataProvider: searchResultsTreeProvider,
 				showCollapseAll: true,
 			});

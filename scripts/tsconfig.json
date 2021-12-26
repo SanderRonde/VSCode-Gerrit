@@ -2,22 +2,16 @@
 	"compilerOptions": {
 		"module": "commonjs",
 		"target": "ES2020",
-		"outDir": "out",
 		"lib": ["ES2020"],
 		"sourceMap": true,
-		"rootDir": "src",
+		"rootDir": "..",
 		"strict": true,
 		"noImplicitReturns": true,
 		"noFallthroughCasesInSwitch": true,
 		"noUnusedParameters": true,
 		"noImplicitOverride": true,
-		"skipLibCheck": true
+		"skipLibCheck": true,
+		"noEmit": true
 	},
-	"exclude": [
-		"node_modules",
-		".vscode-test",
-		"submodules",
-		"src/views/activityBar/review/html/src",
-		"src/views/activityBar/review/html/dist"
-	]
+	"include": ["./generate-package-json.ts"]
 }

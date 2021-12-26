@@ -12,8 +12,8 @@ import {
 } from 'vscode';
 import { storageGet, StorageScope, storageSet } from '../vscode/storage';
 import { APISubscriptionManager } from '../subscriptions/subscriptions';
+import { GerritExtensionCommands } from '../../commands/command-names';
 import { getContextProp, setContextProp } from '../vscode/context';
-import { GerritExtensionCommands } from '../../commands/commands';
 import { MATCH_ANY } from '../subscriptions/baseSubscriptions';
 import { StreamEvent } from './stream-event-types';
 import { tryExecAsync } from '../git/gitCLI';

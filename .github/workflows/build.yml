@@ -36,3 +36,6 @@ jobs:
 
             - name: Validate package.json
               run: yarn _generate-package --validate
+
+            - name: Check if package was just generated
+              run: yarn generate-package && git diff --exit-code

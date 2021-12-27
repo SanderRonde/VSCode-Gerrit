@@ -266,12 +266,6 @@ export function registerCommands(context: ExtensionContext): void {
 	);
 	context.subscriptions.push(
 		commands.registerCommand(
-			GerritExtensionCommands.PUSH_FOR_REVIEW,
-			gitReview
-		)
-	);
-	context.subscriptions.push(
-		commands.registerCommand(
 			GerritExtensionCommands.REBASE,
 			async (changeTreeView: ChangeTreeView) => {
 				if (!(await checkoutChange(changeTreeView.changeID))) {

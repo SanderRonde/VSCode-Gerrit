@@ -130,7 +130,9 @@ async function generatePackageJSON(): Promise<void> {
 										...optionalObjectProperty({
 											when: entry.when,
 										}),
-										group: `${groupName}@${i + 1}`,
+										group:
+											entry.group ??
+											`${groupName}@${i + 1}`,
 									});
 								}
 							}

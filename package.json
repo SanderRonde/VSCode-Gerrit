@@ -618,7 +618,7 @@
 				{
 					"submenu": "git.gerrit",
 					"when": "scmProvider =~ /git/ && gerrit:isUsingGerrit",
-					"group": "navigation@2"
+					"group": "2_main@8"
 				}
 			],
 			"git.gerrit": [
@@ -636,6 +636,12 @@
 				}
 			]
 		},
+		"submenus": [
+			{
+				"id": "git.gerrit",
+				"label": "Gerrit"
+			}
+		],
 		"viewsContainers": {
 			"activitybar": [
 				{

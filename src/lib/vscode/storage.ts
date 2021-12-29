@@ -1,3 +1,4 @@
+import { QuickCheckoutApplyInfo } from '../git/quick-checkout';
 import { createInittableValue } from '../util/cache';
 import { ExtensionContext } from 'vscode';
 
@@ -21,12 +22,17 @@ interface StorageObj {
 	 */
 	reviewChangeIDOverride: string | null;
 	streamEventsAsked?: boolean;
+	quickCheckoutStashes: QuickCheckoutApplyInfo[];
+	askedDropAllStashes?: boolean;
+	askedQuickCheckoutsStatusBar?: boolean;
 }
 
 const SYNC_KEYS: (keyof StorageObj)[] = [
 	'reviewComment',
 	'reviewChangeIDOverride',
 	'streamEventsAsked',
+	'askedDropAllStashes',
+	'askedQuickCheckoutsStatusBar',
 ];
 
 const ctx = createInittableValue<ExtensionContext>();

@@ -1,5 +1,6 @@
 import {
 	GERRIT_CHANGE_EXPLORER_VIEW,
+	GERRIT_QUICK_CHECKOUT_VIEW,
 	GERRIT_SEARCH_RESULTS_VIEW,
 } from '../lib/util/constants';
 import { ContextProps } from '../lib/vscode/context';
@@ -16,6 +17,7 @@ export const IS_GERRTIT_COMMENT_CONTROLLER = isCommentController('gerrit');
 export const IS_GERRIT_CHANGE_EXPLORER_VIEW = isView(
 	GERRIT_CHANGE_EXPLORER_VIEW
 );
+export const IS_GERRIT_QUICK_CHECKOUT_VIEW = isView(GERRIT_QUICK_CHECKOUT_VIEW);
 export const IS_GERRIT_SEARCH_RESULTS_VIEW = isView(GERRIT_SEARCH_RESULTS_VIEW);
 export const SCM_PROVIDER_IS_GIT = scmProviderContains('git');
 

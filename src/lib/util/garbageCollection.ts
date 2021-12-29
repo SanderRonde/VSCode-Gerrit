@@ -80,7 +80,7 @@ export class IterableWeakMap<K, V> {
 	}
 
 	public set(key: K, value: V): void {
-		const isWeak = typeof value === 'object' && value;
+		const isWeak = !!(typeof value === 'object' && value);
 		const weak = isWeak
 			? new WeakRef(value as unknown as object)
 			: new WeakRef({ value });

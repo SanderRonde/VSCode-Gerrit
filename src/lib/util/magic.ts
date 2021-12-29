@@ -16,6 +16,7 @@ export const COMMENT_IS_DELETABLE = 'deletable';
 // Contexts that signify the type of a file tree item
 export const TREE_ITEM_TYPE_FILE = 'filechange';
 export const TREE_ITEM_TYPE_CHANGE = 'gerritchange';
+export const TREE_ITEM_TYPE_QUICK_CHECKOUT = 'quickCheckout';
 
 // Contexts that signify status of tree items
 export const TREE_ITEM_CHANGE_CUSTOM_PATCHSET_SELECTION = 'customPatchset';

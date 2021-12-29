@@ -3,6 +3,9 @@ import {
 	testEnableStreamEvents,
 } from './lib/stream-events/stream-events';
 import { FileModificationStatusProvider } from './providers/fileModificationStatusProvider';
+import { showQuickCheckoutStatusBarIcons } from './views/statusBar/quckCheckoutStatusBar';
+import { showCurrentChangeStatusBarIcon } from './views/statusBar/currentChangeStatusBar';
+import { getOrCreateQuickCheckoutTreeProvider } from './views/activityBar/quickCheckout';
 import { fileCache } from './views/activityBar/changes/changeTreeView/file/fileCache';
 import { getCommentDecorationProvider } from './providers/commentDecorationProvider';
 import { getOrCreateReviewWebviewProvider } from './views/activityBar/review';
@@ -17,13 +20,13 @@ import { ExtensionContext, window, workspace } from 'vscode';
 import { updateUploaderState } from './lib/state/uploader';
 import { registerCommands } from './commands/commands';
 import { setupChangeIDCache } from './lib/git/commit';
-import { showStatusBarIcon } from './views/statusBar';
 import { createOutputChannel } from './lib/util/log';
 import { isUsingGerrit } from './lib/gerrit/gerrit';
 import { VersionNumber } from './lib/util/version';
 import { storageInit } from './lib/vscode/storage';
 import { getAPI } from './lib/gerrit/gerritAPI';
 import { setDevContext } from './lib/util/dev';
+import { wait } from './lib/util/util';
 
 export async function activate(context: ExtensionContext): Promise<void> {
 	// Set context so we know whether we're in dev mode or not
@@ -47,11 +50,16 @@ export async function activate(context: ExtensionContext): Promise<void> {
 	// Set context to show/hide icon
 	await setContextProp('gerrit:isUsingGerrit', usesGerrit);
 	if (!usesGerrit) {
+		await wait(10000);
+		if (!(await isUsingGerrit())) {
+			return;
+		}
 		return;
 	}
 
 	// Register status bar entry
-	await showStatusBarIcon(context);
+	await showCurrentChangeStatusBarIcon(context);
+	await showQuickCheckoutStatusBarIcons(context);
 
 	// Test stream events
 	void (async () => {
@@ -62,6 +70,7 @@ export async function activate(context: ExtensionContext): Promise<void> {
 
 	// Register tree views
 	context.subscriptions.push(getOrCreateChangesTreeProvider());
+	context.subscriptions.push(getOrCreateQuickCheckoutTreeProvider());
 	context.subscriptions.push(
 		window.registerWebviewViewProvider(
 			'gerrit:review',

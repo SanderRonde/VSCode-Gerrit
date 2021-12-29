@@ -39,6 +39,8 @@ export enum GerritExtensionCommands {
 	REBASE_CURRENT = 'gerrit.rebaseCurrent',
 	RECURSIVE_REBASE_CURRENT = 'gerrit.recursiveRebaseCurrent',
 	QUICK_CHECKOUT = 'gerrit.quickCheckout',
-	QUICK_CHECKOUT_BACK = 'gerrit.applyQuickCheckout',
+	QUICK_CHECKOUT_APPLY = 'gerrit.applyQuickCheckout',
+	QUICK_CHECKOUT_POP = 'gerrit.popQuickCheckout',
+	DROP_QUICK_CHECKOUT = 'gerrit.dropQuickCheckout',
 	DROP_QUICK_CHECKOUTS = 'gerrit.dropQuickCheckouts',
 }

@@ -26,15 +26,20 @@ import {
 	openChangeOnline,
 } from '../views/activityBar/changes/changeCommands';
 import {
+	applyQuickCheckout,
+	dropQuickCheckout,
+	dropQuickCheckouts,
+	popQuickCheckout,
+	quickCheckout,
+} from '../lib/git/quick-checkout';
+import {
 	nextUnresolvedComment,
 	previousUnresolvedComment,
 } from '../providers/comments/commentCommands';
 import { fetchMoreTreeItemEntries } from '../views/activityBar/changes/fetchMoreTreeItem';
-import {
-	openChangeSelector,
-	openCurrentChangeOnline,
-} from '../views/statusBar';
+import { openCurrentChangeOnline } from '../lib/commandHandlers/openCurrentChangeOnline';
 import { clearSearchResults, search } from '../views/activityBar/search/search';
+import { openChangeSelector } from '../views/statusBar/currentChangeStatusBar';
 import { ChangeTreeView } from '../views/activityBar/changes/changeTreeView';
 import { listenForStreamEvents } from '../lib/stream-events/stream-events';
 import { rebaseOntoMain, recursiveRebase } from '../lib/git/rebase';
@@ -43,11 +48,13 @@ import { focusChange } from '../lib/commandHandlers/focusChange';
 import { commands, ExtensionContext, window } from 'vscode';
 import { GerritExtensionCommands } from './command-names';
 import { checkConnection } from '../lib/gerrit/gerritAPI';
+import { getGitURI, gitReview } from '../lib/git/git';
 import { tryExecAsync } from '../lib/git/gitCLI';
-import { gitReview } from '../lib/git/git';
 
-async function checkoutChange(changeID: string): Promise<boolean> {
-	const { success } = await tryExecAsync(`git-review -d ${changeID}`);
+async function checkoutChange(uri: string, changeID: string): Promise<boolean> {
+	const { success } = await tryExecAsync(`git-review -d ${changeID}`, {
+		cwd: uri,
+	});
 	if (!success) {
 		void window.showErrorMessage('Failed to checkout change');
 		return false;
@@ -268,7 +275,11 @@ export function registerCommands(context: ExtensionContext): void {
 		commands.registerCommand(
 			GerritExtensionCommands.REBASE,
 			async (changeTreeView: ChangeTreeView) => {
-				if (!(await checkoutChange(changeTreeView.changeID))) {
+				const gitURI = getGitURI();
+				if (
+					!gitURI ||
+					!(await checkoutChange(gitURI, changeTreeView.changeID))
+				) {
 					return;
 				}
 
@@ -287,7 +298,11 @@ export function registerCommands(context: ExtensionContext): void {
 		commands.registerCommand(
 			GerritExtensionCommands.RECURSIVE_REBASE,
 			async (changeTreeView: ChangeTreeView) => {
-				if (!(await checkoutChange(changeTreeView.changeID))) {
+				const gitURI = getGitURI();
+				if (
+					!gitURI ||
+					!(await checkoutChange(gitURI, changeTreeView.changeID))
+				) {
 					return;
 				}
 
@@ -313,19 +328,31 @@ export function registerCommands(context: ExtensionContext): void {
 	context.subscriptions.push(
 		commands.registerCommand(
 			GerritExtensionCommands.QUICK_CHECKOUT,
-			gitReview // TODO:
+			quickCheckout
 		)
 	);
 	context.subscriptions.push(
 		commands.registerCommand(
-			GerritExtensionCommands.QUICK_CHECKOUT_BACK,
-			gitReview // TODO:
+			GerritExtensionCommands.DROP_QUICK_CHECKOUT,
+			dropQuickCheckout
+		)
+	);
+	context.subscriptions.push(
+		commands.registerCommand(
+			GerritExtensionCommands.QUICK_CHECKOUT_APPLY,
+			applyQuickCheckout
+		)
+	);
+	context.subscriptions.push(
+		commands.registerCommand(
+			GerritExtensionCommands.QUICK_CHECKOUT_POP,
+			popQuickCheckout
 		)
 	);
 	context.subscriptions.push(
 		commands.registerCommand(
 			GerritExtensionCommands.DROP_QUICK_CHECKOUTS,
-			gitReview // TODO:
+			dropQuickCheckouts
 		)
 	);
 

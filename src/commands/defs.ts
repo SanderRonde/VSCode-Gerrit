@@ -13,6 +13,7 @@ import {
 	TREE_ITEM_IS_NOT_CURRENT,
 	TREE_ITEM_TYPE_CHANGE,
 	TREE_ITEM_TYPE_FILE,
+	TREE_ITEM_TYPE_QUICK_CHECKOUT,
 	TREE_ITEM_WAS_MODIFIED,
 } from '../lib/util/magic';
 import {
@@ -24,6 +25,7 @@ import {
 	EDITOR_TEXT_FOCUS,
 	inParentheses,
 	IS_GERRIT_CHANGE_EXPLORER_VIEW,
+	IS_GERRIT_QUICK_CHECKOUT_VIEW,
 	IS_GERRIT_SEARCH_RESULTS_VIEW,
 	IS_GERRTIT_COMMENT_CONTROLLER,
 	or,
@@ -63,6 +65,7 @@ export const COMMAND_DEFINITIONS: {
 	'gerrit.checkoutBranch': {
 		title: 'Checkout Change',
 		inCommandPalette: false,
+		icon: '$(arrow-down)',
 	},
 	'gerrit.clearSearchResults': {
 		title: 'Clear search results',
@@ -235,15 +238,26 @@ export const COMMAND_DEFINITIONS: {
 		inCommandPalette: false,
 	},
 	'gerrit.quickCheckout': {
-		title: 'Quick checkout',
+		title: 'Quick Checkout',
 		inCommandPalette: false,
+		icon: '$(history)',
 	},
 	'gerrit.applyQuickCheckout': {
-		title: 'Restore quick checkout',
+		title: "Apply Quick Checkout (don't drop)",
 		inCommandPalette: false,
+		icon: '$(arrow-down)',
 	},
 	'gerrit.dropQuickCheckouts': {
-		title: 'Drop quick checkout stashes',
+		title: 'Drop Quick Checkout stashes',
+		inCommandPalette: true,
+	},
+	'gerrit.dropQuickCheckout': {
+		title: 'Drop Quick Checkout Stash',
+		inCommandPalette: false,
+		icon: '$(trash)',
+	},
+	'gerrit.popQuickCheckout': {
+		title: 'Pop Quick Checkout stash (apply and drop)',
 		inCommandPalette: false,
 	},
 };
@@ -376,7 +390,37 @@ export const VIEWS: {
 		],
 	},
 	'view/item/context': {
-		open: [
+		inline: [
+			{
+				command: GerritExtensionCommands.QUICK_CHECKOUT,
+				when: and(
+					IS_GERRIT_CHANGE_EXPLORER_VIEW,
+					viewItemContains(TREE_ITEM_TYPE_CHANGE)
+				),
+			},
+			{
+				command: GerritExtensionCommands.CHECKOUT_BRANCH,
+				when: and(
+					IS_GERRIT_CHANGE_EXPLORER_VIEW,
+					viewItemContains(TREE_ITEM_TYPE_CHANGE)
+				),
+			},
+			{
+				command: GerritExtensionCommands.DROP_QUICK_CHECKOUT,
+				when: and(
+					IS_GERRIT_QUICK_CHECKOUT_VIEW,
+					viewItemContains(TREE_ITEM_TYPE_QUICK_CHECKOUT)
+				),
+			},
+			{
+				command: GerritExtensionCommands.QUICK_CHECKOUT_APPLY,
+				when: and(
+					IS_GERRIT_QUICK_CHECKOUT_VIEW,
+					viewItemContains(TREE_ITEM_TYPE_QUICK_CHECKOUT)
+				),
+			},
+		],
+		openFile: [
 			{
 				command: GerritExtensionCommands.OPEN_CURRENT_CHANGE_ONLINE,
 				when: and(
@@ -470,6 +514,29 @@ export const VIEWS: {
 					IS_GERRIT_CHANGE_EXPLORER_VIEW,
 					viewItemContains(TREE_ITEM_TYPE_CHANGE),
 					viewItemContains(TREE_ITEM_IS_CURRENT)
+				),
+			},
+		],
+		quickCheckout: [
+			{
+				command: GerritExtensionCommands.QUICK_CHECKOUT_APPLY,
+				when: and(
+					IS_GERRIT_QUICK_CHECKOUT_VIEW,
+					viewItemContains(TREE_ITEM_TYPE_QUICK_CHECKOUT)
+				),
+			},
+			{
+				command: GerritExtensionCommands.QUICK_CHECKOUT_POP,
+				when: and(
+					IS_GERRIT_QUICK_CHECKOUT_VIEW,
+					viewItemContains(TREE_ITEM_TYPE_QUICK_CHECKOUT)
+				),
+			},
+			{
+				command: GerritExtensionCommands.DROP_QUICK_CHECKOUT,
+				when: and(
+					IS_GERRIT_QUICK_CHECKOUT_VIEW,
+					viewItemContains(TREE_ITEM_TYPE_QUICK_CHECKOUT)
 				),
 			},
 		],

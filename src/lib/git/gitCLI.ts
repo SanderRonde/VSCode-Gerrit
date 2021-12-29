@@ -31,7 +31,9 @@ export async function execAsync(
 
 export async function tryExecAsync(
 	cmd: string,
-	options?: ExecOptions
+	options?: ExecOptions & {
+		silent?: boolean;
+	}
 ): Promise<{
 	success: boolean;
 	stdout: string;
@@ -45,7 +47,7 @@ export async function tryExecAsync(
 		err: Error | null;
 	}>((resolve) => {
 		exec(cmd, options, (err, stdout, stderr) => {
-			if (err) {
+			if (err && !options?.silent) {
 				log(`Tried to run "${cmd}", but failed`);
 				log(`Stdout: ${stdout.toString()}`);
 				log(`Stderr: ${stderr.toString()}`);

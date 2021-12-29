@@ -65,27 +65,122 @@ export async function onChangeLastCommit(
 	return interval;
 }
 
-export async function ensureCleanWorkingTree(): Promise<boolean> {
+export async function createStash(
+	uri: string,
+	stashName: string
+): Promise<boolean> {
+	if (
+		!(
+			await tryExecAsync(`git stash push -u -m "${stashName}"`, {
+				cwd: uri,
+			})
+		).success
+	) {
+		void window.showErrorMessage(
+			'Failed to create stash, see log for details'
+		);
+		return false;
+	}
+	return true;
+}
+
+export async function findStash(
+	uri: string,
+	query: string,
+	operation: string
+): Promise<string | boolean> {
+	const { success: listSuccess, stdout } = await tryExecAsync(
+		'git stash list',
+		{
+			cwd: uri,
+		}
+	);
+	if (!listSuccess) {
+		void window.showErrorMessage(
+			'Failed to read stashes, see log for details'
+		);
+		return false;
+	}
+	const stashes = stdout
+		.split('\n')
+		.map((l) => l.trim())
+		.filter((l) => l.length > 0);
+	const line = stashes.find((stash) => {
+		return stash.includes(query);
+	});
+	if (!line) {
+		const YES_OPTION = 'Yes';
+		const NO_OPTION = 'No, cancel operation';
+		const result = await window.showErrorMessage(
+			`Failed to find stash, skip ${operation} "${query}"`,
+			YES_OPTION,
+			NO_OPTION
+		);
+		if (result === YES_OPTION) {
+			return true;
+		}
+		return false;
+	}
+	return line.split(':')[0];
+}
+
+export async function dropStash(
+	uri: string,
+	stashName: string
+): Promise<boolean> {
+	const stash = await findStash(uri, stashName, 'dropping of stash');
+	if (typeof stash === 'boolean') {
+		return stash;
+	}
+
+	const { success } = await tryExecAsync(`git stash drop "${stash}"`, {
+		cwd: uri,
+	});
+	if (!success) {
+		void window.showErrorMessage(
+			'Failed to drop stash, see log for details'
+		);
+		return false;
+	}
+	return true;
+}
+
+export async function ensureCleanWorkingTree(
+	gitURI: string,
+	silent: boolean = false
+): Promise<boolean> {
 	{
 		const { success } = await tryExecAsync(
-			'git diff --ignore-submodules --quiet'
+			'git diff --ignore-submodules --quiet',
+			{
+				cwd: gitURI,
+				silent,
+			}
 		);
 		if (!success) {
-			void window.showErrorMessage(
-				'You have unstaged changes. Please commit or stash them and try again'
-			);
+			if (!silent) {
+				void window.showErrorMessage(
+					'You have unstaged changes. Please commit or stash them and try again'
+				);
+			}
 			return false;
 		}
 	}
 
 	{
 		const { success } = await tryExecAsync(
-			'git diff --cached --ignore-submodules --quiet'
+			'git diff --cached --ignore-submodules --quiet',
+			{
+				cwd: gitURI,
+				silent,
+			}
 		);
 		if (!success) {
-			void window.showErrorMessage(
-				'You have uncommitted changes. Please commit or stash them and try again'
-			);
+			if (!silent) {
+				void window.showErrorMessage(
+					'You have uncommitted changes. Please commit or stash them and try again'
+				);
+			}
 			return false;
 		}
 	}
@@ -94,6 +189,7 @@ export async function ensureCleanWorkingTree(): Promise<boolean> {
 }
 
 export async function ensureMainBranchUpdated(
+	uri: string,
 	gitReviewFile: GitReviewFile
 ): Promise<string | false> {
 	const remote =
@@ -102,7 +198,9 @@ export async function ensureMainBranchUpdated(
 		DEFAULT_GIT_REVIEW_FILE.remote;
 
 	{
-		const { success } = await tryExecAsync(`git remote update ${remote}`);
+		const { success } = await tryExecAsync(`git remote update ${remote}`, {
+			cwd: uri,
+		});
 		if (!success) {
 			void window.showErrorMessage(
 				'Failed to update remote, please check the log panel for details.'
@@ -114,9 +212,13 @@ export async function ensureMainBranchUpdated(
 	return remote;
 }
 
-export async function getGitVersion(): Promise<VersionNumber | null> {
+export async function getGitVersion(
+	uri: string
+): Promise<VersionNumber | null> {
 	const gitVersion = await (async (): Promise<VersionNumber | null> => {
-		const { stdout, success } = await tryExecAsync('git version');
+		const { stdout, success } = await tryExecAsync('git version', {
+			cwd: uri,
+		});
 		if (!success) {
 			return null;
 		}
@@ -144,12 +246,13 @@ export async function getGitVersion(): Promise<VersionNumber | null> {
 
 async function ensureNoRebaseErrors(): Promise<boolean> {
 	const gitReviewFile = await getGitReviewFileCached();
+	const gitURI = getGitURI();
 
-	if (!gitReviewFile || !(await ensureCleanWorkingTree())) {
+	if (!gitURI || !gitReviewFile || !(await ensureCleanWorkingTree(gitURI))) {
 		return false;
 	}
 
-	const gitVersion = await getGitVersion();
+	const gitVersion = await getGitVersion(gitURI);
 	if (!gitVersion) {
 		return false;
 	}
@@ -158,7 +261,7 @@ async function ensureNoRebaseErrors(): Promise<boolean> {
 		gitReviewFile.branch ??
 		gitReviewFile.defaultbranch ??
 		DEFAULT_GIT_REVIEW_FILE.branch;
-	return rebase(remoteBranch, gitVersion, {
+	return rebase(remoteBranch, gitVersion, gitURI, {
 		title: 'Run Git Review',
 		callback: () => {
 			const terminal = window.createTerminal('Git Review');
@@ -168,7 +271,7 @@ async function ensureNoRebaseErrors(): Promise<boolean> {
 	});
 }
 
-function getGitURI(): string | null {
+export function getGitURI(): string | null {
 	const api = getGitAPI();
 	if (!api || !api.repositories.length) {
 		void window.showErrorMessage('No git repo found');
@@ -185,7 +288,7 @@ function getGitURI(): string | null {
 
 export async function gitCheckoutRemote(patchNumber: number): Promise<void> {
 	const uri = getGitURI();
-	if (!uri || !(await ensureCleanWorkingTree())) {
+	if (!uri || !(await ensureCleanWorkingTree(uri))) {
 		return;
 	}
 

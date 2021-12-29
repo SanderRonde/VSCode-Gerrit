@@ -3,26 +3,23 @@ import {
 	window,
 	StatusBarAlignment,
 	StatusBarItem,
-	env,
-	Uri,
 	Disposable,
 } from 'vscode';
-import {
-	isGerritCommit,
-	getCurrentChangeID,
-	getChangeID,
-} from '../lib/git/commit';
 import {
 	getGitAPI,
 	gitCheckoutRemote,
 	onChangeLastCommit,
-} from '../lib/git/git';
-import { DefaultChangeFilter, filterOr } from '../lib/gerrit/gerritAPI/filters';
-import { GerritExtensionCommands } from '../commands/command-names';
-import { GerritChange } from '../lib/gerrit/gerritAPI/gerritChange';
-import { GerritAPIWith } from '../lib/gerrit/gerritAPI/api';
-import { getAPI } from '../lib/gerrit/gerritAPI';
-import { GitCommit } from '../lib/git/gitCLI';
+} from '../../lib/git/git';
+import {
+	DefaultChangeFilter,
+	filterOr,
+} from '../../lib/gerrit/gerritAPI/filters';
+import { GerritExtensionCommands } from '../../commands/command-names';
+import { GerritChange } from '../../lib/gerrit/gerritAPI/gerritChange';
+import { isGerritCommit, getChangeID } from '../../lib/git/commit';
+import { GerritAPIWith } from '../../lib/gerrit/gerritAPI/api';
+import { getAPI } from '../../lib/gerrit/gerritAPI';
+import { GitCommit } from '../../lib/git/gitCLI';
 
 export async function selectChange(): Promise<number | null> {
 	// Get a list of changes
@@ -107,28 +104,6 @@ export async function openChangeSelector(): Promise<void> {
 	await gitCheckoutRemote(changeNumber);
 }
 
-export async function openCurrentChangeOnline(): Promise<void> {
-	const changeID = await getCurrentChangeID();
-	const api = await getAPI();
-	if (!changeID) {
-		void window.showErrorMessage('Failed to find current change ID');
-		return;
-	}
-	if (!api) {
-		void window.showErrorMessage('Failed to connect to Gerrit API');
-		return;
-	}
-
-	const change = await GerritChange.getChangeOnce(changeID);
-	if (!change) {
-		void window.showErrorMessage('Failed to find current change');
-		return;
-	}
-	await env.openExternal(
-		Uri.parse(api.getURL(`c/${change.project}/+/${change.number}`, false))
-	);
-}
-
 async function statusbarUpdateHandler(
 	lastCommit: GitCommit,
 	statusBar: StatusBarItem
@@ -161,7 +136,7 @@ async function statusbarUpdateHandler(
 	statusBar.show();
 }
 
-export async function showStatusBarIcon(
+export async function showCurrentChangeStatusBarIcon(
 	context: ExtensionContext
 ): Promise<void> {
 	const statusBar = window.createStatusBarItem(StatusBarAlignment.Left);

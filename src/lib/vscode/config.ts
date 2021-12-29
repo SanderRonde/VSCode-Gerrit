@@ -36,6 +36,8 @@ interface ConfigSettings {
 	'gerrit.allowInvalidSSLCerts': boolean;
 	'gerrit.localGitRepoUri': string;
 	'gerrit.messages.postReviewNotification': boolean;
+	'gerrit.quickCheckout.dropAllStashes': boolean;
+	'gerrit.quickCheckout.showInStatusBar': boolean;
 }
 
 interface TypedWorkspaceConfiguration<T> extends WorkspaceConfiguration {

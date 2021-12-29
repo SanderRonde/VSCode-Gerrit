@@ -6,6 +6,7 @@ import {
 import { Subscribable } from './subscriptions';
 
 enum FETCH_STATE {
+	INITIAL,
 	NOT_FETCHED,
 	FETCHING,
 	FETCHED,
@@ -85,7 +86,7 @@ export abstract class APISubSubscriptionManagerBase<V, C = string> {
 		this._subscriptions.set(config, {
 			listeners: new IterableWeakMap(),
 			value: null,
-			state: FETCH_STATE.NOT_FETCHED,
+			state: FETCH_STATE.INITIAL,
 			getter,
 			config,
 		});
@@ -119,7 +120,7 @@ export abstract class APISubSubscriptionManagerBase<V, C = string> {
 		match.listeners.values().forEach((listeners) => {
 			listeners.forEach((listenerDescriber) => {
 				if (
-					prevState === FETCH_STATE.FETCHED ||
+					prevState !== FETCH_STATE.INITIAL ||
 					listenerDescriber.onInitial
 				) {
 					listenerDescriber.listener.deref()?.(resolved);

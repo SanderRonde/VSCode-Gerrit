@@ -4,9 +4,9 @@ import {
 } from '../../views/activityBar/changes';
 import { SearchResultsTreeProvider } from '../../views/activityBar/searchResults';
 import { ChangeTreeView } from '../../views/activityBar/changes/changeTreeView';
+import { selectChange } from '../../views/statusBar/currentChangeStatusBar';
 import { GerritChange } from '../gerrit/gerritAPI/gerritChange';
 import { flatten, uniqueComplex } from '../util/util';
-import { selectChange } from '../../views/statusBar';
 import { setContextProp } from '../vscode/context';
 
 export async function focusChange(): Promise<void> {

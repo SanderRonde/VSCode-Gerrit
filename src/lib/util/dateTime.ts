@@ -7,19 +7,22 @@ export enum DateSortDirection {
 
 export class DateTime {
 	private readonly _date: Date;
-	private _source: string | null = null;
+	private _stringSource: string | null = null;
 	public get source(): string {
-		return this._source ?? this._date.toISOString();
+		return this._stringSource ?? this._date.toISOString();
 	}
 
 	public constructor(date: Date);
-	public constructor(dateString: string);
-	public constructor(dateOrString: string | Date) {
-		if (typeof dateOrString === 'string') {
-			this._date = new Date(dateOrString);
-			this._source = dateOrString;
+	public constructor(date: string);
+	public constructor(date: number);
+	public constructor(date: string | number | Date) {
+		if (typeof date === 'string' || typeof date === 'number') {
+			this._date = new Date(date);
+			if (typeof date === 'string') {
+				this._stringSource = date;
+			}
 		} else {
-			this._date = dateOrString;
+			this._date = date;
 		}
 	}
 
@@ -41,6 +44,43 @@ export class DateTime {
 
 	public format(options: Intl.DateTimeFormatOptions): string {
 		return Intl.DateTimeFormat(env.language, options).format(this._date);
+	}
+
+	public formatRelative(options?: Intl.RelativeTimeFormatOptions): string {
+		const formatter = new Intl.RelativeTimeFormat(env.language, options);
+		const timeDiff = this._date.getTime() - new Date().getTime();
+		const absTimeDiff = Math.abs(timeDiff);
+		if (absTimeDiff <= 1000 * 60) {
+			return formatter.format(Math.round(timeDiff / 1000), 'second');
+		}
+		if (absTimeDiff <= 1000 * 60 * 60) {
+			return formatter.format(
+				Math.round(timeDiff / (1000 * 60)),
+				'minute'
+			);
+		}
+		if (absTimeDiff <= 1000 * 60 * 60 * 24) {
+			return formatter.format(
+				Math.round(timeDiff / (1000 * 60 * 60)),
+				'hour'
+			);
+		}
+		if (absTimeDiff <= 1000 * 60 * 60 * 24 * 30) {
+			return formatter.format(
+				Math.round(timeDiff / (1000 * 60 * 60 * 24)),
+				'day'
+			);
+		}
+		if (absTimeDiff <= 1000 * 60 * 60 * 24 * 30 * 12) {
+			return formatter.format(
+				Math.round(timeDiff / (1000 * 60 * 60 * 24 * 30)),
+				'month'
+			);
+		}
+		return formatter.format(
+			timeDiff / (1000 * 60 * 60 * 24 * 30 * 12),
+			'year'
+		);
 	}
 
 	public formatToParts(

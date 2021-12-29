@@ -16,6 +16,7 @@
 		"onView:gerrit:changeExplorer",
 		"onView:gerrit:searchResults",
 		"onView:gerrit:review",
+		"onView:gerrit:quickCheckout",
 		"onCommand:gerrit.gerrit.ackCommentThread",
 		"onCommand:gerrit.gerrit.cancelComment",
 		"onCommand:gerrit.gerrit.checkConnection",
@@ -54,7 +55,12 @@
 		"onCommand:gerrit.gerrit.search",
 		"onCommand:gerrit.gerrit.selectActiveView",
 		"onCommand:gerrit.gerrit.toggleResolvedOff",
-		"onCommand:gerrit.gerrit.toggleResolvedOn"
+		"onCommand:gerrit.gerrit.toggleResolvedOn",
+		"onCommand:gerrit.gerrit.quickCheckout",
+		"onCommand:gerrit.gerrit.applyQuickCheckout",
+		"onCommand:gerrit.gerrit.dropQuickCheckouts",
+		"onCommand:gerrit.gerrit.dropQuickCheckout",
+		"onCommand:gerrit.gerrit.popQuickCheckout"
 	],
 	"extensionKind": [
 		"workspace"
@@ -77,7 +83,8 @@
 			},
 			{
 				"command": "gerrit.checkoutBranch",
-				"title": "Checkout Change"
+				"title": "Checkout Change",
+				"icon": "$(arrow-down)"
 			},
 			{
 				"command": "gerrit.clearSearchResults",
@@ -241,6 +248,29 @@
 			{
 				"command": "gerrit.toggleResolvedOn",
 				"title": "Resolve thread"
+			},
+			{
+				"command": "gerrit.quickCheckout",
+				"title": "Quick Checkout",
+				"icon": "$(history)"
+			},
+			{
+				"command": "gerrit.applyQuickCheckout",
+				"title": "Apply Quick Checkout (don't drop)",
+				"icon": "$(arrow-down)"
+			},
+			{
+				"command": "gerrit.dropQuickCheckouts",
+				"title": "Drop Quick Checkout stashes"
+			},
+			{
+				"command": "gerrit.dropQuickCheckout",
+				"title": "Drop Quick Checkout Stash",
+				"icon": "$(trash)"
+			},
+			{
+				"command": "gerrit.popQuickCheckout",
+				"title": "Pop Quick Checkout stash (apply and drop)"
 			}
 		],
 		"keybindings": [
@@ -418,6 +448,26 @@
 				{
 					"command": "gerrit.toggleResolvedOn",
 					"when": "false"
+				},
+				{
+					"command": "gerrit.quickCheckout",
+					"when": "false"
+				},
+				{
+					"command": "gerrit.applyQuickCheckout",
+					"when": "false"
+				},
+				{
+					"command": "gerrit.dropQuickCheckouts",
+					"when": "true"
+				},
+				{
+					"command": "gerrit.dropQuickCheckout",
+					"when": "false"
+				},
+				{
+					"command": "gerrit.popQuickCheckout",
+					"when": "false"
 				}
 			],
 			"comments/comment/context": [
@@ -515,19 +565,39 @@
 			],
 			"view/item/context": [
 				{
+					"command": "gerrit.quickCheckout",
+					"when": "view == gerrit:changeExplorer && viewItem =~ /gerritchange/",
+					"group": "inline@1"
+				},
+				{
+					"command": "gerrit.checkoutBranch",
+					"when": "view == gerrit:changeExplorer && viewItem =~ /gerritchange/",
+					"group": "inline@2"
+				},
+				{
+					"command": "gerrit.dropQuickCheckout",
+					"when": "view == gerrit:quickCheckout && viewItem =~ /quickCheckout/",
+					"group": "inline@3"
+				},
+				{
+					"command": "gerrit.applyQuickCheckout",
+					"when": "view == gerrit:quickCheckout && viewItem =~ /quickCheckout/",
+					"group": "inline@4"
+				},
+				{
 					"command": "gerrit.openCurrentOnline",
 					"when": "view == gerrit:changeExplorer && viewItem =~ /filechange/",
-					"group": "open@1"
+					"group": "openFile@1"
 				},
 				{
 					"command": "gerrit.openModified",
 					"when": "view == gerrit:changeExplorer && viewItem =~ /filechange/ && viewItem =~ /modified/",
-					"group": "open@2"
+					"group": "openFile@2"
 				},
 				{
 					"command": "gerrit.openOriginal",
 					"when": "view == gerrit:changeExplorer && viewItem =~ /filechange/ && viewItem =~ /modified/",
-					"group": "open@3"
+					"group": "openFile@3"
 				},
 				{
 					"command": "gerrit.openInReview",
@@ -546,28 +616,48 @@
 				},
 				{
 					"command": "gerrit.checkoutBranch",
-					"when": "view == gerrit:changeExplorer && viewItem =~ /filechange/",
+					"when": "view == gerrit:changeExplorer && viewItem =~ /gerritchange/",
 					"group": "achange@1"
 				},
 				{
-					"command": "gerrit.rebase",
-					"when": "view == gerrit:changeExplorer && viewItem =~ /filechange/ && viewItem =~ /noCurrent/",
+					"command": "gerrit.quickCheckout",
+					"when": "view == gerrit:changeExplorer && viewItem =~ /gerritchange/",
 					"group": "achange@2"
 				},
 				{
-					"command": "gerrit.rebaseCurrent",
-					"when": "view == gerrit:changeExplorer && viewItem =~ /filechange/ && viewItem =~ /yesCurrent/",
+					"command": "gerrit.rebase",
+					"when": "view == gerrit:changeExplorer && viewItem =~ /gerritchange/ && viewItem =~ /noCurrent/",
 					"group": "achange@3"
 				},
 				{
-					"command": "gerrit.recursiveRebase",
-					"when": "view == gerrit:changeExplorer && viewItem =~ /filechange/ && viewItem =~ /noCurrent/",
+					"command": "gerrit.rebaseCurrent",
+					"when": "view == gerrit:changeExplorer && viewItem =~ /gerritchange/ && viewItem =~ /yesCurrent/",
 					"group": "achange@4"
 				},
 				{
-					"command": "gerrit.recursiveRebaseCurrent",
-					"when": "view == gerrit:changeExplorer && viewItem =~ /filechange/ && viewItem =~ /yesCurrent/",
+					"command": "gerrit.recursiveRebase",
+					"when": "view == gerrit:changeExplorer && viewItem =~ /gerritchange/ && viewItem =~ /noCurrent/",
 					"group": "achange@5"
+				},
+				{
+					"command": "gerrit.recursiveRebaseCurrent",
+					"when": "view == gerrit:changeExplorer && viewItem =~ /gerritchange/ && viewItem =~ /yesCurrent/",
+					"group": "achange@6"
+				},
+				{
+					"command": "gerrit.applyQuickCheckout",
+					"when": "view == gerrit:quickCheckout && viewItem =~ /quickCheckout/",
+					"group": "quickCheckout@1"
+				},
+				{
+					"command": "gerrit.popQuickCheckout",
+					"when": "view == gerrit:quickCheckout && viewItem =~ /quickCheckout/",
+					"group": "quickCheckout@2"
+				},
+				{
+					"command": "gerrit.dropQuickCheckout",
+					"when": "view == gerrit:quickCheckout && viewItem =~ /quickCheckout/",
+					"group": "quickCheckout@3"
 				}
 			],
 			"view/title": [
@@ -673,9 +763,22 @@
 					"type": "webview",
 					"visibility": "visible",
 					"when": "gerrit:isUsingGerrit"
+				},
+				{
+					"id": "gerrit:quickCheckout",
+					"name": "Quick Checkout",
+					"type": "tree",
+					"visibility": "collapsed",
+					"when": "gerrit:isUsingGerrit"
 				}
 			]
 		},
+		"viewsWelcome": [
+			{
+				"view": "gerrit:quickCheckout",
+				"contents": "No quick checkout stashes found, create one by right-clicking a change and selecting \"Quick-Checkout\""
+			}
+		],
 		"configuration": {
 			"type": "object",
 			"title": "Gerrit configuration",
@@ -691,6 +794,16 @@
 					"title": "Show notification after running `git review`",
 					"description": "Show notification after running `git review` that allows you to either open the change online or in the review panel",
 					"default": true
+				},
+				"gerrit.quickCheckout.dropAllStashes": {
+					"type": "boolean",
+					"title": "Drop all git stashes after dropping quick checkouts",
+					"description": "Drop all git stashes after dropping quick checkouts as well"
+				},
+				"gerrit.quickCheckout.showInStatusBar": {
+					"type": "boolean",
+					"title": "Show quick checkouts in statusbar",
+					"description": "Whether quick checkout stashes should be shown in the statusbar for quick access"
 				},
 				"gerrit.auth.username": {
 					"type": "string",
@@ -1018,6 +1131,14 @@
 					"default": false
 				}
 			}
+		}
+	},
+	"watch": {
+		"generate-package": {
+			"patterns": [
+				"src/commands"
+			],
+			"extensions": "ts"
 		}
 	},
 	"scripts": {

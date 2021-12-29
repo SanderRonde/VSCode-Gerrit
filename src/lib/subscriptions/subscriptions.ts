@@ -2,6 +2,7 @@ import {
 	GerritComment,
 	GerritDraftComment,
 } from '../gerrit/gerritAPI/gerritComment';
+import { QuickCheckoutSubscriptionsManager } from './quickCheckoutSubscriptions';
 import { GenericChangeSubscriptionsManager } from './changeSubscription';
 import { ChangesSubscriptionsManager } from './changesSubscriptions';
 import { APISubSubscriptionManagerBase } from './baseSubscriptions';
@@ -43,6 +44,8 @@ export class APISubscriptionManager {
 		>();
 	public static changesSubscriptions = new ChangesSubscriptionsManager();
 	public static filesSubscriptions = new FilesSubscriptionsManager();
+	public static quickCheckoutSubscriptions =
+		new QuickCheckoutSubscriptionsManager();
 	public static readonly NO_OP = (): void => {};
 	public static getNullSubscription(): Subscribable<null> {
 		const subscription: Omit<Subscribable<null>, 'mapSubscription'> = {

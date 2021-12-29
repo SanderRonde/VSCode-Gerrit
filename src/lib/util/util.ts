@@ -207,9 +207,11 @@ export function arrDiff<V>(
 ): {
 	removed: V[];
 	added: V[];
+	remained: V[];
 } {
 	const removed: V[] = [];
 	const added: V[] = [];
+	const remained: V[] = [];
 	for (const item of before) {
 		if (!after.includes(item)) {
 			removed.push(item);
@@ -218,10 +220,23 @@ export function arrDiff<V>(
 	for (const item of after) {
 		if (!before.includes(item)) {
 			added.push(item);
+		} else {
+			remained.push(item);
 		}
 	}
 	return {
 		removed,
 		added,
+		remained,
 	};
+}
+
+export function generateRandomString(length: number = 25): string {
+	const chars =
+		'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+	let result = '';
+	for (let i = 0; i < length; i++) {
+		result += chars.charAt(Math.floor(Math.random() * chars.length));
+	}
+	return result;
 }

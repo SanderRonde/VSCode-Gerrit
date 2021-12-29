@@ -5,13 +5,14 @@ import {
 import { CanFetchMoreTreeProvider } from '../shared/canFetchMoreTreeProvider';
 import { GerritChange } from '../../../lib/gerrit/gerritAPI/gerritChange';
 import { TreeItemWithChildren, TreeViewItem } from '../shared/treeTypes';
+import { Disposable, TreeItem, TreeItemCollapsibleState } from 'vscode';
 import { Subscribable } from '../../../lib/subscriptions/subscriptions';
 import { GerritAPIWith } from '../../../lib/gerrit/gerritAPI/api';
-import { TreeItem, TreeItemCollapsibleState } from 'vscode';
 import { optionalArrayEntry } from '../../../lib/util/util';
 import { ChangesPanel } from '../../../lib/vscode/config';
 import { FetchMoreTreeItem } from './fetchMoreTreeItem';
 import { RootTreeViewProvider } from './rootTreeView';
+import { Refreshable } from '../shared/refreshable';
 import { ChangeTreeView } from './changeTreeView';
 import { log } from '../../../lib/util/log';
 
@@ -40,24 +41,12 @@ export class ViewPanel
 	) {
 		super(`ViewPanel.${_panel.title}`);
 		if (this._panel.refreshInterval) {
-			const interval = ViewPanel._registerWeakInterval(
+			ViewPanel.registerWeakInterval(
 				new WeakRef(this),
-				this._panel.refreshInterval * 1000
+				this._panel.refreshInterval * 1000,
+				this._disposables
 			);
-			this._disposables.push({
-				dispose: () => clearInterval(interval),
-			});
 		}
-	}
-
-	private static _registerWeakInterval(
-		weakSelf: WeakRef<ViewPanel>,
-		time: number
-	): NodeJS.Timer {
-		const interval = setInterval(() => {
-			void weakSelf.deref()?.reload();
-		}, time);
-		return interval;
 	}
 
 	private static _createErrorLogger(
@@ -73,6 +62,19 @@ export class ViewPanel
 				`Failed to fetch changs with filters for panel "${panelTitle}". Check log for response details`
 			);
 		};
+	}
+
+	public static registerWeakInterval(
+		weakSelf: WeakRef<Refreshable>,
+		time: number,
+		disposables: Disposable[]
+	): void {
+		const interval = setInterval(() => {
+			void weakSelf.deref()?.refresh();
+		}, time);
+		disposables.push({
+			dispose: () => clearInterval(interval),
+		});
 	}
 
 	private _getDefaultLimit(): number {

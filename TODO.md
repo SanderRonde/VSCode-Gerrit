@@ -15,8 +15,8 @@
     -   [x] Better more central caching
     -   [x] Instant updates
         -   [x] Let the user decide whether to update the diff view if the latest patchset updates
--   [ ] Visual
-    -   [ ] Changes pane
+-   [x] Visual
+    -   [x] Changes pane
         -   [x] Changeset selection
         -   [x] ... buttons
             -   [x] Allow changing view. Presets:
@@ -34,9 +34,9 @@
             -   [x] Owner
             -   [-] V (not possible)
             -   [x] Maybe multiline?
-        -   [ ] Rightclick on changes:
+        -   [x] Rightclick on changes:
             -   [x] Checkout
-                -   [ ] Offer to stash and unstash
+                -   [x] Offer to stash and unstash
             -   [x] Checkout & Review
             -   [x] Toggle review mode
             -   [x] Open on gerrit

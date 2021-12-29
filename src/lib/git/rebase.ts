@@ -2,6 +2,7 @@ import {
 	ensureCleanWorkingTree,
 	ensureMainBranchUpdated,
 	getCurrentBranch,
+	getGitURI,
 	getGitVersion,
 } from './git';
 import { getChangeID, getCurrentChangeID, isGerritCommit } from './commit';
@@ -85,6 +86,7 @@ async function buildDependencyTree(maxCommits: number = 10): Promise<
 export async function rebase(
 	onto: string,
 	gitVersion: VersionNumber,
+	uri: string,
 	...extraOptions: {
 		title: string;
 		callback: () => void | Promise<void>;
@@ -96,10 +98,15 @@ export async function rebase(
 		? '--rebase-merges'
 		: '--preserve-merges';
 	const rebaseCommand = `git rebase ${rebaseFlag} ${onto}`;
-	const { success } = await tryExecAsync(rebaseCommand);
+	const { success } = await tryExecAsync(rebaseCommand, {
+		cwd: uri,
+	});
 	if (!success) {
 		const { success: abortSuccess } = await tryExecAsync(
-			'git rebase --abort'
+			'git rebase --abort',
+			{
+				cwd: uri,
+			}
 		);
 		if (!abortSuccess) {
 			void window.showErrorMessage(
@@ -145,9 +152,11 @@ export async function rebaseOntoMain(): Promise<void> {
 				message: 'Ensuring working tree is clean',
 				increment: 0,
 			});
+			const gitURI = getGitURI();
 			// Check for clean working tree
 			if (
-				!(await ensureCleanWorkingTree()) ||
+				!gitURI ||
+				!(await ensureCleanWorkingTree(gitURI)) ||
 				token.isCancellationRequested
 			) {
 				return;
@@ -166,7 +175,7 @@ export async function rebaseOntoMain(): Promise<void> {
 				message: 'Getting git version',
 				increment: 20,
 			});
-			const gitVersion = await getGitVersion();
+			const gitVersion = await getGitVersion(gitURI);
 			if (!gitVersion || token.isCancellationRequested) {
 				return;
 			}
@@ -175,7 +184,10 @@ export async function rebaseOntoMain(): Promise<void> {
 				message: 'Fetching remote version',
 				increment: 20,
 			});
-			const remoteBranch = await ensureMainBranchUpdated(gitReviewFile);
+			const remoteBranch = await ensureMainBranchUpdated(
+				gitURI,
+				gitReviewFile
+			);
 			if (!remoteBranch || token.isCancellationRequested) {
 				return;
 			}
@@ -184,7 +196,7 @@ export async function rebaseOntoMain(): Promise<void> {
 				message: `Rebasing onto ${remoteBranch}`,
 				increment: 20,
 			});
-			if (!(await rebase(remoteBranch, gitVersion))) {
+			if (!(await rebase(remoteBranch, gitVersion, gitURI))) {
 				return;
 			}
 
@@ -216,8 +228,10 @@ export async function recursiveRebase(): Promise<void> {
 				increment: 0,
 			});
 			// Check for clean working tree
+			const gitURI = getGitURI();
 			if (
-				!(await ensureCleanWorkingTree()) ||
+				!gitURI ||
+				!(await ensureCleanWorkingTree(gitURI)) ||
 				token.isCancellationRequested
 			) {
 				return;
@@ -236,7 +250,7 @@ export async function recursiveRebase(): Promise<void> {
 				message: 'Getting git version',
 				increment: getRelativeProgress(5),
 			});
-			const gitVersion = await getGitVersion();
+			const gitVersion = await getGitVersion(gitURI);
 			if (!gitVersion || token.isCancellationRequested) {
 				return;
 			}
@@ -245,7 +259,10 @@ export async function recursiveRebase(): Promise<void> {
 				message: 'Updating main branch',
 				increment: getRelativeProgress(7.5),
 			});
-			const remoteBranch = await ensureMainBranchUpdated(gitReviewFile);
+			const remoteBranch = await ensureMainBranchUpdated(
+				gitURI,
+				gitReviewFile
+			);
 			if (!remoteBranch || token.isCancellationRequested) {
 				return;
 			}
@@ -303,7 +320,9 @@ export async function recursiveRebase(): Promise<void> {
 				);
 				if (answer === CHECKOUT_ORIGINAL_OPTION) {
 					if (
-						!(await tryExecAsync(`git checkout ${initialBranch}`))
+						!(await tryExecAsync(`git checkout ${initialBranch}`, {
+							cwd: gitURI,
+						}))
 					) {
 						void window.showErrorMessage(
 							'Failed to checkout original branch'
@@ -327,7 +346,10 @@ export async function recursiveRebase(): Promise<void> {
 
 				// Checkout branch
 				const { success } = await tryExecAsync(
-					`git-review -d ${operation.change.number}`
+					`git-review -d ${operation.change.number}`,
+					{
+						cwd: gitURI,
+					}
 				);
 				if (token.isCancellationRequested) {
 					return;
@@ -339,12 +361,15 @@ export async function recursiveRebase(): Promise<void> {
 				}
 
 				if (
-					!(await rebase(lastBranch, gitVersion, {
+					!(await rebase(lastBranch, gitVersion, gitURI, {
 						title: 'Back to original branch',
 						callback: async () => {
 							if (
 								!(await tryExecAsync(
-									`git checkout ${initialBranch}`
+									`git checkout ${initialBranch}`,
+									{
+										cwd: gitURI,
+									}
 								))
 							) {
 								void window.showErrorMessage(
@@ -373,12 +398,15 @@ export async function recursiveRebase(): Promise<void> {
 			currentProgress += progressPerOperation;
 
 			if (
-				!(await rebase(remoteBranch, gitVersion, {
+				!(await rebase(remoteBranch, gitVersion, gitURI, {
 					title: 'Back to original branch',
 					callback: async () => {
 						if (
 							!(await tryExecAsync(
-								`git checkout ${initialBranch}`
+								`git checkout ${initialBranch}`,
+								{
+									cwd: gitURI,
+								}
 							))
 						) {
 							void window.showErrorMessage(

@@ -282,6 +282,81 @@
 			{
 				"command": "gerrit.popQuickCheckout",
 				"title": "Pop Quick Checkout stash (apply and drop)"
+			},
+			{
+				"command": "gerrit.checkConnection",
+				"title": "Gerrit: Check Connection"
+			},
+			{
+				"command": "gerrit.clearSearchResults",
+				"title": "Gerrit: Clear search results",
+				"icon": "$(clear-all)"
+			},
+			{
+				"command": "gerrit.collapseAllComments",
+				"title": "Gerrit: Collapse All Comments",
+				"icon": "$(collapse-all)"
+			},
+			{
+				"command": "gerrit.configureChangeList",
+				"title": "Gerrit: Configure filters",
+				"icon": "$(gear)"
+			},
+			{
+				"command": "gerrit.enterCredentials",
+				"title": "Gerrit: Enter credentials"
+			},
+			{
+				"command": "gerrit.listenForStreamEvents",
+				"title": "Gerrit: Start listening for Gerrit stream events"
+			},
+			{
+				"command": "gerrit.nextUnresolvedComment",
+				"title": "Gerrit: Next Unresolved Comment",
+				"icon": {
+					"dark": "src/images/icons/comment-down-dark.svg",
+					"light": "src/images/icons/comment-down-light.svg"
+				}
+			},
+			{
+				"command": "gerrit.openCurrentOnline",
+				"title": "Gerrit: Open Current Change Online"
+			},
+			{
+				"command": "gerrit.previousUnresolvedComment",
+				"title": "Gerrit: Previous Unresolved Comment",
+				"icon": {
+					"dark": "src/images/icons/comment-up-dark.svg",
+					"light": "src/images/icons/comment-up-light.svg"
+				}
+			},
+			{
+				"command": "gerrit.pushForReview",
+				"title": "Gerrit: Push for Review",
+				"icon": "$(git-commit)"
+			},
+			{
+				"command": "gerrit.refreshChanges",
+				"title": "Gerrit: Refresh changes",
+				"icon": "$(refresh)"
+			},
+			{
+				"command": "gerrit.resetPatchsetSelection",
+				"title": "Gerrit: Reset Patchset Selection"
+			},
+			{
+				"command": "gerrit.search",
+				"title": "Gerrit: Search",
+				"icon": "$(search)"
+			},
+			{
+				"command": "gerrit.selectActiveView",
+				"title": "Gerrit: Select Active View",
+				"icon": "$(menu)"
+			},
+			{
+				"command": "gerrit.dropQuickCheckouts",
+				"title": "Gerrit: Drop Quick Checkout stashes"
 			}
 		],
 		"keybindings": [
@@ -314,7 +389,7 @@
 				},
 				{
 					"command": "gerrit.checkConnection",
-					"when": "true"
+					"when": "false"
 				},
 				{
 					"command": "gerrit.checkoutBranch",
@@ -322,15 +397,15 @@
 				},
 				{
 					"command": "gerrit.clearSearchResults",
-					"when": "true"
+					"when": "false"
 				},
 				{
 					"command": "gerrit.collapseAllComments",
-					"when": "true"
+					"when": "false"
 				},
 				{
 					"command": "gerrit.configureChangeList",
-					"when": "true"
+					"when": "false"
 				},
 				{
 					"command": "gerrit.copyCommentLink",
@@ -358,7 +433,7 @@
 				},
 				{
 					"command": "gerrit.enterCredentials",
-					"when": "true"
+					"when": "false"
 				},
 				{
 					"command": "gerrit.fetchMore",
@@ -370,11 +445,11 @@
 				},
 				{
 					"command": "gerrit.listenForStreamEvents",
-					"when": "true"
+					"when": "false"
 				},
 				{
 					"command": "gerrit.nextUnresolvedComment",
-					"when": "true"
+					"when": "false"
 				},
 				{
 					"command": "gerrit.openChangeOnline",
@@ -390,7 +465,7 @@
 				},
 				{
 					"command": "gerrit.openCurrentOnline",
-					"when": "true"
+					"when": "false"
 				},
 				{
 					"command": "gerrit.openInReview",
@@ -414,11 +489,11 @@
 				},
 				{
 					"command": "gerrit.previousUnresolvedComment",
-					"when": "true"
+					"when": "false"
 				},
 				{
 					"command": "gerrit.pushForReview",
-					"when": "true"
+					"when": "false"
 				},
 				{
 					"command": "gerrit.rebase",
@@ -438,19 +513,19 @@
 				},
 				{
 					"command": "gerrit.refreshChanges",
-					"when": "true"
+					"when": "false"
 				},
 				{
 					"command": "gerrit.resetPatchsetSelection",
-					"when": "true"
+					"when": "false"
 				},
 				{
 					"command": "gerrit.search",
-					"when": "true"
+					"when": "false"
 				},
 				{
 					"command": "gerrit.selectActiveView",
-					"when": "true"
+					"when": "false"
 				},
 				{
 					"command": "gerrit.toggleResolvedOff",
@@ -470,7 +545,7 @@
 				},
 				{
 					"command": "gerrit.dropQuickCheckouts",
-					"when": "true"
+					"when": "false"
 				},
 				{
 					"command": "gerrit.dropQuickCheckout",
@@ -479,6 +554,66 @@
 				{
 					"command": "gerrit.popQuickCheckout",
 					"when": "false"
+				},
+				{
+					"command": "gerrit.checkConnection",
+					"when": "true"
+				},
+				{
+					"command": "gerrit.clearSearchResults",
+					"when": "true"
+				},
+				{
+					"command": "gerrit.collapseAllComments",
+					"when": "true"
+				},
+				{
+					"command": "gerrit.configureChangeList",
+					"when": "true"
+				},
+				{
+					"command": "gerrit.enterCredentials",
+					"when": "true"
+				},
+				{
+					"command": "gerrit.listenForStreamEvents",
+					"when": "true"
+				},
+				{
+					"command": "gerrit.nextUnresolvedComment",
+					"when": "true"
+				},
+				{
+					"command": "gerrit.openCurrentOnline",
+					"when": "true"
+				},
+				{
+					"command": "gerrit.previousUnresolvedComment",
+					"when": "true"
+				},
+				{
+					"command": "gerrit.pushForReview",
+					"when": "true"
+				},
+				{
+					"command": "gerrit.refreshChanges",
+					"when": "true"
+				},
+				{
+					"command": "gerrit.resetPatchsetSelection",
+					"when": "true"
+				},
+				{
+					"command": "gerrit.search",
+					"when": "true"
+				},
+				{
+					"command": "gerrit.selectActiveView",
+					"when": "true"
+				},
+				{
+					"command": "gerrit.dropQuickCheckouts",
+					"when": "true"
 				}
 			],
 			"comments/comment/context": [

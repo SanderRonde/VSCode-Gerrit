@@ -59,6 +59,10 @@ async function generatePackageJSON(): Promise<void> {
 	const commands = Object.entries(COMMAND_DEFINITIONS);
 	const packageJSON = await readPackageJSON();
 
+	const commandPaletteCommands = commands.filter(
+		(c) => c[1].inCommandPalette
+	);
+
 	const newPackageJSON: Package = {
 		...packageJSON,
 		activationEvents: [
@@ -69,16 +73,28 @@ async function generatePackageJSON(): Promise<void> {
 		],
 		contributes: {
 			...packageJSON.contributes,
-			commands: commands.map(([command, commandConfig]) => {
-				return {
-					command,
-					title: commandConfig.title,
-					...optionalObjectProperty({
-						icon: commandConfig.icon,
-						enablement: commandConfig.enablement,
-					}),
-				};
-			}),
+			commands: [
+				...commands.map(([command, commandConfig]) => {
+					return {
+						command,
+						title: commandConfig.title,
+						...optionalObjectProperty({
+							icon: commandConfig.icon,
+							enablement: commandConfig.enablement,
+						}),
+					};
+				}),
+				...commandPaletteCommands.map(([command, commandConfig]) => {
+					return {
+						command,
+						title: `Gerrit: ${commandConfig.title}`,
+						...optionalObjectProperty({
+							icon: commandConfig.icon,
+							enablement: commandConfig.enablement,
+						}),
+					};
+				}),
+			],
 			keybindings: commands
 				.filter(([, config]) => config.keybinding)
 				.map(([command, config]) => {
@@ -92,12 +108,20 @@ async function generatePackageJSON(): Promise<void> {
 				}),
 			menus: {
 				...packageJSON.contributes.menus,
-				commandPalette: commands.map(([command, config]) => {
-					return {
-						command,
-						when: config.inCommandPalette ? 'true' : 'false',
-					};
-				}),
+				commandPalette: [
+					...commands.map(([command]) => {
+						return {
+							command,
+							when: 'false',
+						};
+					}),
+					...commandPaletteCommands.map(([command]) => {
+						return {
+							command,
+							when: 'true',
+						};
+					}),
+				],
 				...Object.fromEntries(
 					Object.entries(VIEWS).map(([view, viewConfig]) => {
 						const viewEntries: (

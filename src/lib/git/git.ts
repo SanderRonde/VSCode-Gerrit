@@ -112,7 +112,7 @@ export async function findStash(
 		const YES_OPTION = 'Yes';
 		const NO_OPTION = 'No, cancel operation';
 		const result = await window.showErrorMessage(
-			`Failed to find stash, skip ${operation} "${query}"`,
+			`Failed to find git stash, skip ${operation} "${query}"?`,
 			YES_OPTION,
 			NO_OPTION
 		);
@@ -128,7 +128,7 @@ export async function dropStash(
 	uri: string,
 	stashName: string
 ): Promise<boolean> {
-	const stash = await findStash(uri, stashName, 'dropping of stash');
+	const stash = await findStash(uri, stashName, 'dropping of git stash');
 	if (typeof stash === 'boolean') {
 		return stash;
 	}

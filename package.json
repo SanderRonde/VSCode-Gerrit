@@ -21,6 +21,7 @@
 		"url": "https://github.com/SanderRonde/VSCode-Gerrit/issues",
 		"email": "awsdfgvhbjn@gmail.com"
 	},
+	"publisher": "SanderRonde",
 	"activationEvents": [
 		"onStartupFinished",
 		"onView:gerrit:changeExplorer",

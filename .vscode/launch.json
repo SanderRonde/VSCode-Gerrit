@@ -12,7 +12,8 @@
 			"args": [
 				"--extensionDevelopmentPath=${workspaceFolder}",
 				"--dev",
-				"--inspect-brk"
+				"--inspect-brk",
+				"--disable-extensions"
 			],
 			"outFiles": ["${workspaceFolder}/out/**/*.js"],
 			"preLaunchTask": "${defaultBuildTask}"

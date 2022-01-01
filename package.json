@@ -737,7 +737,7 @@
 				{
 					"id": "gerrit",
 					"title": "Gerrit",
-					"icon": "src/images/gerrit.svg"
+					"icon": "src/images/gerrit.png"
 				}
 			]
 		},

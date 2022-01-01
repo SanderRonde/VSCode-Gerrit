@@ -9,8 +9,18 @@
 	},
 	"license": "MIT",
 	"categories": [
-		"Other"
+		"SCM Providers"
 	],
+	"icon": "src/images/gerrit.png",
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/SanderRonde/VSCode-Gerrit"
+	},
+	"homepage": "https://github.com/SanderRonde/VSCode-Gerrit/blob/main/README.md",
+	"bugs": {
+		"url": "https://github.com/SanderRonde/VSCode-Gerrit/issues",
+		"email": "awsdfgvhbjn@gmail.com"
+	},
 	"activationEvents": [
 		"onStartupFinished",
 		"onView:gerrit:changeExplorer",
@@ -737,7 +747,7 @@
 				{
 					"id": "gerrit",
 					"title": "Gerrit",
-					"icon": "src/images/gerrit.png"
+					"icon": "src/images/gerrit.svg"
 				}
 			]
 		},

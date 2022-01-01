@@ -154,7 +154,6 @@ export async function showCurrentChangeStatusBarIcon(
 
 	context.subscriptions.push(
 		await onChangeLastCommit(async (lastCommit) => {
-			console.log(lastCommit);
 			await statusbarUpdateHandler(lastCommit, statusBar);
 		}, true)
 	);

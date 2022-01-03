@@ -37,6 +37,7 @@ import { getAPI } from '../lib/gerrit/gerritAPI';
 import * as gitDiffParser from 'gitdiff-parser';
 import { getGitAPI } from '../lib/git/git';
 import path = require('path');
+import { PatchsetDescription } from '../views/activityBar/changes/changeTreeView';
 
 export interface GerritCommentReply {
 	text: string;
@@ -62,6 +63,10 @@ export class DocumentCommentManager {
 		private readonly _document: Uri,
 		private readonly _commentController: CommentController,
 		public readonly filePath: string,
+		public readonly metadata: {
+			changeID: string;
+			revision: PatchsetDescription;
+		},
 		public readonly diffData?: {
 			diff: gitDiffParser.File;
 			file: GerritFile;
@@ -327,6 +332,10 @@ export class CommentManager {
 	private static _createManager(
 		document: TextDocument,
 		filePath: string,
+		metaData: {
+			changeID: string;
+			revision: PatchsetDescription;
+		},
 		diffData?: {
 			diff: gitDiffParser.File;
 			file: GerritFile;
@@ -338,6 +347,7 @@ export class CommentManager {
 			document.uri,
 			this._commentController,
 			filePath,
+			metaData,
 			diffData
 		);
 		this._commentManagersByURI.set(document.uri.toString(), manager);
@@ -579,7 +589,11 @@ export class CommentManager {
 						void (async () => {
 							const manager = CommentManager._createManager(
 								document,
-								meta.filePath
+								meta.filePath,
+								{
+									changeID: meta.changeID,
+									revision: meta.commit,
+								}
 							);
 							await manager.loadComments(meta.filePath);
 						})();
@@ -644,6 +658,10 @@ export class CommentManager {
 								document,
 								file.filePath,
 								{
+									changeID: file.changeID,
+									revision: file.currentRevision,
+								},
+								{
 									diff,
 									oldDiffParsed: oldDiffParsed,
 									file: file,
@@ -695,12 +713,6 @@ async function createComment(
 	isResolved: boolean,
 	parentComment = thread.lastComment
 ): Promise<GerritDraftComment | null> {
-	const meta = FileMetaWithSideAndBase.tryFrom(thread.thread.uri);
-	if (!meta) {
-		void window.showErrorMessage('Failed to create comment');
-		return null;
-	}
-
 	const manager = CommentManager.getFileManagerForUri(thread.thread.uri);
 	const range = manager?.diffData?.diff
 		? DocumentCommentManager.applyDiffToCommentRange(
@@ -708,15 +720,22 @@ async function createComment(
 				manager.diffData.diff
 		  )
 		: thread.thread.range;
+
+	const meta = FileMetaWithSideAndBase.tryFrom(thread.thread.uri);
+	if (!manager && !meta) {
+		void window.showErrorMessage('Failed to create comment');
+		return null;
+	}
+
 	const newComment = await GerritComment.create({
-		changeID: meta.changeID,
+		changeID: (meta?.changeID ?? manager?.metadata.changeID)!,
 		content: text,
-		filePath: meta.filePath,
-		revision: meta.commit.id,
+		filePath: (meta?.filePath ?? manager?.filePath)!,
+		revision: (meta?.commit.id ?? manager?.metadata.revision.id)!,
 		unresolved: !isResolved,
 		replyTo: parentComment?.id,
 		lineOrRange: GerritComment.vsCodeRangeToGerritRange(range),
-		side: meta.side === 'BOTH' ? undefined : meta.side,
+		side: !meta || meta.side === 'BOTH' ? undefined : meta.side,
 	});
 	if (!newComment) {
 		void window.showErrorMessage('Failed to create comment');

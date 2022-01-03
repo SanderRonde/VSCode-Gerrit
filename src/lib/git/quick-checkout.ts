@@ -17,7 +17,7 @@ import {
 	APISubscriptionManager,
 	Subscribable,
 } from '../subscriptions/subscriptions';
-import { quickCheckoutEntryToKey } from '../../views/statusBar/quckCheckoutStatusBar';
+import { quickCheckoutEntryToKey } from '../../views/statusBar/quickCheckoutStatusBar';
 import { ChangeTreeView } from '../../views/activityBar/changes/changeTreeView';
 import { QuickCheckoutTreeEntry } from '../../views/activityBar/quickCheckout';
 import { storageGet, StorageScope, storageSet } from '../vscode/storage';

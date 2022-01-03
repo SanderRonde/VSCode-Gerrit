@@ -3,7 +3,7 @@ import {
 	testEnableStreamEvents,
 } from './lib/stream-events/stream-events';
 import { FileModificationStatusProvider } from './providers/fileModificationStatusProvider';
-import { showQuickCheckoutStatusBarIcons } from './views/statusBar/quckCheckoutStatusBar';
+import { showQuickCheckoutStatusBarIcons } from './views/statusBar/quickCheckoutStatusBar';
 import { showCurrentChangeStatusBarIcon } from './views/statusBar/currentChangeStatusBar';
 import { getOrCreateQuickCheckoutTreeProvider } from './views/activityBar/quickCheckout';
 import { fileCache } from './views/activityBar/changes/changeTreeView/file/fileCache';

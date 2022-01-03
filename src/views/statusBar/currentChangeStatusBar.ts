@@ -101,7 +101,7 @@ export async function openChangeSelector(): Promise<void> {
 	if (!changeNumber) {
 		return;
 	}
-	await gitCheckoutRemote(changeNumber);
+	await gitCheckoutRemote(changeNumber, true);
 }
 
 async function statusbarUpdateHandler(

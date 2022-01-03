@@ -69,7 +69,7 @@ export async function checkoutBranch(
 	if (!change) {
 		return;
 	}
-	await gitCheckoutRemote(change.number);
+	await gitCheckoutRemote(change.number, true);
 }
 
 export async function openChangeOnline(

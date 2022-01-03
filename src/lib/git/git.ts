@@ -286,7 +286,10 @@ export function getGitURI(): string | null {
 	return api.repositories[0].rootUri.fsPath;
 }
 
-export async function gitCheckoutRemote(patchNumber: number): Promise<void> {
+export async function gitCheckoutRemote(
+	patchNumber: number,
+	silent: boolean = false
+): Promise<void> {
 	const uri = getGitURI();
 	if (!uri || !(await ensureCleanWorkingTree(uri))) {
 		return;
@@ -301,7 +304,9 @@ export async function gitCheckoutRemote(patchNumber: number): Promise<void> {
 	);
 
 	if (success) {
-		void window.showInformationMessage(stdout);
+		if (!silent) {
+			void window.showInformationMessage(stdout);
+		}
 	} else {
 		void window.showErrorMessage(
 			'Checkout failed. Please see log for more details'

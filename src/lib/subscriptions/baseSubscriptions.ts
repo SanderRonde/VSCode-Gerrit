@@ -207,6 +207,11 @@ export abstract class APISubSubscriptionManagerBase<V, C = string> {
 						}
 					}
 				}
+
+				if (matches.length === 0) {
+					return getter();
+				}
+
 				return this._performGetter(getter, matches[0]);
 			},
 			unsubscribe: () => {

@@ -169,17 +169,23 @@ export class GerritChange extends DynamicallyFetchable {
 
 	public static async getChange(
 		changeID: string,
-		...withValues: GerritAPIWith[]
+		withValues: GerritAPIWith[] = [],
+		options?: {
+			allowFail?: boolean;
+		}
 	): Promise<Subscribable<GerritChange | null>> {
 		const api = await getAPIForSubscription();
-		return api.getChange(changeID, null, ...withValues);
+		return api.getChange(changeID, null, withValues, options);
 	}
 
 	public static async getChangeOnce(
 		changeID: string,
-		...withValues: GerritAPIWith[]
+		withValues: GerritAPIWith[] = [],
+		options?: {
+			allowFail?: boolean;
+		}
 	): Promise<GerritChange | null> {
-		return (await this.getChange(changeID, ...withValues)).getValue();
+		return (await this.getChange(changeID, withValues, options)).getValue();
 	}
 
 	public labels(

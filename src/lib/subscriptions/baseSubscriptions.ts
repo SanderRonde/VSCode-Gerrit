@@ -19,6 +19,7 @@ export interface APISubscriptionManagerEntry<C, V> {
 		Set<{
 			once: boolean;
 			onInitial: boolean;
+			onSame: boolean;
 			listener: WeakRef<(value: V) => void>;
 		}>
 	>;
@@ -28,6 +29,7 @@ export interface APISubscriptionManagerEntry<C, V> {
 }
 
 export const MATCH_ANY = Symbol('any');
+const UNFETCHED_VALUE = Symbol('not-fetched');
 
 export type WithMatchAny<C> =
 	| typeof MATCH_ANY
@@ -110,6 +112,8 @@ export abstract class APISubSubscriptionManagerBase<V, C = string> {
 	): Promise<V> {
 		this._ensureConfigDefined(match.config, getter);
 
+		const prevValue =
+			match.state === FETCH_STATE.INITIAL ? UNFETCHED_VALUE : match.value;
 		const prevState = match.state;
 		match.state = FETCH_STATE.FETCHING;
 		match.value = getter();
@@ -119,15 +123,22 @@ export abstract class APISubSubscriptionManagerBase<V, C = string> {
 
 		match.listeners.values().forEach((listeners) => {
 			listeners.forEach((listenerDescriber) => {
-				if (
-					prevState !== FETCH_STATE.INITIAL ||
-					listenerDescriber.onInitial
-				) {
-					listenerDescriber.listener.deref()?.(resolved);
-					if (listenerDescriber.once) {
-						listeners.delete(listenerDescriber);
+				void (async () => {
+					if (
+						prevState !== FETCH_STATE.INITIAL ||
+						listenerDescriber.onInitial
+					) {
+						if (
+							listenerDescriber.onSame ||
+							(await prevValue) !== (await match.value)
+						) {
+							listenerDescriber.listener.deref()?.(resolved);
+							if (listenerDescriber.once) {
+								listeners.delete(listenerDescriber);
+							}
+						}
 					}
-				}
+				})();
 			});
 		});
 
@@ -170,7 +181,12 @@ export abstract class APISubSubscriptionManagerBase<V, C = string> {
 				{
 					onInitial = false,
 					once = false,
-				}: { once?: boolean; onInitial?: boolean } = {}
+					onSame = false,
+				}: {
+					once?: boolean;
+					onInitial?: boolean;
+					onSame?: boolean;
+				} = {}
 			) => {
 				if (unsubscribed) {
 					console.warn('Resubscribing while alread unsubscribed!');
@@ -184,6 +200,7 @@ export abstract class APISubSubscriptionManagerBase<V, C = string> {
 					listener: handler,
 					once,
 					onInitial,
+					onSame,
 				});
 			},
 			subscribeOnce(handler, options) {

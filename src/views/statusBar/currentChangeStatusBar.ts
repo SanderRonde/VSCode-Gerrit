@@ -119,15 +119,26 @@ async function statusbarUpdateHandler(
 		return statusBar.show();
 	}
 
-	const subscription = await GerritChange.getChange(changeID);
+	const subscription = await GerritChange.getChange(changeID, [], {
+		allowFail: true,
+	});
 	subscription.subscribeOnce(
 		new WeakRef(async () => {
 			await statusbarUpdateHandler(lastCommit, statusBar);
-		})
+		}),
+		{ onSame: true }
 	);
 	const change = await subscription.getValue();
 
 	if (!change) {
+		// Try again in a few minutes
+		setTimeout(() => {
+			void (async () => {
+				if ((await subscription.getValue()) === null) {
+					void subscription.getValue(true);
+				}
+			})();
+		}, 5 * 60 * 1000);
 		return statusBar.hide();
 	}
 

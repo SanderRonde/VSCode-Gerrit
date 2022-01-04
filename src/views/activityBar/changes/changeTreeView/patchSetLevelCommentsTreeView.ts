@@ -74,10 +74,9 @@ export class PatchSetLevelCommentsTreeView implements TreeItemWithoutChildren {
 		const commentSubscription = await GerritChange.getAllComments(
 			this.changeID
 		);
-		const changeSubscription = await GerritChange.getChange(
-			this.changeID,
-			GerritAPIWith.CURRENT_REVISION
-		);
+		const changeSubscription = await GerritChange.getChange(this.changeID, [
+			GerritAPIWith.CURRENT_REVISION,
+		]);
 
 		[changeSubscription, commentSubscription].map((s) =>
 			s.subscribeOnce(new WeakRef(() => this._parent.reload()))

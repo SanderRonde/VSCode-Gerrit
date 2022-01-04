@@ -10,19 +10,21 @@ import { FilesSubscriptionsManager } from './filesSubscription';
 import { GerritChange } from '../gerrit/gerritAPI/gerritChange';
 import { Disposable } from 'vscode';
 
+interface SubscriptionOptions {
+	onInitial?: boolean;
+	onSame?: boolean;
+}
+
 export interface Subscribable<V> extends Disposable {
 	subscribe: (
 		handler: WeakRef<(value: V) => void>,
 		options?: {
 			once?: boolean;
-			onInitial?: boolean;
-		}
+		} & SubscriptionOptions
 	) => void;
 	subscribeOnce: (
 		handler: WeakRef<(value: V) => void>,
-		options?: {
-			onInitial?: boolean;
-		}
+		options?: SubscriptionOptions
 	) => void;
 	getValue: (forceUpdate?: boolean) => Promise<V>;
 	unsubscribe: () => void;

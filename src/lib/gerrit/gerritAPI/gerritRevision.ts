@@ -107,9 +107,11 @@ export class GerritRevision extends DynamicallyFetchable {
 						const changeSubscription = api.getChange(
 							this.changeID,
 							ChangeField.FILES,
-							GerritAPIWith.CURRENT_REVISION,
-							GerritAPIWith.CURRENT_FILES,
-							...additionalWith
+							[
+								GerritAPIWith.CURRENT_REVISION,
+								GerritAPIWith.CURRENT_FILES,
+								...additionalWith,
+							]
 						);
 						const change = await changeSubscription.getValue();
 						changeSubscription.subscribeOnce(

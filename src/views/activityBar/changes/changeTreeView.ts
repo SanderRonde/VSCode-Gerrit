@@ -74,11 +74,9 @@ export class ChangeTreeView
 		parent: ViewPanel | SearchResultsTreeProvider
 	): Promise<ChangeTreeView> {
 		const api = await getAPIForSubscription();
-		const subscription = api.getChange(
-			changeID,
-			null,
-			GerritAPIWith.DETAILED_ACCOUNTS
-		);
+		const subscription = api.getChange(changeID, null, [
+			GerritAPIWith.DETAILED_ACCOUNTS,
+		]);
 
 		const instance = new this(changeID, parent, subscription);
 		instance._disposables.push(subscription.disposable);

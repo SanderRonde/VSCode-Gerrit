@@ -34,7 +34,7 @@ export abstract class DynamicallyFetchable {
 
 			const res = await GerritChange.getChangeOnce(
 				this.changeID,
-				...uniqueSimple(flags)
+				uniqueSimple(flags)
 			);
 			if (!res) {
 				return null;

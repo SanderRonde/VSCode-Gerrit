@@ -585,7 +585,10 @@ export class GerritAPI {
 	public getChange(
 		changeID: string,
 		field: ChangeField | null,
-		...withValues: GerritAPIWith[]
+		withValues: GerritAPIWith[] = [],
+		options?: {
+			allowFail?: boolean;
+		}
 	): Subscribable<GerritChange | null> {
 		return APISubscriptionManager.changeSubscriptions.createFetcher(
 			{
@@ -601,7 +604,8 @@ export class GerritAPI {
 						searchParams: new URLSearchParams(
 							withValues.map((v) => ['o', v] as [string, string])
 						),
-					}
+					},
+					options?.allowFail ? () => {} : undefined
 				);
 
 				const json =

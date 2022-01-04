@@ -141,11 +141,10 @@ class ReviewWebviewProvider implements WebviewViewProvider, Disposable {
 			return undefined;
 		}
 
-		const changeSubscription = await GerritChange.getChange(
-			changeID,
+		const changeSubscription = await GerritChange.getChange(changeID, [
 			GerritAPIWith.DETAILED_ACCOUNTS,
-			GerritAPIWith.ALL_REVISIONS
-		);
+			GerritAPIWith.ALL_REVISIONS,
+		]);
 		const draftCommentSubscription = api.getDraftComments(changeID);
 		const [change, detail, reviewers, cc, draftComments, self] =
 			await Promise.all([
@@ -274,10 +273,9 @@ class ReviewWebviewProvider implements WebviewViewProvider, Disposable {
 	private async _handleCommentUpdateMessage(
 		msg: CommentUpdateMessage
 	): Promise<void> {
-		const change = await GerritChange.getChangeOnce(
-			msg.body.changeID,
-			GerritAPIWith.ALL_REVISIONS
-		);
+		const change = await GerritChange.getChangeOnce(msg.body.changeID, [
+			GerritAPIWith.ALL_REVISIONS,
+		]);
 		if (!change) {
 			return;
 		}

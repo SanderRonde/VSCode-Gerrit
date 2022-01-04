@@ -13,9 +13,11 @@ import {
 	ProgressLocation,
 } from 'vscode';
 import { ChangeTreeView } from '../../views/activityBar/changes/changeTreeView';
+import { APISubscriptionManager } from '../subscriptions/subscriptions';
 import { API, GitExtension } from '../../types/vscode-extension-git';
 import { getLastCommits, GitCommit, tryExecAsync } from './gitCLI';
 import { PERIODICAL_GIT_FETCH_INTERVAL } from '../util/constants';
+import { MATCH_ANY } from '../subscriptions/baseSubscriptions';
 import { createAwaitingInterval } from '../util/util';
 import { getConfiguration } from '../vscode/config';
 import { VersionNumber } from '../util/version';
@@ -368,6 +370,15 @@ export async function gitReview(): Promise<void> {
 			};
 		}
 	);
+
+	const changeID = await getCurrentChangeID();
+	if (changeID) {
+		await APISubscriptionManager.changeSubscriptions.invalidate({
+			changeID,
+			field: MATCH_ANY,
+			withValues: MATCH_ANY,
+		});
+	}
 
 	if (success) {
 		const config = getConfiguration();

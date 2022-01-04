@@ -491,11 +491,10 @@ export class CommentManager {
 		if (!changeID || !gitAPI || gitAPI.repositories.length !== 1) {
 			return null;
 		}
-		const change = await GerritChange.getChangeOnce(
-			changeID,
+		const change = await GerritChange.getChangeOnce(changeID, [
 			GerritAPIWith.CURRENT_REVISION,
-			GerritAPIWith.CURRENT_FILES
-		);
+			GerritAPIWith.CURRENT_FILES,
+		]);
 		if (!change || change.status !== GerritChangeStatus.NEW) {
 			return null;
 		}

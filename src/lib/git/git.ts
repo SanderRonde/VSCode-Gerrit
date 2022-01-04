@@ -10,6 +10,7 @@ import {
 	Uri,
 	env,
 	ConfigurationTarget,
+	ProgressLocation,
 } from 'vscode';
 import { ChangeTreeView } from '../../views/activityBar/changes/changeTreeView';
 import { API, GitExtension } from '../../types/vscode-extension-git';
@@ -316,19 +317,57 @@ export async function gitCheckoutRemote(
 
 const URL_REGEX = /http(s)?[:\w./+]+/g;
 export async function gitReview(): Promise<void> {
-	const uri = getGitURI();
-	if (!uri) {
-		return;
-	}
+	const { success, stdout, handled } = await window.withProgress<{
+		success: boolean;
+		stdout: string;
+		handled: boolean;
+	}>(
+		{
+			location: ProgressLocation.SourceControl,
+			title: 'Pushing for review',
+		},
+		async (progress) => {
+			progress.report({
+				message: 'Ensuring no rebase errors',
+			});
+			const uri = getGitURI();
+			if (!uri) {
+				return {
+					success: false,
+					handled: true,
+					stdout: '',
+				};
+			}
 
-	if (!(await ensureNoRebaseErrors())) {
-		return;
-	}
+			if (!(await ensureNoRebaseErrors())) {
+				return {
+					success: false,
+					handled: true,
+					stdout: '',
+				};
+			}
+			progress.report({
+				increment: 10,
+			});
 
-	const { success, stdout } = await tryExecAsync('git-review', {
-		cwd: uri,
-		timeout: 10000,
-	});
+			progress.report({
+				message: 'Pushing for review',
+			});
+			const { success, stdout } = await tryExecAsync('git-review', {
+				cwd: uri,
+				timeout: 10000,
+			});
+			progress.report({
+				increment: 90,
+			});
+
+			return {
+				success,
+				stdout,
+				handled: false,
+			};
+		}
+	);
 
 	if (success) {
 		const config = getConfiguration();
@@ -379,7 +418,7 @@ export async function gitReview(): Promise<void> {
 				);
 			}
 		}
-	} else {
+	} else if (!handled) {
 		void window.showErrorMessage(
 			'Git review failed, please see log for more details'
 		);

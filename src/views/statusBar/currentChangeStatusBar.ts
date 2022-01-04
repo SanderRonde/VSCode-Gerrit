@@ -58,9 +58,10 @@ export async function selectChange(): Promise<number | null> {
 			const authorName = (await change.detailedOwner())?.getName();
 			return {
 				label: String(change.number),
-				description: `#${change.number}: ${change.subject}${
+				description: `${change.subject}${
 					authorName ? ` - by ${authorName}` : ''
 				}`,
+				detail: change.changeID,
 			};
 		})
 	);

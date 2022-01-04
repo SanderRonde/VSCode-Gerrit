@@ -1327,11 +1327,13 @@
 		"build:debug": "yarn run build:debug::review:js && yarn run build:review:css && yarn run build:review:codicons:css && yarn run build:review:codicons:ttf",
 		"pretest": "yarn run compile && yarn run lint",
 		"lint": "eslint src --ext ts",
-		"format": "pretty-quick src/",
+		"format-staged": "(git diff --ignore-submodules --quiet && yarn format) || pretty-quick src/",
+		"format": "prettier --write src/",
 		"copy": "ts-node -T scripts/copy.ts",
+		"package": "yarn prepush && yarn vsce package",
 		"_generate-package": "ts-node -T ./scripts/generate-package-json.ts",
 		"generate-package": "yarn _generate-package --generate --validate && prettier --write package.json",
-		"prepush": "yarn generate-package && yarn format && yarn lint --fix && yarn compile && tsc -p ./scripts"
+		"prepush": "yarn generate-package && format-staged && yarn lint --fix && yarn compile && tsc -p ./scripts"
 	},
 	"devDependencies": {
 		"@emotion/react": "^11.7.0",

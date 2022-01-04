@@ -57,6 +57,10 @@ export abstract class CanFetchMoreTreeProvider
 				await this._fetchedChildren.get(i)!.subscription.getValue()
 			)[this._fetchedChildren.get(i)!.offset];
 
+			if (!entry) {
+				continue;
+			}
+
 			if (!this._changeToTreeView.has(entry)) {
 				if (parent) {
 					this._changeToTreeView.set(

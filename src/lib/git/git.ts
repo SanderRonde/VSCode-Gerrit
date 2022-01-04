@@ -290,7 +290,7 @@ export function getGitURI(): string | null {
 }
 
 export async function gitCheckoutRemote(
-	patchNumber: number,
+	patchNumberOrChangeID: number | string,
 	silent: boolean = false
 ): Promise<void> {
 	const uri = getGitURI();
@@ -299,7 +299,7 @@ export async function gitCheckoutRemote(
 	}
 
 	const { success, stdout } = await tryExecAsync(
-		`git-review -d ${String(patchNumber)}`,
+		`git-review -d ${String(patchNumberOrChangeID)}`,
 		{
 			cwd: uri,
 			timeout: 10000,

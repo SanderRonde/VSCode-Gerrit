@@ -746,7 +746,6 @@ async function performFiltering(
 }
 
 export function search(): void {
-	// const input = window.createInputBox();
 	const quickPick = window.createQuickPick();
 	const searchButton = {
 		tooltip: 'Search current query',

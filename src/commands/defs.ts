@@ -147,7 +147,7 @@ export const COMMAND_DEFINITIONS: {
 	},
 	'gerrit.openChangeSelector': {
 		title: 'Open Change Selector',
-		inCommandPalette: false,
+		inCommandPalette: contextProp('gerrit:connected'),
 		keybinding: true,
 	},
 	'gerrit.openCommentOnline': {

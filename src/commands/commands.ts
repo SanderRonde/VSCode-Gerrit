@@ -194,6 +194,12 @@ export function registerCommands(context: ExtensionContext): void {
 	);
 	context.subscriptions.push(
 		commands.registerCommand(
+			GerritExtensionCommands.OPEN_CHANGE_SELECTOR2,
+			openChangeSelector
+		)
+	);
+	context.subscriptions.push(
+		commands.registerCommand(
 			GerritExtensionCommands.RETRY_LISTEN_FOR_STREAM_EVENTS,
 			listenForStreamEvents
 		)

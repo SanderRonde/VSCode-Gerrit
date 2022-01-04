@@ -48,6 +48,7 @@
 		"onCommand:gerrit.gerrit.nextUnresolvedComment",
 		"onCommand:gerrit.gerrit.openChangeOnline",
 		"onCommand:gerrit.gerrit.openChangeSelector",
+		"onCommand:gerrit.gerrit.checkoutChange",
 		"onCommand:gerrit.gerrit.openCommentOnline",
 		"onCommand:gerrit.gerrit.openCurrentOnline",
 		"onCommand:gerrit.gerrit.openInReview",
@@ -173,6 +174,10 @@
 			{
 				"command": "gerrit.openChangeSelector",
 				"title": "Open Change Selector"
+			},
+			{
+				"command": "gerrit.checkoutChange",
+				"title": "Checkout change by ID or number"
 			},
 			{
 				"command": "gerrit.openCommentOnline",
@@ -319,6 +324,14 @@
 				}
 			},
 			{
+				"command": "gerrit.openChangeSelector",
+				"title": "Gerrit: Open Change Selector"
+			},
+			{
+				"command": "gerrit.checkoutChange",
+				"title": "Gerrit: Checkout change by ID or number"
+			},
+			{
 				"command": "gerrit.openCurrentOnline",
 				"title": "Gerrit: Open Current Change Online"
 			},
@@ -460,6 +473,10 @@
 					"when": "false"
 				},
 				{
+					"command": "gerrit.checkoutChange",
+					"when": "false"
+				},
+				{
 					"command": "gerrit.openCommentOnline",
 					"when": "false"
 				},
@@ -581,6 +598,14 @@
 				},
 				{
 					"command": "gerrit.nextUnresolvedComment",
+					"when": "true"
+				},
+				{
+					"command": "gerrit.openChangeSelector",
+					"when": "true"
+				},
+				{
+					"command": "gerrit.checkoutChange",
 					"when": "true"
 				},
 				{

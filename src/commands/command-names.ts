@@ -16,6 +16,8 @@ export enum GerritExtensionCommands {
 	FILE_OPEN_ORIGINAL = 'gerrit.openOriginal',
 	FETCH_MORE = 'gerrit.fetchMore',
 	OPEN_CHANGE_SELECTOR = 'gerrit.openChangeSelector',
+	// Duplicate so we can have multiple names in the command palette
+	OPEN_CHANGE_SELECTOR2 = 'gerrit.checkoutChange',
 	REFRESH_CHANGES = 'gerrit.refreshChanges',
 	CONFIGURE_CHANGE_LIST = 'gerrit.configureChangeList',
 	SEARCH = 'gerrit.search',

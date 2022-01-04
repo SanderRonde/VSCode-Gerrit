@@ -150,6 +150,10 @@ export const COMMAND_DEFINITIONS: {
 		inCommandPalette: contextProp('gerrit:connected'),
 		keybinding: true,
 	},
+	'gerrit.checkoutChange': {
+		title: 'Checkout change by ID or number',
+		inCommandPalette: contextProp('gerrit:connected'),
+	},
 	'gerrit.openCommentOnline': {
 		title: 'Open comment on Gerrit',
 		icon: '$(link-external)',

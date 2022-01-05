@@ -314,7 +314,7 @@ const _ReviewPane: React.VFC<ReviewPaneProps> = ({ currentState }) => {
 					ref={resolvedRef}
 					onClick={onPostCommentsStatusChange}
 				>
-					{`Post ${currentState.draftCommentCount} draft comments`}
+					{'Post draft comment(s)'}
 				</vscode-checkbox>
 			)}
 			<div>

@@ -4540,7 +4540,7 @@ validate-npm-package-license@^3.0.1:
     spdx-correct "^3.0.0"
     spdx-expression-parse "^3.0.0"
 
-vsce@^2.6.3:
+vsce@^2.6.0:
   version "2.6.3"
   resolved "https://registry.yarnpkg.com/vsce/-/vsce-2.6.3.tgz#5a50ec9894573350b10457064f71d1f2701789cf"
   integrity sha512-PKfvAtG9rLT1evHiKOJpBHND1hUHOOf4lL7chZFp0KGu+Bpgcx3g3T5eq0d8Hmzd08zd3KJunsaA3iaNSmTU/A==

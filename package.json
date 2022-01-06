@@ -834,7 +834,7 @@
 			"view/title": [
 				{
 					"command": "gerrit.clearSearchResults",
-					"when": "view == gerrit:changeExplorer && (gerrit:searchQuery || gerrit:searchChangeNumber)",
+					"when": "(view == gerrit:searchResults || view == gerrit:changeExplorer) && (gerrit:searchQuery || gerrit:searchChangeNumber)",
 					"group": "navigation@1"
 				},
 				{

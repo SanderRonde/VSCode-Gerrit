@@ -550,7 +550,12 @@ export const VIEWS: {
 			{
 				command: GerritExtensionCommands.CLEAR_SEARCH_RESULTS,
 				when: and(
-					IS_GERRIT_CHANGE_EXPLORER_VIEW,
+					inParentheses(
+						or(
+							IS_GERRIT_SEARCH_RESULTS_VIEW,
+							IS_GERRIT_CHANGE_EXPLORER_VIEW
+						)
+					),
 					inParentheses(
 						or(
 							contextProp('gerrit:searchQuery'),

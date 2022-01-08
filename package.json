@@ -1355,6 +1355,7 @@
 		"eslint": "^8.3.0",
 		"eslint-config-prettier": "^8.3.0",
 		"eslint-plugin-node": "^11.1.0",
+		"eslint-plugin-prettier": "^4.0.0",
 		"eslint-plugin-react": "^7.27.1",
 		"eslint-plugin-react-hooks": "^4.3.0",
 		"eslint-plugin-unused-imports": "^2.0.0",
@@ -1374,7 +1375,6 @@
 		"vsce": "^2.6.0"
 	},
 	"dependencies": {
-		"eslint-plugin-prettier": "^4.0.0",
 		"gitdiff-parser": "^0.2.2",
 		"got": "^11.8.3"
 	}

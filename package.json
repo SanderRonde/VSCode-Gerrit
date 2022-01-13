@@ -1333,7 +1333,7 @@
 		"package": "yarn prepush && yarn vsce package",
 		"_generate-package": "ts-node -T ./scripts/generate-package-json.ts",
 		"generate-package": "yarn _generate-package --generate --validate && prettier --write package.json",
-		"prepush": "yarn generate-package && format-staged && yarn lint --fix && yarn compile && tsc -p ./scripts"
+		"prepush": "yarn generate-package && yarn format-staged && yarn lint --fix && yarn compile && tsc -p ./scripts"
 	},
 	"devDependencies": {
 		"@emotion/react": "^11.7.0",

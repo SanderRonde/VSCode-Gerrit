@@ -364,6 +364,7 @@ export class GerritAPI {
 					body?.searchParams instanceof URLSearchParams
 						? this._makeSearchParamsStringifiable(body.searchParams)
 						: body?.searchParams,
+				stack: new Error().stack!.split('\n'),
 			});
 		}
 		if (READONLY_MODE && body?.method !== 'GET') {

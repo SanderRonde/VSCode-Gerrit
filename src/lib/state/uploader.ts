@@ -19,9 +19,11 @@ export async function updateUploaderState(): Promise<Disposable> {
 			}
 
 			const [change, self] = await Promise.all([
-				GerritChange.getChangeOnce(changeID, [
-					GerritAPIWith.ALL_REVISIONS,
-				]),
+				GerritChange.getChangeOnce(
+					changeID,
+					[GerritAPIWith.ALL_REVISIONS],
+					{ allowFail: true }
+				),
 				await GerritUser.getSelf(),
 			]);
 			if (!change || !self) {

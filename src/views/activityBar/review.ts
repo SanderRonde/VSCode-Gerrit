@@ -136,7 +136,7 @@ class ReviewWebviewProvider implements WebviewViewProvider, Disposable {
 		changeID: string,
 		initialState?: Partial<ChangeState> | undefined
 	): Promise<ChangeState | undefined> {
-		const api = await getAPI();
+		const api = await getAPI(true);
 		if (!api) {
 			return undefined;
 		}

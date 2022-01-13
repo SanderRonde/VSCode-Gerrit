@@ -7,6 +7,7 @@ import { log } from '../util/log';
 import { window } from 'vscode';
 
 let api: GerritAPI | null = null;
+let failAllowedAPI: GerritAPI | null = null;
 let lastConfig: {
 	url: string | undefined;
 	username: string | undefined;
@@ -49,7 +50,9 @@ export async function checkConnection(): Promise<void> {
 	await window.showInformationMessage('Succesfully connected!');
 }
 
-export async function createAPI(): Promise<GerritAPI | null> {
+export async function createAPI(
+	allowFail: boolean = false
+): Promise<GerritAPI | null> {
 	const config = getConfiguration();
 	const url = await getGerritURL();
 	const username = config.get('gerrit.auth.username');
@@ -73,27 +76,48 @@ export async function createAPI(): Promise<GerritAPI | null> {
 		return null;
 	}
 
-	const api = new GerritAPI(url, username, password);
+	const api = new GerritAPI(url, username, password, allowFail);
 	await setContextProp('gerrit:connected', true);
 	return api;
 }
 
-export async function getAPI(): Promise<GerritAPI | null> {
-	if (api) {
+export async function getAPI(
+	allowFail: boolean = false
+): Promise<GerritAPI | null> {
+	if (allowFail && failAllowedAPI) {
+		return failAllowedAPI;
+	}
+	if (!allowFail && api) {
 		return api;
 	}
 
-	return (api = await createAPI());
+	const newAPI = await createAPI(allowFail);
+	if (allowFail) {
+		failAllowedAPI = newAPI;
+	} else {
+		api = newAPI;
+	}
+	return newAPI;
 }
 
-export async function getAPIForSubscription(): Promise<GerritAPI> {
-	if (api) {
+export async function getAPIForSubscription(
+	allowFail: boolean = false
+): Promise<GerritAPI> {
+	if (allowFail && failAllowedAPI) {
+		return failAllowedAPI;
+	}
+	if (!allowFail && api) {
 		return api;
 	}
 
-	api = await createAPI();
-	if (!api) {
-		return new GerritAPI(null, null, null);
+	const newAPI = await createAPI(allowFail);
+	if (!newAPI) {
+		return new GerritAPI(null, null, null, allowFail);
 	}
-	return api;
+	if (allowFail) {
+		failAllowedAPI = newAPI;
+	} else {
+		api = newAPI;
+	}
+	return newAPI;
 }

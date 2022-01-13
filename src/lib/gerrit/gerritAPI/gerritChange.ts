@@ -6,6 +6,7 @@ import {
 	GerritUserResponse,
 } from './types';
 import { PatchsetDescription } from '../../../views/activityBar/changes/changeTreeView';
+import { getCurrentChangeID, getCurrentChangeIDCached } from '../../git/commit';
 import { joinSubscribables } from '../../subscriptions/subscriptionUtil';
 import { DefaultChangeFilter, GerritChangeFilter } from './filters';
 import { GerritComment, GerritDraftComment } from './gerritComment';
@@ -118,9 +119,10 @@ export class GerritChange extends DynamicallyFetchable {
 	}
 
 	public static async getAllComments(
-		changeID: string
+		changeID: string,
+		options?: { allowFail: boolean }
 	): Promise<Subscribable<CommentMap>> {
-		const api = await getAPIForSubscription();
+		const api = await getAPIForSubscription(options?.allowFail);
 
 		return joinSubscribables(
 			(comments, draftComments): CommentMap => {
@@ -174,8 +176,8 @@ export class GerritChange extends DynamicallyFetchable {
 			allowFail?: boolean;
 		}
 	): Promise<Subscribable<GerritChange | null>> {
-		const api = await getAPIForSubscription();
-		return api.getChange(changeID, null, withValues, options);
+		const api = await getAPIForSubscription(options?.allowFail);
+		return api.getChange(changeID, null, withValues);
 	}
 
 	public static async getChangeOnce(
@@ -186,6 +188,27 @@ export class GerritChange extends DynamicallyFetchable {
 		}
 	): Promise<GerritChange | null> {
 		return (await this.getChange(changeID, withValues, options)).getValue();
+	}
+
+	public static async getCurrentChangeOnce(
+		withValues: GerritAPIWith[] = [],
+		{
+			allowFail = true,
+			cachedID = true,
+		}: {
+			allowFail?: boolean;
+			cachedID?: boolean;
+		} = {}
+	): Promise<GerritChange | null> {
+		const changeID = cachedID
+			? await getCurrentChangeIDCached()
+			: await getCurrentChangeID();
+		if (!changeID) {
+			return null;
+		}
+		return (
+			await this.getChange(changeID, withValues, { allowFail })
+		).getValue();
 	}
 
 	public labels(

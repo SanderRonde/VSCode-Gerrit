@@ -161,8 +161,16 @@ export class DocumentCommentManager {
 
 		const isPatchSetLevel =
 			fileMeta && fileMeta.filePath === PATCHSET_LEVEL_KEY;
+		const currentChangeID = await getCurrentChangeIDCached();
+		const changeID = fileMeta?.changeID || currentChangeID;
+		if (!changeID) {
+			return this;
+		}
 		const commentSubscription = await GerritChange.getAllComments(
-			fileMeta?.changeID || (await getCurrentChangeIDCached())!
+			changeID,
+			{
+				allowFail: changeID === currentChangeID,
+			}
 		);
 		const comments =
 			(await commentSubscription.getValue()).get(filePath) ?? [];
@@ -486,12 +494,11 @@ export class CommentManager {
 	): Promise<GerritFile | null> {
 		// No meta, might be a regular checked-out file. We look for the current change
 		// and find out if the current file was changed in that change.
-		const changeID = await getCurrentChangeIDCached();
 		const gitAPI = getGitAPI();
-		if (!changeID || !gitAPI || gitAPI.repositories.length !== 1) {
+		if (!gitAPI || gitAPI.repositories.length !== 1) {
 			return null;
 		}
-		const change = await GerritChange.getChangeOnce(changeID, [
+		const change = await GerritChange.getCurrentChangeOnce([
 			GerritAPIWith.CURRENT_REVISION,
 			GerritAPIWith.CURRENT_FILES,
 		]);

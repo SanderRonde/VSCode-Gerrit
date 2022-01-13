@@ -235,7 +235,8 @@ export class GerritAPI {
 	public constructor(
 		private readonly _url: string | null,
 		private readonly _username: string | null,
-		private readonly _password: string | null
+		private readonly _password: string | null,
+		private readonly _allowFail: boolean = false
 	) {}
 
 	public static async performRequest(
@@ -392,7 +393,7 @@ export class GerritAPI {
 			);
 			if (onError) {
 				await onError(err.response?.statusCode, err.response.body);
-			} else {
+			} else if (!this._allowFail) {
 				void window.showErrorMessage(
 					`Gerrit request to "${url}" failed. Please check your settings and/or connection`
 				);
@@ -586,10 +587,7 @@ export class GerritAPI {
 	public getChange(
 		changeID: string,
 		field: ChangeField | null,
-		withValues: GerritAPIWith[] = [],
-		options?: {
-			allowFail?: boolean;
-		}
+		withValues: GerritAPIWith[] = []
 	): Subscribable<GerritChange | null> {
 		return APISubscriptionManager.changeSubscriptions.createFetcher(
 			{
@@ -605,8 +603,7 @@ export class GerritAPI {
 						searchParams: new URLSearchParams(
 							withValues.map((v) => ['o', v] as [string, string])
 						),
-					},
-					options?.allowFail ? () => {} : undefined
+					}
 				);
 
 				const json =

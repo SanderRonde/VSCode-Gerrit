@@ -65,7 +65,11 @@ export async function onChangeLastCommitOrChange(
 			currentSubscription = {
 				value:
 					isGerritCommit(lastCommit) && getChangeID(lastCommit)
-						? await GerritChange.getChange(getChangeID(lastCommit)!)
+						? await GerritChange.getChange(
+								getChangeID(lastCommit)!,
+								[],
+								{ allowFail: true }
+						  )
 						: null,
 			};
 

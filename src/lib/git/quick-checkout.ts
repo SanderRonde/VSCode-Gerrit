@@ -140,7 +140,7 @@ export async function quickCheckout(
 				increment: 5,
 			});
 			const { success } = await tryExecAsync(
-				`git-review -d ${changeTreeView.changeID}`,
+				`git-review -d "${changeTreeView.changeID}"`,
 				{
 					cwd: gitURI,
 				}

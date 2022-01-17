@@ -299,7 +299,7 @@ export async function gitCheckoutRemote(
 	}
 
 	const { success, stdout } = await tryExecAsync(
-		`git-review -d ${String(patchNumberOrChangeID)}`,
+		`git-review -d "${String(patchNumberOrChangeID)}"`,
 		{
 			cwd: uri,
 			timeout: 10000,

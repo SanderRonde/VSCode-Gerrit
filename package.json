@@ -1313,7 +1313,7 @@
 		}
 	},
 	"scripts": {
-		"vscode:prepublish": "yarn run build && yarn run compile",
+		"vscode:prepublish": "yarn run compile",
 		"compile": "tsc -p ./src && tsc -p src/views/activityBar/review/html/src/tsconfig.json",
 		"watch": "npm-run-all -p watch:compile watch:build",
 		"watch:compile": "tsc -p ./src -w",
@@ -1323,14 +1323,17 @@
 		"build:review:codicons:css": "yarn run copy node_modules/@vscode/codicons/dist/codicon.css dist/review/codicon.css",
 		"build:review:codicons:ttf": "yarn run copy node_modules/@vscode/codicons/dist/codicon.ttf dist/review/codicon.ttf",
 		"build:review:css": "yarn run copy src/views/activityBar/review/css/index.css dist/review/index.css",
-		"build": "yarn run build:review:js && yarn run build:review:css && yarn run build:review:codicons:css && yarn run build:review:codicons:ttf",
-		"build:debug": "yarn run build:debug::review:js && yarn run build:review:css && yarn run build:review:codicons:css && yarn run build:review:codicons:ttf",
+		"build:main": "esbuild --minify --bundle --outfile=out/extension.js src/extension.ts --platform=node --external:vscode",
+		"build:debug:main": "esbuild --bundle --outfile=out/extension.js src/extension.ts --platform=node --external:vscode --define:process.env.DEV_OVERRIDE=true",
+		"build": "rimraf ./out && yarn run build:review:js && yarn run build:review:css && yarn run build:review:codicons:css && yarn run build:review:codicons:ttf",
+		"build:debug": "rimraf ./out && yarn run build:debug::review:js && yarn run build:review:css && yarn run build:review:codicons:css && yarn run build:review:codicons:ttf",
 		"pretest": "yarn run compile && yarn run lint",
 		"lint": "eslint src --ext ts",
 		"format-staged": "(git diff --ignore-submodules --quiet && yarn format) || pretty-quick src/",
 		"format": "prettier --write src/",
 		"copy": "ts-node -T scripts/copy.ts",
-		"package": "yarn prepush && yarn vsce package",
+		"package": "yarn prepush && yarn run build && yarn vsce package",
+		"package-dev": "yarn prepush && yarn run build:debug && yarn vsce package",
 		"_generate-package": "ts-node -T ./scripts/generate-package-json.ts",
 		"generate-package": "yarn _generate-package --generate --validate && prettier --write package.json",
 		"prepush": "yarn generate-package && yarn format-staged && yarn lint --fix && yarn compile && tsc -p ./scripts"
@@ -1370,6 +1373,7 @@
 		"react": "^17.0.2",
 		"react-dom": "^17.0.2",
 		"react-select-search": "^3.0.9",
+		"rimraf": "^3.0.2",
 		"ts-node": "^10.4.0",
 		"typescript": "^4.5.2",
 		"vsce": "^2.6.0"

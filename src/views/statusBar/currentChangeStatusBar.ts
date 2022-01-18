@@ -57,9 +57,9 @@ export async function selectChange(): Promise<number | null> {
 		changes.map(async (change) => {
 			const authorName = (await change.detailedOwner())?.getName();
 			return {
-				label: String(change.number),
-				description: `${change.subject}${
-					authorName ? ` - by ${authorName}` : ''
+				label: String(change.subject),
+				description: `${authorName ? `by ${authorName} - ` : ''}${
+					change.number
 				}`,
 				detail: change.changeID,
 			};

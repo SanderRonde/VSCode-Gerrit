@@ -57,7 +57,7 @@ export async function selectChange(): Promise<number | null> {
 		changes.map(async (change) => {
 			const authorName = (await change.detailedOwner())?.getName();
 			return {
-				label: String(change.subject),
+				label: change.subject,
 				description: `${authorName ? `by ${authorName} - ` : ''}${
 					change.number
 				}`,
@@ -78,19 +78,21 @@ export async function selectChange(): Promise<number | null> {
 	return new Promise<number | null>((resolve) => {
 		disposables.push(
 			quickPick.onDidAccept(() => {
-				const value =
+				const currentLabel =
 					quickPick.selectedItems[0]?.label ?? quickPick.value;
-				const changeNumber = parseInt(value, 10);
-				if (isNaN(changeNumber)) {
+				const change = changes.find(
+					(change) => change.subject === currentLabel
+				);
+				if (!change) {
 					void window.showErrorMessage(
-						`Invalid change number: ${value}`
+						`Invalid change number for change: ${currentLabel}`
 					);
 					resolve(null);
 					return;
 				}
 
 				quickPick.hide();
-				resolve(changeNumber);
+				resolve(change.number);
 			})
 		);
 		quickPick.show();

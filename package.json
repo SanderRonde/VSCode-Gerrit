@@ -1326,7 +1326,7 @@
 		"build:main": "esbuild --minify --bundle --outfile=out/extension.js src/extension.ts --platform=node --external:vscode",
 		"build:debug:main": "esbuild --bundle --outfile=out/extension.js src/extension.ts --platform=node --external:vscode --define:process.env.DEV_OVERRIDE=true",
 		"build": "rimraf ./out && yarn run build:review:js && yarn run build:review:css && yarn run build:review:codicons:css && yarn run build:review:codicons:ttf",
-		"build:debug": "rimraf ./out && yarn run build:debug::review:js && yarn run build:review:css && yarn run build:review:codicons:css && yarn run build:review:codicons:ttf",
+		"build:debug": "rimraf ./out && yarn run build:debug:review:js && yarn run build:review:css && yarn run build:review:codicons:css && yarn run build:review:codicons:ttf",
 		"pretest": "yarn run compile && yarn run lint",
 		"lint": "eslint src --ext ts",
 		"format-staged": "(git diff --ignore-submodules --quiet && yarn format) || pretty-quick src/",

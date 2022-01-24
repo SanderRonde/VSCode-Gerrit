@@ -612,7 +612,10 @@ export const VIEWS: {
 		navigation: [
 			{
 				command: GerritExtensionCommands.PUSH_FOR_REVIEW,
-				when: SCM_PROVIDER_IS_GIT,
+				when: and(
+					SCM_PROVIDER_IS_GIT,
+					contextProp('gerrit:isUsingGerrit')
+				),
 			},
 			{
 				submenu: 'git.gerrit',

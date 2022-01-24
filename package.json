@@ -873,7 +873,7 @@
 			"scm/title": [
 				{
 					"command": "gerrit.pushForReview",
-					"when": "scmProvider =~ /git/",
+					"when": "scmProvider =~ /git/ && gerrit:isUsingGerrit",
 					"group": "navigation@1"
 				},
 				{

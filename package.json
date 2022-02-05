@@ -1,6 +1,6 @@
 {
-	"name": "gerrit",
-	"displayName": "gerrit",
+	"name": "sanderronde.gerrit",
+	"displayName": "Gerrit",
 	"description": "VSCode gerrit integration",
 	"version": "1.0.0",
 	"engines": {

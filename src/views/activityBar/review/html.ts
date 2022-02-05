@@ -2,15 +2,15 @@ import { Uri, Webview } from 'vscode';
 
 export function getHTML(extensionURI: Uri, webview: Webview): string {
 	const jsURI = webview.asWebviewUri(
-		Uri.joinPath(extensionURI, 'dist/review/index.js')
+		Uri.joinPath(extensionURI, 'out/review/index.js')
 	);
 
 	const codiconsURI = webview.asWebviewUri(
-		Uri.joinPath(extensionURI, 'dist/review/codicon.css')
+		Uri.joinPath(extensionURI, 'out/review/codicon.css')
 	);
 
 	const cssURI = webview.asWebviewUri(
-		Uri.joinPath(extensionURI, 'dist/review/index.css')
+		Uri.joinPath(extensionURI, 'out/review/index.css')
 	);
 
 	return `<!DOCTYPE HTML>

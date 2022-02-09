@@ -180,7 +180,7 @@ export class GerritComment extends GerritCommentBase {
 	public getContextValues(): string[] {
 		const values: string[] = [];
 		const thread = this.thread;
-		if (!thread?.resolved && thread?.comments.every((c) => !c.isDraft)) {
+		if (!thread?.resolved) {
 			values.push(COMMENT_QUICK_ACTIONS_POSSIBLE);
 		}
 		return values;

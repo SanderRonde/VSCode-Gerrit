@@ -17,25 +17,27 @@ import {
 	TREE_ITEM_WAS_MODIFIED,
 } from '../lib/util/magic';
 import {
-	and,
-	commentContains,
-	commentThreadContains,
 	COMMENT_IS_EMPTY,
 	contextProp,
 	EDITOR_TEXT_FOCUS,
-	inParentheses,
 	IS_GERRIT_CHANGE_EXPLORER_VIEW,
 	IS_GERRIT_QUICK_CHECKOUT_VIEW,
 	IS_GERRIT_SEARCH_RESULTS_VIEW,
 	IS_GERRTIT_COMMENT_CONTROLLER,
-	or,
 	resourceCtxContains,
 	SCM_PROVIDER_IS_GIT,
-	viewItemContains,
 } from './when-conditions';
+import {
+	and,
+	commentContains,
+	commentThreadContains,
+	inParentheses,
+	or,
+	viewItemContains,
+} from 'vscode-generate-package-json';
 import { GerritExtensionCommands } from './command-names';
 
-export const COMMAND_DEFINITIONS: {
+export const commands: {
 	[K in GerritExtensionCommands]: {
 		title: string;
 		enablement?: string;
@@ -266,7 +268,7 @@ export const COMMAND_DEFINITIONS: {
 	},
 };
 
-export const VIEWS: {
+export const views: {
 	[view: string]: {
 		[groupName: string]: (
 			| {
@@ -641,3 +643,5 @@ export const VIEWS: {
 		],
 	},
 };
+
+export const commandDefinitions = GerritExtensionCommands;

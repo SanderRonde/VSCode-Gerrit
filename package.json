@@ -28,51 +28,23 @@
 		"onView:gerrit:searchResults",
 		"onView:gerrit:review",
 		"onView:gerrit:quickCheckout",
-		"onCommand:gerrit.gerrit.ackCommentThread",
-		"onCommand:gerrit.gerrit.cancelComment",
-		"onCommand:gerrit.gerrit.checkConnection",
-		"onCommand:gerrit.gerrit.checkoutBranch",
-		"onCommand:gerrit.gerrit.clearSearchResults",
-		"onCommand:gerrit.gerrit.collapseAllComments",
-		"onCommand:gerrit.gerrit.configureChangeList",
-		"onCommand:gerrit.gerrit.copyCommentLink",
-		"onCommand:gerrit.gerrit.createCommentResolved",
-		"onCommand:gerrit.gerrit.createCommentUnresolved",
-		"onCommand:gerrit.gerrit.deleteComment",
-		"onCommand:gerrit.gerrit.doneCommentThread",
-		"onCommand:gerrit.gerrit.editComment",
-		"onCommand:gerrit.gerrit.enterCredentials",
-		"onCommand:gerrit.gerrit.fetchMore",
-		"onCommand:gerrit.gerrit.focusChange",
-		"onCommand:gerrit.gerrit.listenForStreamEvents",
-		"onCommand:gerrit.gerrit.nextUnresolvedComment",
-		"onCommand:gerrit.gerrit.openChangeOnline",
-		"onCommand:gerrit.gerrit.openChangeSelector",
-		"onCommand:gerrit.gerrit.checkoutChange",
-		"onCommand:gerrit.gerrit.openCommentOnline",
-		"onCommand:gerrit.gerrit.openCurrentOnline",
-		"onCommand:gerrit.gerrit.openInReview",
-		"onCommand:gerrit.gerrit.openModified",
-		"onCommand:gerrit.gerrit.openOnline",
-		"onCommand:gerrit.gerrit.openOriginal",
-		"onCommand:gerrit.gerrit.openPatchsetSelector",
-		"onCommand:gerrit.gerrit.previousUnresolvedComment",
-		"onCommand:gerrit.gerrit.pushForReview",
-		"onCommand:gerrit.gerrit.rebase",
-		"onCommand:gerrit.gerrit.rebaseCurrent",
-		"onCommand:gerrit.gerrit.recursiveRebase",
-		"onCommand:gerrit.gerrit.recursiveRebaseCurrent",
-		"onCommand:gerrit.gerrit.refreshChanges",
-		"onCommand:gerrit.gerrit.resetPatchsetSelection",
-		"onCommand:gerrit.gerrit.search",
-		"onCommand:gerrit.gerrit.selectActiveView",
-		"onCommand:gerrit.gerrit.toggleResolvedOff",
-		"onCommand:gerrit.gerrit.toggleResolvedOn",
-		"onCommand:gerrit.gerrit.quickCheckout",
-		"onCommand:gerrit.gerrit.applyQuickCheckout",
-		"onCommand:gerrit.gerrit.dropQuickCheckouts",
-		"onCommand:gerrit.gerrit.dropQuickCheckout",
-		"onCommand:gerrit.gerrit.popQuickCheckout"
+		"onCommand:cmd.gerrit.checkConnection",
+		"onCommand:cmd.gerrit.clearSearchResults",
+		"onCommand:cmd.gerrit.collapseAllComments",
+		"onCommand:cmd.gerrit.configureChangeList",
+		"onCommand:cmd.gerrit.enterCredentials",
+		"onCommand:cmd.gerrit.listenForStreamEvents",
+		"onCommand:cmd.gerrit.nextUnresolvedComment",
+		"onCommand:cmd.gerrit.openChangeSelector",
+		"onCommand:cmd.gerrit.checkoutChange",
+		"onCommand:cmd.gerrit.openCurrentOnline",
+		"onCommand:cmd.gerrit.previousUnresolvedComment",
+		"onCommand:cmd.gerrit.pushForReview",
+		"onCommand:cmd.gerrit.refreshChanges",
+		"onCommand:cmd.gerrit.resetPatchsetSelection",
+		"onCommand:cmd.gerrit.search",
+		"onCommand:cmd.gerrit.selectActiveView",
+		"onCommand:cmd.gerrit.dropQuickCheckouts"
 	],
 	"extensionKind": [
 		"workspace"
@@ -289,34 +261,34 @@
 				"title": "Pop Quick Checkout stash (apply and drop)"
 			},
 			{
-				"command": "gerrit.checkConnection",
+				"command": "cmd.gerrit.checkConnection",
 				"title": "Gerrit: Check Connection"
 			},
 			{
-				"command": "gerrit.clearSearchResults",
+				"command": "cmd.gerrit.clearSearchResults",
 				"title": "Gerrit: Clear search results",
 				"icon": "$(clear-all)"
 			},
 			{
-				"command": "gerrit.collapseAllComments",
+				"command": "cmd.gerrit.collapseAllComments",
 				"title": "Gerrit: Collapse All Comments",
 				"icon": "$(collapse-all)"
 			},
 			{
-				"command": "gerrit.configureChangeList",
+				"command": "cmd.gerrit.configureChangeList",
 				"title": "Gerrit: Configure filters",
 				"icon": "$(gear)"
 			},
 			{
-				"command": "gerrit.enterCredentials",
+				"command": "cmd.gerrit.enterCredentials",
 				"title": "Gerrit: Enter credentials"
 			},
 			{
-				"command": "gerrit.listenForStreamEvents",
+				"command": "cmd.gerrit.listenForStreamEvents",
 				"title": "Gerrit: Start listening for Gerrit stream events"
 			},
 			{
-				"command": "gerrit.nextUnresolvedComment",
+				"command": "cmd.gerrit.nextUnresolvedComment",
 				"title": "Gerrit: Next Unresolved Comment",
 				"icon": {
 					"dark": "src/images/icons/comment-down-dark.svg",
@@ -324,19 +296,19 @@
 				}
 			},
 			{
-				"command": "gerrit.openChangeSelector",
+				"command": "cmd.gerrit.openChangeSelector",
 				"title": "Gerrit: Open Change Selector"
 			},
 			{
-				"command": "gerrit.checkoutChange",
+				"command": "cmd.gerrit.checkoutChange",
 				"title": "Gerrit: Checkout change by ID or number"
 			},
 			{
-				"command": "gerrit.openCurrentOnline",
+				"command": "cmd.gerrit.openCurrentOnline",
 				"title": "Gerrit: Open Current Change Online"
 			},
 			{
-				"command": "gerrit.previousUnresolvedComment",
+				"command": "cmd.gerrit.previousUnresolvedComment",
 				"title": "Gerrit: Previous Unresolved Comment",
 				"icon": {
 					"dark": "src/images/icons/comment-up-dark.svg",
@@ -344,31 +316,31 @@
 				}
 			},
 			{
-				"command": "gerrit.pushForReview",
+				"command": "cmd.gerrit.pushForReview",
 				"title": "Gerrit: Push for Review",
 				"icon": "$(git-commit)"
 			},
 			{
-				"command": "gerrit.refreshChanges",
+				"command": "cmd.gerrit.refreshChanges",
 				"title": "Gerrit: Refresh changes",
 				"icon": "$(refresh)"
 			},
 			{
-				"command": "gerrit.resetPatchsetSelection",
+				"command": "cmd.gerrit.resetPatchsetSelection",
 				"title": "Gerrit: Reset Patchset Selection"
 			},
 			{
-				"command": "gerrit.search",
+				"command": "cmd.gerrit.search",
 				"title": "Gerrit: Search",
 				"icon": "$(search)"
 			},
 			{
-				"command": "gerrit.selectActiveView",
+				"command": "cmd.gerrit.selectActiveView",
 				"title": "Gerrit: Select Active View",
 				"icon": "$(menu)"
 			},
 			{
-				"command": "gerrit.dropQuickCheckouts",
+				"command": "cmd.gerrit.dropQuickCheckouts",
 				"title": "Gerrit: Drop Quick Checkout stashes"
 			}
 		],
@@ -573,71 +545,71 @@
 					"when": "false"
 				},
 				{
-					"command": "gerrit.checkConnection",
+					"command": "cmd.gerrit.checkConnection",
 					"when": "true"
 				},
 				{
-					"command": "gerrit.clearSearchResults",
+					"command": "cmd.gerrit.clearSearchResults",
 					"when": "true"
 				},
 				{
-					"command": "gerrit.collapseAllComments",
+					"command": "cmd.gerrit.collapseAllComments",
 					"when": "true"
 				},
 				{
-					"command": "gerrit.configureChangeList",
+					"command": "cmd.gerrit.configureChangeList",
 					"when": "true"
 				},
 				{
-					"command": "gerrit.enterCredentials",
+					"command": "cmd.gerrit.enterCredentials",
 					"when": "true"
 				},
 				{
-					"command": "gerrit.listenForStreamEvents",
+					"command": "cmd.gerrit.listenForStreamEvents",
 					"when": "true"
 				},
 				{
-					"command": "gerrit.nextUnresolvedComment",
+					"command": "cmd.gerrit.nextUnresolvedComment",
 					"when": "true"
 				},
 				{
-					"command": "gerrit.openChangeSelector",
+					"command": "cmd.gerrit.openChangeSelector",
 					"when": "true"
 				},
 				{
-					"command": "gerrit.checkoutChange",
+					"command": "cmd.gerrit.checkoutChange",
 					"when": "true"
 				},
 				{
-					"command": "gerrit.openCurrentOnline",
+					"command": "cmd.gerrit.openCurrentOnline",
 					"when": "true"
 				},
 				{
-					"command": "gerrit.previousUnresolvedComment",
+					"command": "cmd.gerrit.previousUnresolvedComment",
 					"when": "true"
 				},
 				{
-					"command": "gerrit.pushForReview",
+					"command": "cmd.gerrit.pushForReview",
 					"when": "true"
 				},
 				{
-					"command": "gerrit.refreshChanges",
+					"command": "cmd.gerrit.refreshChanges",
 					"when": "true"
 				},
 				{
-					"command": "gerrit.resetPatchsetSelection",
+					"command": "cmd.gerrit.resetPatchsetSelection",
 					"when": "true"
 				},
 				{
-					"command": "gerrit.search",
+					"command": "cmd.gerrit.search",
 					"when": "true"
 				},
 				{
-					"command": "gerrit.selectActiveView",
+					"command": "cmd.gerrit.selectActiveView",
 					"when": "true"
 				},
 				{
-					"command": "gerrit.dropQuickCheckouts",
+					"command": "cmd.gerrit.dropQuickCheckouts",
 					"when": "true"
 				}
 			],
@@ -1313,7 +1285,7 @@
 		}
 	},
 	"scripts": {
-		"prepack": "yarn generate-package && yarn prettier --check src/ && yarn lint && yarn compile && tsc -p ./scripts && yarn run build",
+		"prepack": "yarn generate-package && yarn prettier --check src/ && yarn lint && yarn compile && yarn run build",
 		"vscode:prepublish": "yarn run prepack",
 		"compile": "tsc -p ./src && tsc -p src/views/activityBar/review/html/src/tsconfig.json",
 		"watch": "npm-run-all -p watch:compile watch:build",
@@ -1335,9 +1307,8 @@
 		"copy": "ts-node -T scripts/copy.ts",
 		"package": "yarn run prepack && yarn vsce package",
 		"package-dev": "yarn prepush && yarn run build:debug && yarn vsce package",
-		"_generate-package": "ts-node -T ./scripts/generate-package-json.ts",
-		"generate-package": "yarn _generate-package --generate --validate && prettier --write package.json",
-		"prepush": "yarn generate-package && yarn format-staged && yarn lint --fix && yarn compile && tsc -p ./scripts"
+		"generate-package": "generate-package-json generate --input src/commands/defs.ts -w -p package.json --handler src/commands/commands.ts --validate --prefix Gerrit && prettier --write package.json",
+		"prepush": "yarn generate-package && yarn format-staged && yarn lint --fix && yarn compile"
 	},
 	"devDependencies": {
 		"@emotion/react": "^11.7.0",
@@ -1377,7 +1348,8 @@
 		"rimraf": "^3.0.2",
 		"ts-node": "^10.4.0",
 		"typescript": "^4.5.2",
-		"vsce": "^2.6.0"
+		"vsce": "^2.6.0",
+		"vscode-generate-package-json": "^1.0.1"
 	},
 	"dependencies": {
 		"gitdiff-parser": "^0.2.2",

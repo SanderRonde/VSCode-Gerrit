@@ -8,8 +8,7 @@
 		"tsconfigRootDir": "./src",
 		"project": [
 			"./tsconfig.json",
-			"./views/activityBar/review/html/src/tsconfig.json",
-			"../scripts/tsconfig.json"
+			"./views/activityBar/review/html/src/tsconfig.json"
 		],
 		"createDefaultProgram": true
 	},

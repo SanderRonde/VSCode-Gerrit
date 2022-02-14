@@ -4566,6 +4566,11 @@ vsce@^2.6.0:
     yauzl "^2.3.1"
     yazl "^2.2.2"
 
+vscode-generate-package-json@^1.0.1:
+  version "1.0.1"
+  resolved "https://registry.yarnpkg.com/vscode-generate-package-json/-/vscode-generate-package-json-1.0.1.tgz#bfe9450e5ca91397de118548f570ea9a26db59d4"
+  integrity sha512-rjyDFQiRyaFELhS0kLuF9h/XQogF2x0fY67q1pA5sU1rgS9r618lr1UoshErefMjR6GAGDa77pHCjw4s1EX8Dw==
+
 which-boxed-primitive@^1.0.2:
   version "1.0.2"
   resolved "https://registry.yarnpkg.com/which-boxed-primitive/-/which-boxed-primitive-1.0.2.tgz#13757bc89b209b049fe5d86430e21cf40a89a8e6"

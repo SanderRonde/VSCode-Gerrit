@@ -1,6 +1,7 @@
 import {
 	ensureCleanWorkingTree,
 	ensureMainBranchUpdated,
+	getChangeIDFromCheckoutString,
 	getCurrentBranch,
 	getGitURI,
 	getGitVersion,
@@ -346,7 +347,9 @@ export async function recursiveRebase(): Promise<void> {
 
 				// Checkout branch
 				const { success } = await tryExecAsync(
-					`git-review -d "${operation.change.number}"`,
+					`git-review -d "${getChangeIDFromCheckoutString(
+						operation.change.number
+					)}"`,
 					{
 						cwd: gitURI,
 					}

@@ -289,7 +289,12 @@ export function getGitURI(): string | null {
 	return api.repositories[0].rootUri.fsPath;
 }
 
-function changeStrToID(changeID: string): string {
+export function getChangeIDFromCheckoutString(
+	changeID: string | number
+): string {
+	if (typeof changeID === 'number') {
+		return String(changeID);
+	}
 	if (changeID.indexOf('~') === 0) {
 		return changeID;
 	}
@@ -306,12 +311,10 @@ export async function gitCheckoutRemote(
 		return;
 	}
 
-	const checkoutString =
-		typeof patchNumberOrChangeID === 'string'
-			? changeStrToID(patchNumberOrChangeID)
-			: patchNumberOrChangeID;
 	const { success, stdout } = await tryExecAsync(
-		`git-review -d "${String(checkoutString)}"`,
+		`git-review -d "${getChangeIDFromCheckoutString(
+			patchNumberOrChangeID
+		)}"`,
 		{
 			cwd: uri,
 			timeout: 10000,

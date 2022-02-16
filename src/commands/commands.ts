@@ -37,6 +37,11 @@ import {
 	previousUnresolvedComment,
 } from '../providers/comments/commentCommands';
 import { fetchMoreTreeItemEntries } from '../views/activityBar/changes/fetchMoreTreeItem';
+import {
+	getChangeIDFromCheckoutString,
+	getGitURI,
+	gitReview,
+} from '../lib/git/git';
 import { openCurrentChangeOnline } from '../lib/commandHandlers/openCurrentChangeOnline';
 import { clearSearchResults, search } from '../views/activityBar/search/search';
 import { openChangeSelector } from '../views/statusBar/currentChangeStatusBar';
@@ -48,13 +53,15 @@ import { focusChange } from '../lib/commandHandlers/focusChange';
 import { commands, ExtensionContext, window } from 'vscode';
 import { GerritExtensionCommands } from './command-names';
 import { checkConnection } from '../lib/gerrit/gerritAPI';
-import { getGitURI, gitReview } from '../lib/git/git';
 import { tryExecAsync } from '../lib/git/gitCLI';
 
 async function checkoutChange(uri: string, changeID: string): Promise<boolean> {
-	const { success } = await tryExecAsync(`git-review -d ${changeID}`, {
-		cwd: uri,
-	});
+	const { success } = await tryExecAsync(
+		`git-review -d ${getChangeIDFromCheckoutString(changeID)}`,
+		{
+			cwd: uri,
+		}
+	);
 	if (!success) {
 		void window.showErrorMessage('Failed to checkout change');
 		return false;

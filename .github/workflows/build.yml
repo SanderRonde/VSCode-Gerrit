@@ -32,7 +32,7 @@ jobs:
               run: yarn lint
 
             - name: TypeScript
-              run: yarn compile && tsc -p ./scripts
+              run: yarn compile
 
             - name: Validate package.json
               run: yarn _generate-package --validate

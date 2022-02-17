@@ -51,11 +51,11 @@ import { createAutoRegisterCommand } from 'vscode-generate-package-json';
 import { rebaseOntoMain, recursiveRebase } from '../lib/git/rebase';
 import { enterCredentials } from '../lib/credentials/credentials';
 import { focusChange } from '../lib/commandHandlers/focusChange';
-import { commands, ExtensionContext, window } from 'vscode';
 import { GerritExtensionCommands } from './command-names';
 import { checkConnection } from '../lib/gerrit/gerritAPI';
-import { commands as commandDefs } from './defs';
+import { ExtensionContext, window } from 'vscode';
 import { tryExecAsync } from '../lib/git/gitCLI';
+import { commands } from './defs';
 
 async function checkoutChange(uri: string, changeID: string): Promise<boolean> {
 	const { success } = await tryExecAsync(
@@ -72,7 +72,7 @@ async function checkoutChange(uri: string, changeID: string): Promise<boolean> {
 }
 
 export function registerCommands(context: ExtensionContext): void {
-	const registerCommand = createAutoRegisterCommand(commandDefs);
+	const registerCommand = createAutoRegisterCommand(commands);
 
 	// Credentials/connection
 	context.subscriptions.push(

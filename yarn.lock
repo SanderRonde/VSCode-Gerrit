@@ -4353,6 +4353,25 @@ ts-node@^10.4.0:
     make-error "^1.1.1"
     yn "3.1.1"
 
+ts-node@^10.5.0:
+  version "10.5.0"
+  resolved "https://registry.yarnpkg.com/ts-node/-/ts-node-10.5.0.tgz#618bef5854c1fbbedf5e31465cbb224a1d524ef9"
+  integrity sha512-6kEJKwVxAJ35W4akuiysfKwKmjkbYxwQMTBaAxo9KKAx/Yd26mPUyhGz3ji+EsJoAgrLqVsYHNuuYwQe22lbtw==
+  dependencies:
+    "@cspotcode/source-map-support" "0.7.0"
+    "@tsconfig/node10" "^1.0.7"
+    "@tsconfig/node12" "^1.0.7"
+    "@tsconfig/node14" "^1.0.0"
+    "@tsconfig/node16" "^1.0.2"
+    acorn "^8.4.1"
+    acorn-walk "^8.1.1"
+    arg "^4.1.0"
+    create-require "^1.1.0"
+    diff "^4.0.1"
+    make-error "^1.1.1"
+    v8-compile-cache-lib "^3.0.0"
+    yn "3.1.1"
+
 tslib@^1.13.0, tslib@^1.8.1, tslib@^1.9.0:
   version "1.14.1"
   resolved "https://registry.yarnpkg.com/tslib/-/tslib-1.14.1.tgz"
@@ -4527,6 +4546,11 @@ util-deprecate@^1.0.1, util-deprecate@~1.0.1:
   resolved "https://registry.yarnpkg.com/util-deprecate/-/util-deprecate-1.0.2.tgz"
   integrity sha1-RQ1Nyfpw3nMnYvvS1KKJgUGaDM8=
 
+v8-compile-cache-lib@^3.0.0:
+  version "3.0.0"
+  resolved "https://registry.yarnpkg.com/v8-compile-cache-lib/-/v8-compile-cache-lib-3.0.0.tgz#0582bcb1c74f3a2ee46487ceecf372e46bce53e8"
+  integrity sha512-mpSYqfsFvASnSn5qMiwrr4VKfumbPyONLCOPmsR3A6pTY/r0+tSaVbgPWSAIuzbk3lCTa+FForeTiO+wBQGkjA==
+
 v8-compile-cache@^2.0.3:
   version "2.3.0"
   resolved "https://registry.yarnpkg.com/v8-compile-cache/-/v8-compile-cache-2.3.0.tgz"
@@ -4566,10 +4590,12 @@ vsce@^2.6.0:
     yauzl "^2.3.1"
     yazl "^2.2.2"
 
-vscode-generate-package-json@^1.0.1:
-  version "1.0.1"
-  resolved "https://registry.yarnpkg.com/vscode-generate-package-json/-/vscode-generate-package-json-1.0.1.tgz#bfe9450e5ca91397de118548f570ea9a26db59d4"
-  integrity sha512-rjyDFQiRyaFELhS0kLuF9h/XQogF2x0fY67q1pA5sU1rgS9r618lr1UoshErefMjR6GAGDa77pHCjw4s1EX8Dw==
+vscode-generate-package-json@^1.0.5:
+  version "1.0.5"
+  resolved "https://registry.yarnpkg.com/vscode-generate-package-json/-/vscode-generate-package-json-1.0.5.tgz#0fe26f46c3a2d7aa85757f1fcaca5e08a3b26897"
+  integrity sha512-detH0P6qMxEo09XewFozut0shQIOBE7wBoM4l3wJT8PfKn32T0+kssXbxj6QN3CdAZ+grv5BHbKrZRHUTBFIlw==
+  dependencies:
+    ts-node "^10.5.0"
 
 which-boxed-primitive@^1.0.2:
   version "1.0.2"

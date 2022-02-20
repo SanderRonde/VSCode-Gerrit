@@ -38,6 +38,7 @@ interface ConfigSettings {
 	'gerrit.messages.postReviewNotification': boolean;
 	'gerrit.quickCheckout.dropAllStashes': boolean;
 	'gerrit.quickCheckout.showInStatusBar': boolean;
+	'gerrit.streamEvents': boolean;
 }
 
 interface TypedWorkspaceConfiguration<T> extends WorkspaceConfiguration {

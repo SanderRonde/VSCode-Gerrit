@@ -19,6 +19,7 @@ import { GerritUser } from './lib/gerrit/gerritAPI/gerritUser';
 import { ExtensionContext, window, workspace } from 'vscode';
 import { updateUploaderState } from './lib/state/uploader';
 import { registerCommands } from './commands/commands';
+import { getConfiguration } from './lib/vscode/config';
 import { setupChangeIDCache } from './lib/git/commit';
 import { createOutputChannel } from './lib/util/log';
 import { isUsingGerrit } from './lib/gerrit/gerrit';
@@ -63,7 +64,10 @@ export async function activate(context: ExtensionContext): Promise<void> {
 
 	// Test stream events
 	void (async () => {
-		if (await testEnableStreamEvents()) {
+		if (
+			getConfiguration().get('gerrit.streamEvents') &&
+			(await testEnableStreamEvents())
+		) {
 			context.subscriptions.push(await startListeningForStreamEvents());
 		}
 	})();

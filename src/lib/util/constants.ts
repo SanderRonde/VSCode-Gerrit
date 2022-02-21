@@ -1,5 +1,5 @@
 // Definitions
-export const EXTENSION_ID = 'SanderRonde.VSCode-Gerrit';
+export const EXTENSION_ID = 'sanderronde.vscode--gerrit';
 
 // Refreshing
 export const PERIODICAL_GIT_FETCH_INTERVAL = 5000;

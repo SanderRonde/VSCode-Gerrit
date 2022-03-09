@@ -45,7 +45,7 @@ export async function selectChange(): Promise<number | null> {
 				],
 			],
 			{
-				count: 100,
+				count: 500,
 			},
 			undefined,
 			GerritAPIWith.DETAILED_ACCOUNTS

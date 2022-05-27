@@ -921,7 +921,7 @@ export class GerritAPI {
 
 		const response = await this._tryRequest(
 			this.getURL(
-				`projects/${project}/commits/${
+				`projects/${encodeURIComponent(project)}/commits/${
 					commit.id
 				}/files/${encodeURIComponent(filePath)}/content`
 			),

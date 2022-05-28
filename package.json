@@ -1287,7 +1287,8 @@
 	"scripts": {
 		"prepack": "yarn generate-package && yarn prettier --check src/ && yarn lint && yarn compile && yarn run build",
 		"vscode:prepublish": "yarn run prepack",
-		"compile": "tsc -p ./src && tsc -p src/views/activityBar/review/html/src/tsconfig.json",
+		"compile": "tsc --noEmit -p ./src && tsc --noEmit -p src/views/activityBar/review/html/src/tsconfig.json",
+		"compile:debug": "tsc -p ./src && tsc -p src/views/activityBar/review/html/src/tsconfig.json",
 		"watch": "npm-run-all -p watch:compile watch:build",
 		"watch:compile": "tsc -p ./src -w",
 		"watch:build": "yarn build:debug:review:js --watch",

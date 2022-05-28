@@ -11,8 +11,7 @@
 		"noFallthroughCasesInSwitch": true,
 		"noUnusedParameters": true,
 		"noImplicitOverride": true,
-		"skipLibCheck": true,
-		"noEmit": true
+		"skipLibCheck": true
 	},
 	"exclude": [
 		"../node_modules",

@@ -78,21 +78,29 @@ export async function selectChange(): Promise<number | null> {
 	return new Promise<number | null>((resolve) => {
 		disposables.push(
 			quickPick.onDidAccept(() => {
-				const currentLabel =
-					quickPick.selectedItems[0]?.label ?? quickPick.value;
-				const change = changes.find(
-					(change) => change.subject === currentLabel
-				);
-				if (!change) {
-					void window.showErrorMessage(
-						`Invalid change number for change: ${currentLabel}`
+				const currentLabel = quickPick.selectedItems[0]?.label;
+				if (currentLabel) {
+					const change = changes.find(
+						(change) => change.subject === currentLabel
 					);
-					resolve(null);
-					return;
-				}
+					if (!change) {
+						void window.showErrorMessage(
+							`Invalid change label/number for change: ${currentLabel}`
+						);
+						resolve(null);
+						return;
+					}
 
-				quickPick.hide();
-				resolve(change.number);
+					quickPick.hide();
+					resolve(change.number);
+				} else if (quickPick.value && /^\d+$/.test(quickPick.value)) {
+					quickPick.hide();
+					resolve(parseInt(quickPick.value, 10));
+				} else {
+					void window.showErrorMessage(
+						`Invalid change label/number for change: ${quickPick.value}`
+					);
+				}
 			})
 		);
 		quickPick.show();

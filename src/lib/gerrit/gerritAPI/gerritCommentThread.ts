@@ -9,6 +9,7 @@ import {
 	DocumentCommentManager,
 } from '../../../providers/commentProvider';
 import { GerritCommentBase, GerritDraftComment } from './gerritComment';
+import { ExpandComments, getConfiguration } from '../../vscode/config';
 import { CommentThread, CommentThreadCollapsibleState } from 'vscode';
 import { OnceDisposable } from '../../classes/onceDisposable';
 import { FileMeta } from '../../../providers/fileProvider';
@@ -153,11 +154,33 @@ export class GerritCommentThread extends OnceDisposable {
 			return CommentThreadCollapsibleState.Collapsed;
 		}
 
-		if (this._isMultipleOnLine() || this._isPatchsetLevel()) {
+		if (this._isPatchsetLevel()) {
 			return CommentThreadCollapsibleState.Expanded;
 		}
 
 		return null;
+	}
+
+	private _shouldExpandComments(): CommentThreadCollapsibleState {
+		const overrideExpand = this._shouldOverrideInitialExpand();
+		if (overrideExpand !== null) {
+			return overrideExpand;
+		}
+
+		const expandState = getConfiguration().get(
+			'gerrit.gerrit.expandComments'
+		);
+		if (expandState === ExpandComments.NEVER) {
+			return CommentThreadCollapsibleState.Collapsed;
+		} else if (expandState === ExpandComments.ALWAYS) {
+			return CommentThreadCollapsibleState.Expanded;
+		}
+
+		// If there are multiple threads on this line, expand them all.
+		// VSCode is really bad at showing multiple comments on a line.
+		return !this.resolved || this._isMultipleOnLine()
+			? CommentThreadCollapsibleState.Expanded
+			: CommentThreadCollapsibleState.Collapsed;
 	}
 
 	public async setResolved(newValue: boolean): Promise<void> {
@@ -180,16 +203,7 @@ export class GerritCommentThread extends OnceDisposable {
 		this._thread.canReply = !this.lastComment || !this.lastComment?.isDraft;
 
 		if (isInitial) {
-			// If there are multiple threads on this line, expand them all.
-			// VSCode is really bad at showing multiple comments on a line.
-			const overrideExpand = this._shouldOverrideInitialExpand();
-			if (overrideExpand !== null) {
-				this._thread.collapsibleState = overrideExpand;
-			} else {
-				this._thread.collapsibleState = !this.resolved
-					? CommentThreadCollapsibleState.Expanded
-					: CommentThreadCollapsibleState.Collapsed;
-			}
+			this._thread.collapsibleState = this._shouldExpandComments();
 		}
 	}
 

@@ -27,11 +27,18 @@ export interface ChangesView {
 	panels: ChangesPanel[];
 }
 
+export enum ExpandComments {
+	ALWAYS = 'always',
+	NEVER = 'never',
+	UNRESOLVED = 'unresolved',
+}
+
 interface ConfigSettings {
 	'gerrit.auth.url'?: string;
 	'gerrit.auth.username'?: string;
 	'gerrit.auth.password'?: string;
 	'gerrit.selectedView': string;
+	'gerrit.gerrit.expandComments': ExpandComments;
 	'gerrit.changesViews': ChangesView[];
 	'gerrit.allowInvalidSSLCerts': boolean;
 	'gerrit.localGitRepoUri': string;

@@ -2,6 +2,10 @@
 
 All notable changes to the "gerrit" extension will be documented in this file.
 
+## 1.2.4
+
+- Add option for setting default comment expansion state (`gerrit.expandComments`)
+
 ## 1.2.3
 
 - Change selector also works for only change numbers now

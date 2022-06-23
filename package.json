@@ -1364,6 +1364,6 @@
 	},
 	"dependencies": {
 		"gitdiff-parser": "^0.2.2",
-		"got": "^11.8.3"
+		"got": "^11.8.5"
 	}
 }

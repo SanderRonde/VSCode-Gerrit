@@ -12,10 +12,15 @@ import {
 	ConfigurationTarget,
 	ProgressLocation,
 } from 'vscode';
+import {
+	execAndMonitor,
+	getLastCommits,
+	GitCommit,
+	tryExecAsync,
+} from './gitCLI';
 import { ChangeTreeView } from '../../views/activityBar/changes/changeTreeView';
 import { APISubscriptionManager } from '../subscriptions/subscriptions';
 import { API, GitExtension } from '../../types/vscode-extension-git';
-import { getLastCommits, GitCommit, tryExecAsync } from './gitCLI';
 import { PERIODICAL_GIT_FETCH_INTERVAL } from '../util/constants';
 import { MATCH_ANY } from '../subscriptions/baseSubscriptions';
 import { createAwaitingInterval } from '../util/util';
@@ -370,19 +375,70 @@ export async function gitReview(): Promise<void> {
 			progress.report({
 				message: 'Pushing for review',
 			});
-			const { success, stdout } = await tryExecAsync('git-review', {
-				cwd: uri,
-				timeout: 10000,
+			const result = await new Promise<{
+				success: boolean;
+				stdout: string;
+				handled: boolean;
+			}>((resolve) => {
+				let ignoreInitialResult = false;
+				void execAndMonitor(
+					'git-review',
+					async (stdout, proc) => {
+						if (
+							!stdout.includes(
+								'You are about to submit multiple commits.'
+							)
+						) {
+							return;
+						}
+
+						ignoreInitialResult = true;
+						proc.kill();
+						const YES_OPTION = 'Yes';
+						const CANCEL_OPTION = 'Cancel';
+						const choice = await window.showInformationMessage(
+							'You are about to submit multiple commits, are you sure?',
+							YES_OPTION,
+							CANCEL_OPTION
+						);
+
+						if (choice === YES_OPTION) {
+							const result = await tryExecAsync('git-review -y', {
+								cwd: uri,
+								timeout: 10000,
+							});
+							resolve({
+								success: result.success,
+								stdout: result.stdout,
+								handled: true,
+							});
+						} else if (choice === CANCEL_OPTION || !choice) {
+							resolve({
+								success: false,
+								stdout: '',
+								handled: true,
+							});
+						}
+					},
+					{
+						cwd: uri,
+						timeout: 10000,
+					}
+				).then(({ success, stdout }) => {
+					if (success && !ignoreInitialResult) {
+						resolve({
+							success: true,
+							handled: true,
+							stdout,
+						});
+					}
+				});
 			});
 			progress.report({
 				increment: 90,
 			});
 
-			return {
-				success,
-				stdout,
-				handled: false,
-			};
+			return result;
 		}
 	);
 

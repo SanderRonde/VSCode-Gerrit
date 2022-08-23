@@ -1,4 +1,11 @@
-import { exec, ExecException, ExecOptions } from 'child_process';
+import {
+	ChildProcessWithoutNullStreams,
+	exec,
+	ExecException,
+	ExecOptions,
+	spawn,
+	SpawnOptionsWithoutStdio,
+} from 'child_process';
 import { getGitAPI } from './git';
 import { log } from '../util/log';
 
@@ -57,6 +64,56 @@ export async function tryExecAsync(
 				stdout: stdout.toString(),
 				stderr: stderr.toString(),
 				err,
+			});
+		});
+	});
+}
+
+export function execAndMonitor(
+	cmd: string,
+	onStdout: (
+		stdout: string,
+		process: ChildProcessWithoutNullStreams
+	) => void | Promise<void>,
+	options?: SpawnOptionsWithoutStdio & {
+		silent?: boolean;
+	}
+): Promise<{
+	success: boolean;
+	stdout: string;
+	stderr: string;
+	err: ExecException | null;
+}> {
+	let stdout: string = '';
+	let stderr: string = '';
+	const process = spawn(cmd, options);
+	process.stdout.on('data', (chunk: string | Buffer) => {
+		stdout += chunk.toString();
+		void onStdout(stdout, process);
+	});
+	process.stderr.on('data', (chunk: string | Buffer) => {
+		stderr += chunk.toString();
+	});
+	return new Promise<{
+		success: boolean;
+		stdout: string;
+		stderr: string;
+		err: ExecException | null;
+	}>((resolve) => {
+		process.on('error', (err) => {
+			resolve({
+				success: false,
+				stdout,
+				stderr,
+				err,
+			});
+		});
+		process.on('exit', () => {
+			resolve({
+				success: true,
+				stdout,
+				stderr,
+				err: null,
 			});
 		});
 	});

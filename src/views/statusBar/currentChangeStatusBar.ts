@@ -7,6 +7,7 @@ import {
 } from 'vscode';
 import {
 	getGitAPI,
+	getGitURI,
 	gitCheckoutRemote,
 	onChangeLastCommit,
 } from '../../lib/git/git';
@@ -17,11 +18,55 @@ import {
 import { GerritExtensionCommands } from '../../commands/command-names';
 import { GerritChange } from '../../lib/gerrit/gerritAPI/gerritChange';
 import { isGerritCommit, getChangeID } from '../../lib/git/commit';
+import { GitCommit, tryExecAsync } from '../../lib/git/gitCLI';
 import { GerritAPIWith } from '../../lib/gerrit/gerritAPI/api';
 import { getAPI } from '../../lib/gerrit/gerritAPI';
-import { GitCommit } from '../../lib/git/gitCLI';
 
-export async function selectChange(): Promise<number | null> {
+async function getMainBranchName(): Promise<string> {
+	const gitURI = getGitURI();
+	if (!gitURI) {
+		return 'master';
+	}
+
+	const cmd = await tryExecAsync(
+		"git symbolic-ref refs/remotes/origin/HEAD | sed 's@^refs/remotes/origin/@@'",
+		{
+			cwd: gitURI,
+			timeout: 2000,
+		}
+	);
+	if (cmd.success && cmd.stdout) {
+		return cmd.stderr;
+	}
+	return 'master';
+}
+
+export async function selectChange(includeMaster?: false): Promise<null | {
+	type: 'changeId';
+	changeId: number;
+}>;
+export async function selectChange(includeMaster: true): Promise<
+	| null
+	| {
+			type: 'changeId';
+			changeId: number;
+	  }
+	| {
+			type: 'branchName';
+			branchName: string;
+	  }
+>;
+export async function selectChange(includeMaster: boolean = false): Promise<
+	| null
+	| {
+			type: 'changeId';
+			changeId: number;
+	  }
+	| {
+			type: 'branchName';
+			branchName: string;
+	  }
+> {
 	// Get a list of changes
 	const api = await getAPI();
 	if (!api) {
@@ -53,7 +98,7 @@ export async function selectChange(): Promise<number | null> {
 		.getValue(true);
 
 	const quickPick = window.createQuickPick();
-	quickPick.items = await Promise.all(
+	const items = await Promise.all(
 		changes.map(async (change) => {
 			const authorName = (await change.detailedOwner())?.getName();
 			return {
@@ -65,6 +110,16 @@ export async function selectChange(): Promise<number | null> {
 			};
 		})
 	);
+	let mainBranchName = '';
+	if (includeMaster) {
+		mainBranchName = await getMainBranchName();
+		items.push({
+			label: mainBranchName,
+			description: 'Main branch',
+			detail: mainBranchName,
+		});
+	}
+	quickPick.items = items;
 
 	const disposables: Disposable[] = [];
 	quickPick.matchOnDescription = true;
@@ -75,11 +130,27 @@ export async function selectChange(): Promise<number | null> {
 		})
 	);
 
-	return new Promise<number | null>((resolve) => {
+	return new Promise<
+		| null
+		| {
+				type: 'changeId';
+				changeId: number;
+		  }
+		| {
+				type: 'branchName';
+				branchName: string;
+		  }
+	>((resolve) => {
 		disposables.push(
 			quickPick.onDidAccept(() => {
 				const currentLabel = quickPick.selectedItems[0]?.label;
-				if (currentLabel) {
+				if (includeMaster && currentLabel === mainBranchName) {
+					quickPick.hide();
+					resolve({
+						type: 'branchName',
+						branchName: mainBranchName,
+					});
+				} else if (currentLabel) {
 					const change = changes.find(
 						(change) => change.subject === currentLabel
 					);
@@ -92,10 +163,16 @@ export async function selectChange(): Promise<number | null> {
 					}
 
 					quickPick.hide();
-					resolve(change.number);
+					resolve({
+						type: 'changeId',
+						changeId: change.number,
+					});
 				} else if (quickPick.value && /^\d+$/.test(quickPick.value)) {
 					quickPick.hide();
-					resolve(parseInt(quickPick.value, 10));
+					resolve({
+						type: 'changeId',
+						changeId: parseInt(quickPick.value, 10),
+					});
 				} else {
 					void window.showErrorMessage(
 						`Invalid change label/number for change: ${quickPick.value}`
@@ -108,11 +185,36 @@ export async function selectChange(): Promise<number | null> {
 }
 
 export async function openChangeSelector(): Promise<void> {
-	const changeNumber = await selectChange();
+	const changeNumber = await selectChange(true);
 	if (!changeNumber) {
 		return;
 	}
-	await gitCheckoutRemote(changeNumber, true);
+	if (changeNumber.type === 'changeId') {
+		await gitCheckoutRemote(changeNumber.changeId, true);
+	} else {
+		await gitCheckoutBranch(changeNumber.branchName);
+	}
+}
+
+async function gitCheckoutBranch(branchName: string): Promise<void> {
+	const uri = getGitURI();
+	if (!uri) {
+		void window.showErrorMessage(
+			'Checkout failed, failed to find git repo'
+		);
+		return;
+	}
+
+	const { success } = await tryExecAsync(`git checkout ${branchName}`, {
+		cwd: uri,
+		timeout: 10000,
+	});
+
+	if (!success) {
+		void window.showErrorMessage(
+			'Checkout failed. Please see log for more details'
+		);
+	}
 }
 
 async function statusbarUpdateHandler(

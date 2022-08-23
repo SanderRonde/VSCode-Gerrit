@@ -43,7 +43,9 @@ export async function focusChange(): Promise<void> {
 	);
 	const changes = uniqueComplex(panelChanges, (i) => i.change.changeID);
 
-	const match = changes.find((c) => c.change.number === changeNumber);
+	const match = changes.find(
+		(c) => c.change.number === changeNumber.changeId
+	);
 	const changesTreeProvider = getChangesTreeProvider();
 	if (match && changesTreeProvider) {
 		// Focus that
@@ -54,7 +56,10 @@ export async function focusChange(): Promise<void> {
 		});
 	} else {
 		// Set value that opens it in the search panel
-		await setContextProp('gerrit:searchChangeNumber', changeNumber);
+		await setContextProp(
+			'gerrit:searchChangeNumber',
+			changeNumber.changeId
+		);
 		SearchResultsTreeProvider.clear();
 		SearchResultsTreeProvider.refesh();
 		SearchResultsTreeProvider.focus();

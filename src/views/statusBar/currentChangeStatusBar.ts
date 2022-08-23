@@ -36,7 +36,7 @@ async function getMainBranchName(): Promise<string> {
 		}
 	);
 	if (cmd.success && cmd.stdout) {
-		return cmd.stderr;
+		return cmd.stdout;
 	}
 	return 'master';
 }

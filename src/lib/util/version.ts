@@ -36,7 +36,7 @@ export class VersionNumber {
 		}
 	}
 
-	private _isX(
+	private _isVersion(
 		other: VersionNumber,
 		operator: '>' | '<' | '>=' | '<=',
 		onEqual: boolean
@@ -54,18 +54,25 @@ export class VersionNumber {
 	}
 
 	public isGreaterThan(other: VersionNumber): boolean {
-		return this._isX(other, '>', false);
+		return this._isVersion(other, '>', false);
 	}
 
 	public isGreaterThanOrEqual(other: VersionNumber): boolean {
-		return this._isX(other, '>=', true);
+		return this._isVersion(other, '>=', true);
 	}
 
 	public isSmallerThan(other: VersionNumber): boolean {
-		return this._isX(other, '<', false);
+		return this._isVersion(other, '<', false);
 	}
 
 	public isSmallerThanOrEqual(other: VersionNumber): boolean {
-		return this._isX(other, '<=', true);
+		return this._isVersion(other, '<=', true);
+	}
+
+	public toString(): string {
+		const parts = [this._major, this._minor, this._patch].filter(
+			(v) => v !== null
+		);
+		return `v${parts.join('.')}`;
 	}
 }

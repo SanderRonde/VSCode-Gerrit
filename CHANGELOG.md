@@ -2,6 +2,10 @@
 
 All notable changes to the "gerrit" extension will be documented in this file.
 
+## 1.2.6
+
+-   Show warning if using an older gerrit version
+
 ## 1.2.5
 
 -   Now presents choice when submitting multiple commits instead of erroring

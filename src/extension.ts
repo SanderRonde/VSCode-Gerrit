@@ -6,6 +6,12 @@ import { FileModificationStatusProvider } from './providers/fileModificationStat
 import { showQuickCheckoutStatusBarIcons } from './views/statusBar/quickCheckoutStatusBar';
 import { showCurrentChangeStatusBarIcon } from './views/statusBar/currentChangeStatusBar';
 import { getOrCreateQuickCheckoutTreeProvider } from './views/activityBar/quickCheckout';
+import {
+	ConfigurationTarget,
+	ExtensionContext,
+	window,
+	workspace,
+} from 'vscode';
 import { fileCache } from './views/activityBar/changes/changeTreeView/file/fileCache';
 import { getCommentDecorationProvider } from './providers/commentDecorationProvider';
 import { getOrCreateReviewWebviewProvider } from './views/activityBar/review';
@@ -16,7 +22,6 @@ import { FileProvider, GERRIT_FILE_SCHEME } from './providers/fileProvider';
 import { setContextProp, setDefaultContexts } from './lib/vscode/context';
 import { GERRIT_SEARCH_RESULTS_VIEW } from './lib/util/constants';
 import { GerritUser } from './lib/gerrit/gerritAPI/gerritUser';
-import { ExtensionContext, window, workspace } from 'vscode';
 import { updateUploaderState } from './lib/state/uploader';
 import { registerCommands } from './commands/commands';
 import { getConfiguration } from './lib/vscode/config';
@@ -56,6 +61,34 @@ export async function activate(context: ExtensionContext): Promise<void> {
 			return;
 		}
 		return;
+	}
+
+	const version = await (await getAPI())?.getGerritVersion();
+	if (!version || version.isSmallerThan(new VersionNumber(3, 4, 0))) {
+		// Pre-unsupported versions check if force-enable is enabled
+		if (!getConfiguration().get('gerrit.forceEnable')) {
+			// If not, ask user what to do
+			const FORCE_ENABLE_OPTION = 'Try anyway (might not work)';
+			const answer = await window.showErrorMessage(
+				`The gerrit extension does not support gerrit instances before version 3.4.0 (you have ${
+					version ? version.toString() : 'unknown'
+				})`,
+				FORCE_ENABLE_OPTION,
+				'Dismiss'
+			);
+
+			// If not force enable, disable extension
+			if (answer !== FORCE_ENABLE_OPTION) {
+				return;
+			}
+
+			// If force enable, set forceEnable config option
+			await getConfiguration().update(
+				'gerrit.forceEnable',
+				true,
+				ConfigurationTarget.Global
+			);
+		}
 	}
 
 	// Register status bar entry
@@ -133,7 +166,6 @@ export async function activate(context: ExtensionContext): Promise<void> {
 	void GerritUser.getSelf();
 
 	// Get version number and enable/disable features
-	const version = await (await getAPI())?.getGerritVersion();
 	if (version) {
 		await setContextProp(
 			'gerrit:hasCommentFeature',

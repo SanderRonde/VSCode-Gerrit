@@ -979,6 +979,11 @@
 					"default": "unresolved",
 					"description": "When inline comments should be expanded"
 				},
+				"gerrit.forceEnable": {
+					"type": "boolean",
+					"default": false,
+					"description": "Force enable gerrit extension even for unsupported versions"
+				},
 				"gerrit.changesViews": {
 					"type": "array",
 					"title": "Changes views",

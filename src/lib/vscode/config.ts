@@ -46,6 +46,7 @@ interface ConfigSettings {
 	'gerrit.quickCheckout.dropAllStashes': boolean;
 	'gerrit.quickCheckout.showInStatusBar': boolean;
 	'gerrit.streamEvents': boolean;
+	'gerrit.forceEnable': boolean;
 }
 
 interface TypedWorkspaceConfiguration<T> extends WorkspaceConfiguration {

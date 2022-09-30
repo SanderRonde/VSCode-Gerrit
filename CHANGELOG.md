@@ -2,6 +2,10 @@
 
 All notable changes to the "gerrit" extension will be documented in this file.
 
+## 1.2.7
+
+-   Add support for multi-git-repo setups
+
 ## 1.2.6
 
 -   Show warning if using an older gerrit version

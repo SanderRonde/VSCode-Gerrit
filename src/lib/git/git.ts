@@ -6,7 +6,6 @@ import {
 import {
 	window,
 	Disposable,
-	extensions,
 	Uri,
 	env,
 	ConfigurationTarget,
@@ -20,33 +19,20 @@ import {
 } from './gitCLI';
 import { ChangeTreeView } from '../../views/activityBar/changes/changeTreeView';
 import { APISubscriptionManager } from '../subscriptions/subscriptions';
-import { API, GitExtension } from '../../types/vscode-extension-git';
 import { PERIODICAL_GIT_FETCH_INTERVAL } from '../util/constants';
 import { MATCH_ANY } from '../subscriptions/baseSubscriptions';
 import { createAwaitingInterval } from '../util/util';
 import { getConfiguration } from '../vscode/config';
 import { VersionNumber } from '../util/version';
 import { getCurrentChangeID } from './commit';
+import { getGitRepo } from '../gerrit/gerrit';
 import { rebase } from './rebase';
 import { log } from '../util/log';
-
-export function getGitAPI(): API | null {
-	const extension = extensions.getExtension<GitExtension>('vscode.git');
-	if (!extension) {
-		return null;
-	}
-	return extension?.exports.getAPI(1);
-}
 
 export async function onChangeLastCommit(
 	handler: (lastCommit: GitCommit) => void | Promise<void>,
 	callInitial = false
 ): Promise<Disposable> {
-	const gitAPI = getGitAPI();
-	if (!gitAPI) {
-		return { dispose: () => {} };
-	}
-
 	let currentLastCommit = (await getLastCommits(1))[0];
 	if (callInitial && currentLastCommit) {
 		await handler(currentLastCommit);
@@ -280,18 +266,13 @@ async function ensureNoRebaseErrors(): Promise<boolean> {
 }
 
 export function getGitURI(): string | null {
-	const api = getGitAPI();
-	if (!api || !api.repositories.length) {
-		void window.showErrorMessage('No git repo found');
+	const gitRepo = getGitRepo();
+	if (!gitRepo) {
+		void window.showErrorMessage('No gerrit repo set');
 		return null;
 	}
 
-	if (api.repositories.length > 1) {
-		void window.showErrorMessage('Multi-git-repo setups are not supported');
-		return null;
-	}
-
-	return api.repositories[0].rootUri.fsPath;
+	return gitRepo.rootUri.fsPath;
 }
 
 export function getChangeIDFromCheckoutString(

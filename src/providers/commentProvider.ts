@@ -35,9 +35,9 @@ import { CacheContainer } from '../lib/util/cache';
 import { uniqueComplex } from '../lib/util/util';
 import { getAPI } from '../lib/gerrit/gerritAPI';
 import * as gitDiffParser from 'gitdiff-parser';
-import { getGitAPI } from '../lib/git/git';
 import path = require('path');
 import { PatchsetDescription } from '../views/activityBar/changes/changeTreeView';
+import { getGitRepo } from '../lib/gerrit/gerrit';
 
 export interface GerritCommentReply {
 	text: string;
@@ -377,7 +377,11 @@ export class CommentManager {
 		newHash: string;
 	} | null> {
 		const result = await (async () => {
-			const repo = getGitAPI()!.repositories[0];
+			const repo = getGitRepo();
+			if (!repo) {
+				return null;
+			}
+
 			if (prevData) {
 				const hashes = await this.getFileHashObjects(file, document);
 				if (!hashes) {
@@ -466,7 +470,10 @@ export class CommentManager {
 			file,
 			null
 		);
-		const repo = getGitAPI()!.repositories[0];
+		const repo = getGitRepo();
+		if (!repo) {
+			return null;
+		}
 
 		const [oldHash, newHash, modifiedHash] = await Promise.all([
 			repo.hashObject(
@@ -494,8 +501,8 @@ export class CommentManager {
 	): Promise<GerritFile | null> {
 		// No meta, might be a regular checked-out file. We look for the current change
 		// and find out if the current file was changed in that change.
-		const gitAPI = getGitAPI();
-		if (!gitAPI || gitAPI.repositories.length !== 1) {
+		const gitRepo = getGitRepo();
+		if (!gitRepo) {
 			return null;
 		}
 		const change = await GerritChange.getCurrentChangeOnce([

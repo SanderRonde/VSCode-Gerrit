@@ -6,7 +6,7 @@ import {
 	spawn,
 	SpawnOptionsWithoutStdio,
 } from 'child_process';
-import { getGitAPI } from './git';
+import { getGitRepo } from '../gerrit/gerrit';
 import { log } from '../util/log';
 
 export interface GitCommit {
@@ -130,9 +130,9 @@ const COMMIT_FORMAT = '%H%n%B';
 const COMMIT_REGEX = /(.*)\n([^]*?)(?:\x00)/gm;
 
 export async function getLastCommits(count: number): Promise<GitCommit[]> {
-	const api = getGitAPI();
+	const gitRepo = getGitRepo();
 
-	if (!api || api.repositories.length !== 1) {
+	if (!gitRepo) {
 		return [];
 	}
 
@@ -143,7 +143,7 @@ export async function getLastCommits(count: number): Promise<GitCommit[]> {
 		const stdout = await execAsync(
 			`git log --format='${COMMIT_FORMAT}' -z -n ${count}`,
 			{
-				cwd: api.repositories[0].rootUri.fsPath,
+				cwd: gitRepo.rootUri.fsPath,
 			}
 		);
 		let match = COMMIT_REGEX.exec(stdout);

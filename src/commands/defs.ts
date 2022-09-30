@@ -51,6 +51,10 @@ export const commands: {
 		keybinding?: string | true;
 	};
 } = {
+	'gerrit.changeGitRepo': {
+		title: 'Change git repo',
+		inCommandPalette: true,
+	},
 	'gerrit.ackCommentThread': {
 		title: 'Ack',
 		icon: '$(record)',

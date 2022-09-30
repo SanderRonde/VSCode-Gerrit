@@ -25,8 +25,8 @@ import { TextContent } from '../../lib/gerrit/gerritAPI/gerritFile';
 import { avg, diff, uniqueComplex } from '../../lib/util/util';
 import { getCurrentChangeID } from '../../lib/git/commit';
 import { CacheContainer } from '../../lib/util/cache';
+import { getGitRepo } from '../../lib/gerrit/gerrit';
 import * as gitDiffParser from 'gitdiff-parser';
-import { getGitAPI } from '../../lib/git/git';
 
 function getCurrentMeta(): FileMeta | null {
 	// First check currently open editor's URI
@@ -593,8 +593,8 @@ async function jumpToUnresolvedCommentShared(
 				const file = await CommentManager.getFileFromOpenDocument(
 					window.activeTextEditor!.document
 				);
-				const gitAPI = getGitAPI();
-				if (!file || !gitAPI || gitAPI.repositories.length !== 1) {
+				const gitRepo = getGitRepo();
+				if (!file || !gitRepo) {
 					return null;
 				}
 				const hashes = await CommentManager.getFileHashObjects(
@@ -607,7 +607,7 @@ async function jumpToUnresolvedCommentShared(
 
 				const parser =
 					gitDiffParser as unknown as typeof import('gitdiff-parser').default;
-				const diff = await gitAPI.repositories[0].diffBlobs(
+				const diff = await gitRepo.diffBlobs(
 					hashes.newHash,
 					hashes.modifiedHash
 				);

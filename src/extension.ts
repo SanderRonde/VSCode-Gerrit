@@ -19,12 +19,12 @@ import { CommentManager, DocumentManager } from './providers/commentProvider';
 import { SearchResultsTreeProvider } from './views/activityBar/searchResults';
 import { getOrCreateChangesTreeProvider } from './views/activityBar/changes';
 import { FileProvider, GERRIT_FILE_SCHEME } from './providers/fileProvider';
+import { getConfiguration, initConfigListener } from './lib/vscode/config';
 import { setContextProp, setDefaultContexts } from './lib/vscode/context';
 import { GERRIT_SEARCH_RESULTS_VIEW } from './lib/util/constants';
 import { GerritUser } from './lib/gerrit/gerritAPI/gerritUser';
 import { updateUploaderState } from './lib/state/uploader';
 import { registerCommands } from './commands/commands';
-import { getConfiguration } from './lib/vscode/config';
 import { setupChangeIDCache } from './lib/git/commit';
 import { createOutputChannel } from './lib/util/log';
 import { isUsingGerrit } from './lib/gerrit/gerrit';
@@ -53,11 +53,14 @@ export async function activate(context: ExtensionContext): Promise<void> {
 	// Check if we're even using gerrit
 	const usesGerrit = await isUsingGerrit();
 
+	// Add config listener
+	initConfigListener();
+
 	// Set context to show/hide icon
 	await setContextProp('gerrit:isUsingGerrit', usesGerrit);
 	if (!usesGerrit) {
 		await wait(10000);
-		if (!(await isUsingGerrit())) {
+		if (!(await isUsingGerrit(true))) {
 			return;
 		}
 		return;

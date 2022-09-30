@@ -28,6 +28,7 @@
 		"onView:gerrit:searchResults",
 		"onView:gerrit:review",
 		"onView:gerrit:quickCheckout",
+		"onCommand:cmd.gerrit.changeGitRepo",
 		"onCommand:cmd.gerrit.checkConnection",
 		"onCommand:cmd.gerrit.clearSearchResults",
 		"onCommand:cmd.gerrit.collapseAllComments",
@@ -52,6 +53,10 @@
 	"main": "./out/extension.js",
 	"contributes": {
 		"commands": [
+			{
+				"command": "gerrit.changeGitRepo",
+				"title": "Change git repo"
+			},
 			{
 				"command": "gerrit.ackCommentThread",
 				"title": "Ack",
@@ -261,6 +266,10 @@
 				"title": "Pop Quick Checkout stash (apply and drop)"
 			},
 			{
+				"command": "cmd.gerrit.changeGitRepo",
+				"title": "Gerrit: Change git repo"
+			},
+			{
 				"command": "cmd.gerrit.checkConnection",
 				"title": "Gerrit: Check Connection"
 			},
@@ -364,6 +373,10 @@
 		],
 		"menus": {
 			"commandPalette": [
+				{
+					"command": "gerrit.changeGitRepo",
+					"when": "false"
+				},
 				{
 					"command": "gerrit.ackCommentThread",
 					"when": "false"
@@ -543,6 +556,10 @@
 				{
 					"command": "gerrit.popQuickCheckout",
 					"when": "false"
+				},
+				{
+					"command": "cmd.gerrit.changeGitRepo",
+					"when": "true"
 				},
 				{
 					"command": "cmd.gerrit.checkConnection",
@@ -978,6 +995,10 @@
 					],
 					"default": "unresolved",
 					"description": "When inline comments should be expanded"
+				},
+				"gerrit.gitRepo": {
+					"type": "string",
+					"description": "Git repository to use (only needed for multi-git-repo setups)"
 				},
 				"gerrit.forceEnable": {
 					"type": "boolean",

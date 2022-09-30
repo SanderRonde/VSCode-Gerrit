@@ -6,7 +6,6 @@ import {
 	Disposable,
 } from 'vscode';
 import {
-	getGitAPI,
 	getGitURI,
 	gitCheckoutRemote,
 	onChangeLastCommit,
@@ -20,6 +19,7 @@ import { GerritChange } from '../../lib/gerrit/gerritAPI/gerritChange';
 import { isGerritCommit, getChangeID } from '../../lib/git/commit';
 import { GitCommit, tryExecAsync } from '../../lib/git/gitCLI';
 import { GerritAPIWith } from '../../lib/gerrit/gerritAPI/api';
+import { getGitRepo } from '../../lib/gerrit/gerrit';
 import { getAPI } from '../../lib/gerrit/gerritAPI';
 
 async function getMainBranchName(): Promise<string> {
@@ -266,12 +266,7 @@ export async function showCurrentChangeStatusBarIcon(
 	const statusBar = window.createStatusBarItem(StatusBarAlignment.Left);
 	statusBar.command = GerritExtensionCommands.OPEN_CHANGE_SELECTOR;
 
-	const gitAPI = getGitAPI();
-	if (!gitAPI) {
-		return;
-	}
-
-	const repo = gitAPI.repositories[0];
+	const repo = getGitRepo();
 	if (!repo) {
 		return;
 	}

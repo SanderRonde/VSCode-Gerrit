@@ -53,6 +53,7 @@ import { enterCredentials } from '../lib/credentials/credentials';
 import { focusChange } from '../lib/commandHandlers/focusChange';
 import { GerritExtensionCommands } from './command-names';
 import { checkConnection } from '../lib/gerrit/gerritAPI';
+import { pickGitRepo } from '../lib/gerrit/gerrit';
 import { ExtensionContext, window } from 'vscode';
 import { tryExecAsync } from '../lib/git/gitCLI';
 import { commands } from './defs';
@@ -347,6 +348,9 @@ export function registerCommands(context: ExtensionContext): void {
 			GerritExtensionCommands.DROP_QUICK_CHECKOUTS,
 			dropQuickCheckouts
 		)
+	);
+	context.subscriptions.push(
+		registerCommand(GerritExtensionCommands.CHANGE_GIT_REPO, pickGitRepo)
 	);
 
 	// Non-button separate commands

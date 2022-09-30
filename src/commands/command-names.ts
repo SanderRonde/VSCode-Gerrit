@@ -45,4 +45,5 @@ export enum GerritExtensionCommands {
 	QUICK_CHECKOUT_POP = 'gerrit.popQuickCheckout',
 	DROP_QUICK_CHECKOUT = 'gerrit.dropQuickCheckout',
 	DROP_QUICK_CHECKOUTS = 'gerrit.dropQuickCheckouts',
+	CHANGE_GIT_REPO = 'gerrit.changeGitRepo',
 }

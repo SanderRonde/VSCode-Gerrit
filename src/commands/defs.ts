@@ -290,11 +290,11 @@ export const views: {
 	'comments/comment/context': {
 		newCommentButtons: [
 			{
-				command: GerritExtensionCommands.CREATE_COMMENT_RESOLVED,
+				command: GerritExtensionCommands.CREATE_COMMENT_UNRESOLVED,
 				when: IS_GERRTIT_COMMENT_CONTROLLER,
 			},
 			{
-				command: GerritExtensionCommands.CREATE_COMMENT_UNRESOLVED,
+				command: GerritExtensionCommands.CREATE_COMMENT_RESOLVED,
 				when: IS_GERRTIT_COMMENT_CONTROLLER,
 			},
 			{
@@ -306,11 +306,11 @@ export const views: {
 	'comments/commentThread/context': {
 		newCommentButtons: [
 			{
-				command: GerritExtensionCommands.CREATE_COMMENT_RESOLVED,
+				command: GerritExtensionCommands.CREATE_COMMENT_UNRESOLVED,
 				when: IS_GERRTIT_COMMENT_CONTROLLER,
 			},
 			{
-				command: GerritExtensionCommands.CREATE_COMMENT_UNRESOLVED,
+				command: GerritExtensionCommands.CREATE_COMMENT_RESOLVED,
 				when: IS_GERRTIT_COMMENT_CONTROLLER,
 			},
 			{

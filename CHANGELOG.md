@@ -2,6 +2,10 @@
 
 All notable changes to the "gerrit" extension will be documented in this file.
 
+## 1.2.8
+
+-   Make unresolved comments the default
+
 ## 1.2.7
 
 -   Add support for multi-git-repo setups

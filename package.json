@@ -632,12 +632,12 @@
 			],
 			"comments/comment/context": [
 				{
-					"command": "gerrit.createCommentResolved",
+					"command": "gerrit.createCommentUnresolved",
 					"when": "commentController == gerrit",
 					"group": "newCommentButtons@1"
 				},
 				{
-					"command": "gerrit.createCommentUnresolved",
+					"command": "gerrit.createCommentResolved",
 					"when": "commentController == gerrit",
 					"group": "newCommentButtons@2"
 				},
@@ -649,12 +649,12 @@
 			],
 			"comments/commentThread/context": [
 				{
-					"command": "gerrit.createCommentResolved",
+					"command": "gerrit.createCommentUnresolved",
 					"when": "commentController == gerrit",
 					"group": "newCommentButtons@1"
 				},
 				{
-					"command": "gerrit.createCommentUnresolved",
+					"command": "gerrit.createCommentResolved",
 					"when": "commentController == gerrit",
 					"group": "newCommentButtons@2"
 				},

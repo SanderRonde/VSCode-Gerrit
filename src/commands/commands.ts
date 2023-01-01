@@ -55,8 +55,8 @@ import { GerritExtensionCommands } from './command-names';
 import { checkConnection } from '../lib/gerrit/gerritAPI';
 import { pickGitRepo } from '../lib/gerrit/gerrit';
 import { ExtensionContext, window } from 'vscode';
+import { commands, GerritCodicons } from './defs';
 import { tryExecAsync } from '../lib/git/gitCLI';
-import { commands } from './defs';
 
 async function checkoutChange(uri: string, changeID: string): Promise<boolean> {
 	const { success } = await tryExecAsync(
@@ -73,7 +73,7 @@ async function checkoutChange(uri: string, changeID: string): Promise<boolean> {
 }
 
 export function registerCommands(context: ExtensionContext): void {
-	const registerCommand = createAutoRegisterCommand(commands);
+	const registerCommand = createAutoRegisterCommand<GerritCodicons>(commands);
 
 	// Credentials/connection
 	context.subscriptions.push(

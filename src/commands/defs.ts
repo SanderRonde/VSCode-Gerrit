@@ -29,27 +29,24 @@ import {
 } from './when-conditions';
 import {
 	and,
+	CommandDefinition,
 	commentContains,
 	commentThreadContains,
+	DefaultCodiconStrings,
 	inParentheses,
 	or,
 	viewItemContains,
 } from 'vscode-generate-package-json';
 import { GerritExtensionCommands } from './command-names';
 
+type LocalIcons =
+	| 'src/images/icons/comment-down-dark.svg'
+	| 'src/images/icons/comment-down-light.svg'
+	| 'src/images/icons/comment-up-dark.svg'
+	| 'src/images/icons/comment-up-light.svg';
+export type GerritCodicons = DefaultCodiconStrings | LocalIcons;
 export const commands: {
-	[K in GerritExtensionCommands]: {
-		title: string;
-		enablement?: string;
-		icon?:
-			| string
-			| {
-					dark: string;
-					light: string;
-			  };
-		inCommandPalette: boolean | string;
-		keybinding?: string | true;
-	};
+	[K in GerritExtensionCommands]: CommandDefinition<GerritCodicons>;
 } = {
 	'gerrit.changeGitRepo': {
 		title: 'Change git repo',

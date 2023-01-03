@@ -2,6 +2,10 @@
 
 All notable changes to the "gerrit" extension will be documented in this file.
 
+## 1.2.9
+
+-   Don't show version warning when no version can be found
+
 ## 1.2.8
 
 -   Make unresolved comments the default

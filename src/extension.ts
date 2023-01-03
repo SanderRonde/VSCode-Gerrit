@@ -67,7 +67,7 @@ export async function activate(context: ExtensionContext): Promise<void> {
 	}
 
 	const version = await (await getAPI())?.getGerritVersion();
-	if (!version || version.isSmallerThan(new VersionNumber(3, 4, 0))) {
+	if (version?.isSmallerThan(new VersionNumber(3, 4, 0))) {
 		// Pre-unsupported versions check if force-enable is enabled
 		if (!getConfiguration().get('gerrit.forceEnable')) {
 			// If not, ask user what to do

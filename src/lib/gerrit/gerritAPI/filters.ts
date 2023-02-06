@@ -5,7 +5,6 @@ export enum DefaultChangeFilter {
 	IS_WATCHED = 'is:watched',
 	IS_WIP = 'is:wip',
 	NOT_IS_WIP = '-is:wip',
-	NOT_IS_IGNORED = '-is:ignored',
 	HAS_DRAFT = 'has:draft',
 	OWNER_SELF = 'owner:self',
 	NOT_OWNER_SELF = '-owner:self',

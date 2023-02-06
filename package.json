@@ -2,7 +2,7 @@
 	"name": "vscode--gerrit",
 	"displayName": "Gerrit",
 	"description": "VSCode gerrit integration",
-	"version": "1.2.10",
+	"version": "1.2.8",
 	"engines": {
 		"vscode": "^1.62.0",
 		"node": ">=14.16.0"
@@ -1089,8 +1089,7 @@
 											"filters": [
 												"is:open",
 												"owner:self",
-												"-is:wip",
-												"-is:ignored"
+												"-is:wip"
 											]
 										},
 										{
@@ -1103,7 +1102,6 @@
 												"is:open",
 												"-owner:self",
 												"-is:wip",
-												"-is:ignored",
 												"reviewer:self OR assignee:self"
 											]
 										},
@@ -1115,7 +1113,6 @@
 											"extraEntriesFetchCount": 25,
 											"filters": [
 												"is:open",
-												"-is:ignored",
 												"cc:self"
 											]
 										},
@@ -1127,7 +1124,6 @@
 											"extraEntriesFetchCount": 25,
 											"filters": [
 												"is:closed",
-												"-is:ignored",
 												"-is:wip OR owner:self",
 												"owner:self OR reviewer:self OR assignee:self OR cc:self"
 											]
@@ -1172,8 +1168,7 @@
 									"filters": [
 										"is:open",
 										"owner:self",
-										"-is:wip",
-										"-is:ignored"
+										"-is:wip"
 									]
 								},
 								{
@@ -1186,7 +1181,6 @@
 										"is:open",
 										"-owner:self",
 										"-is:wip",
-										"-is:ignored",
 										"reviewer:self OR assignee:self"
 									]
 								},
@@ -1198,7 +1192,6 @@
 									"extraEntriesFetchCount": 25,
 									"filters": [
 										"is:open",
-										"-is:ignored",
 										"cc:self"
 									]
 								},

@@ -2,6 +2,10 @@
 
 All notable changes to the "gerrit" extension will be documented in this file.
 
+## 1.2.11
+
+-   Remove deprecated `is:ignored` filter
+
 ## 1.2.10
 
 -   Just a version bump

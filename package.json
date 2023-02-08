@@ -1203,7 +1203,6 @@
 									"extraEntriesFetchCount": 25,
 									"filters": [
 										"is:closed",
-										"-is:ignored",
 										"-is:wip OR owner:self",
 										"owner:self OR reviewer:self OR assignee:self OR cc:self"
 									]

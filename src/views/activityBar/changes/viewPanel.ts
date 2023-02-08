@@ -82,9 +82,7 @@ export class ViewPanel
 	}
 
 	private _getFilters(): string[] {
-		return this._panel.filters.filter(
-			(filter) => !filter.includes('is:ignored')
-		);
+		return this._panel.filters;
 	}
 
 	protected async _getChanges(

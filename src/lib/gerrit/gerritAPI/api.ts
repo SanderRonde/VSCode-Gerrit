@@ -631,6 +631,15 @@ export class GerritAPI {
 			  ) => void | Promise<void>),
 		...withValues: GerritAPIWith[]
 	): Subscribable<GerritChange[]> {
+		const filterParams: [string, string][] = [];
+		for (const filter of filters) {
+			const subFilters = filter.filter((subFilter) => {
+				return !subFilter.includes('is:ignored');
+			});
+
+			filterParams.push(['q', subFilters.join(' ')]);
+		}
+
 		return APISubscriptionManager.changesSubscriptions.createFetcher(
 			{
 				filters,
@@ -644,12 +653,7 @@ export class GerritAPI {
 					{
 						...this._get,
 						searchParams: new URLSearchParams([
-							...filters.map((filter) => {
-								return ['q', filter.join(' ')] as [
-									string,
-									string
-								];
-							}),
+							...filterParams,
 							...withValues.map(
 								(v) => ['o', v] as [string, string]
 							),

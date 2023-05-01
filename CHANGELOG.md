@@ -2,6 +2,10 @@
 
 All notable changes to the "gerrit" extension will be documented in this file.
 
+## 1.2.12
+
+-   Don't post "this change is ready for review" if change did not go from WIP to ready
+
 ## 1.2.11
 
 -   Remove deprecated `is:ignored` filter

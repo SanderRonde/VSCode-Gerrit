@@ -1281,7 +1281,7 @@ export class GerritAPI {
 								state: 'REVIEWER',
 							})),
 						],
-						ready: true,
+						ready: detail.isWip,
 					})
 				),
 			}

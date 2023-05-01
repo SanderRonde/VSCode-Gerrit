@@ -39,6 +39,7 @@ export class GerritChangeDetail {
 		message: string;
 		revisionNumber: number;
 	}[];
+	public isWip: boolean;
 
 	public fetchedAt = new DateTime(new Date());
 
@@ -55,6 +56,7 @@ export class GerritChangeDetail {
 		this.insertions = response.insertions;
 		this.deletions = response.deletions;
 		this.number = response._number;
+		this.isWip = !response.has_review_started;
 		this.owner = new GerritUser(response.owner);
 		this.labels = response.labels;
 		this.permittedLabels = response.permitted_labels;

@@ -220,6 +220,7 @@ export interface GerritChangeDetailResponse {
 	_number: number;
 	owner: GerritDetailedUserResponse;
 	labels: GerritDetailedChangeLabels;
+	has_review_started: boolean;
 	permitted_labels: Record<string, string[]>;
 	removable_reviewers: GerritDetailedUserResponse[];
 	reviewers: {

@@ -9,7 +9,6 @@ export enum DefaultChangeFilter {
 	OWNER_SELF = 'owner:self',
 	NOT_OWNER_SELF = '-owner:self',
 	REVIEWER_SELF = 'reviewer:self',
-	ASSIGNEE_SELF = 'assignee:self',
 	ATTENTION_SELF = 'attention:self',
 	CC_SELF = 'cc:self',
 }

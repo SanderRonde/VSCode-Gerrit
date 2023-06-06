@@ -172,10 +172,6 @@ const searchFilterMap: SearchFilterMap = {
 			}
 		},
 	},
-	assignee: {
-		description: 'Changes assigned to the given user',
-		items: userFetcher,
-	},
 	attention: {
 		description: 'Changes whose attention set includes the given user',
 		items: userFetcher,

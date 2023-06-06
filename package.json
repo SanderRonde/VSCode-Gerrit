@@ -1102,7 +1102,7 @@
 												"is:open",
 												"-owner:self",
 												"-is:wip",
-												"reviewer:self OR assignee:self"
+												"reviewer:self"
 											]
 										},
 										{
@@ -1125,7 +1125,7 @@
 											"filters": [
 												"is:closed",
 												"-is:wip OR owner:self",
-												"owner:self OR reviewer:self OR assignee:self OR cc:self"
+												"owner:self OR reviewer:self OR cc:self"
 											]
 										}
 									]
@@ -1181,7 +1181,7 @@
 										"is:open",
 										"-owner:self",
 										"-is:wip",
-										"reviewer:self OR assignee:self"
+										"reviewer:self"
 									]
 								},
 								{
@@ -1204,7 +1204,7 @@
 									"filters": [
 										"is:closed",
 										"-is:wip OR owner:self",
-										"owner:self OR reviewer:self OR assignee:self OR cc:self"
+										"owner:self OR reviewer:self OR cc:self"
 									]
 								}
 							]

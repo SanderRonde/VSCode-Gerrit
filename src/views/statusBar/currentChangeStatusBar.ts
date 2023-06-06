@@ -84,7 +84,7 @@ export async function selectChange(includeMaster: boolean = false): Promise<
 						DefaultChangeFilter.ATTENTION_SELF,
 						DefaultChangeFilter.OWNER_SELF,
 						DefaultChangeFilter.CC_SELF,
-						DefaultChangeFilter.REVIEWER_SELF,
+						DefaultChangeFilter.REVIEWER_SELF
 					),
 				],
 			],

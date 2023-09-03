@@ -155,6 +155,15 @@ const _ReviewPane: React.VFC<ReviewPaneProps> = ({ currentState }) => {
 
 	const onSubmit = React.useCallback(() => {
 		sendMessage({
+			type: 'submit',
+			body: {
+				changeID: currentState.changeID,
+			},
+		});
+	}, [currentState.changeID]);
+
+	const onPost = React.useCallback(() => {
+		sendMessage({
 			type: 'publish',
 			body: {
 				changeID: currentState.changeID,
@@ -331,23 +340,42 @@ const _ReviewPane: React.VFC<ReviewPaneProps> = ({ currentState }) => {
 					))}
 			</div>
 			<div style={styles.spacing}></div>
-			{currentState.isOwnWIP && (
+			{currentState.mergeable && (
 				<StateButton
-					title="Post comments and start review for this patch"
+					title="Submit patch"
 					onSubmit={onSubmit}
 					currentState={buttonState}
 					onStateUpdate={setButtonState}
 				>
-					<div style={styles.rightPadding}>
-						{'Send and Start Review'}
-					</div>
-					<span slot="end" className="codicon codicon-add"></span>
+					<div style={styles.rightPadding}>{'Submit patch'}</div>
+					<span
+						slot="end"
+						className="codicon codicon-check-all"
+					></span>
 				</StateButton>
 			)}
-			{!currentState.isOwnWIP && (
+			{currentState.isOwnWIP ? (
+				<div
+					style={{
+						marginTop: 10,
+					}}
+				>
+					<StateButton
+						title="Post comments and start review for this patch"
+						onSubmit={onPost}
+						currentState={buttonState}
+						onStateUpdate={setButtonState}
+					>
+						<div style={styles.rightPadding}>
+							{'Send and Start Review'}
+						</div>
+						<span slot="end" className="codicon codicon-add"></span>
+					</StateButton>
+				</div>
+			) : (
 				<StateButton
 					title="Post comments"
-					onSubmit={onSubmit}
+					onSubmit={onPost}
 					currentState={buttonState}
 					onStateUpdate={setButtonState}
 				>

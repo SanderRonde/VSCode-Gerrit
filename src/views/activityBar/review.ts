@@ -11,6 +11,7 @@ import {
 	GetPeopleMessage,
 	PublishMessage,
 	ReviewWebviewMessage,
+	SubmitMessage,
 } from './review/messaging';
 import { GerritChangeDetail } from '../../lib/gerrit/gerritAPI/gerritChangeDetail';
 import { storageGet, StorageScope, storageSet } from '../../lib/vscode/storage';
@@ -146,7 +147,7 @@ class ReviewWebviewProvider implements WebviewViewProvider, Disposable {
 			GerritAPIWith.ALL_REVISIONS,
 		]);
 		const draftCommentSubscription = api.getDraftComments(changeID);
-		const [change, detail, reviewers, cc, draftComments, self] =
+		const [change, detail, reviewers, cc, draftComments, self, mergeable] =
 			await Promise.all([
 				changeSubscription.getValue(),
 				api.getChangeDetail(changeID),
@@ -154,6 +155,7 @@ class ReviewWebviewProvider implements WebviewViewProvider, Disposable {
 				api.suggestCC(changeID),
 				draftCommentSubscription.getValue(),
 				api.getSelf(),
+				api.getChangeMergable(changeID),
 			]);
 
 		[changeSubscription, draftCommentSubscription].map((s) =>
@@ -170,7 +172,8 @@ class ReviewWebviewProvider implements WebviewViewProvider, Disposable {
 			!reviewers ||
 			!cc ||
 			!draftComments ||
-			!self
+			!self ||
+			!mergeable
 		) {
 			return undefined;
 		}
@@ -215,6 +218,7 @@ class ReviewWebviewProvider implements WebviewViewProvider, Disposable {
 			isNew: change.status === GerritChangeStatus.NEW,
 			fetchedAt:
 				change.fetchedAt.timestamp() + detail.fetchedAt.timestamp(),
+			mergeable: mergeable.mergeable,
 		};
 	}
 
@@ -356,6 +360,30 @@ class ReviewWebviewProvider implements WebviewViewProvider, Disposable {
 		}
 	}
 
+	private async _handleSubmitMessage(
+		msg: SubmitMessage,
+		srcView: TypedWebview<ReviewWebviewMessage>
+	): Promise<void> {
+		const api = await getAPI();
+		if (!api) {
+			await srcView.postMessage({
+				type: 'publishFailed',
+			});
+			return;
+		}
+
+		const setReviewSuccess = await api.submit(msg.body.changeID);
+		if (setReviewSuccess) {
+			await srcView.postMessage({
+				type: 'publishSuccess',
+			});
+		} else {
+			await srcView.postMessage({
+				type: 'publishFailed',
+			});
+		}
+	}
+
 	private async _handleMessage(
 		msg: ReviewWebviewMessage,
 		srcView: TypedWebview<ReviewWebviewMessage>
@@ -376,6 +404,8 @@ class ReviewWebviewProvider implements WebviewViewProvider, Disposable {
 			await this._handleCommentUpdateMessage(msg);
 		} else if (msg.type === 'publish') {
 			await this._handlePublishMessage(msg, srcView);
+		} else if (msg.type === 'submit') {
+			await this._handleSubmitMessage(msg, srcView);
 		}
 	}
 

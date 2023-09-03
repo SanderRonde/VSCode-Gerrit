@@ -18,6 +18,7 @@ export interface ChangeState {
 	}[];
 	isNew: boolean;
 	fetchedAt: number;
+	mergeable: boolean;
 }
 
 export interface ReviewPerson {

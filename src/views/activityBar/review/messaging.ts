@@ -30,6 +30,13 @@ export interface PublishMessage {
 	};
 }
 
+export interface SubmitMessage {
+	type: 'submit';
+	body: {
+		changeID: string;
+	};
+}
+
 /**
  * Review `postMessage` message types and their bodies.
  */
@@ -63,4 +70,5 @@ export type ReviewWebviewMessage =
 	  }
 	| {
 			type: 'publishSuccess';
-	  };
+	  }
+	| SubmitMessage;

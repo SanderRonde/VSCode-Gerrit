@@ -1,3 +1,5 @@
+import { MergeStrategy, SubmitType } from './gerritChangeMergeable';
+
 export enum GerritChangeStatus {
 	NEW = 'NEW',
 	MERGED = 'MERGED',
@@ -255,3 +257,13 @@ export type GerritSuggestedReviewerResponse = (
 )[];
 
 export type GerritFilesResponse = Record<string, GerritRevisionFile>;
+
+export interface GerritMergeableInfoResponse {
+	submit_type: SubmitType;
+	strategy?: MergeStrategy;
+	mergeable: boolean;
+	commit_merged: boolean;
+	content_merged: boolean;
+	conflicts?: string[];
+	mergeable_into?: string;
+}

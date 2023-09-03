@@ -8,6 +8,7 @@ import {
 	GerritDetailedUserResponse,
 	GerritFilesResponse,
 	GerritGroupsResponse,
+	GerritMergeableInfoResponse,
 	GerritProjectsResponse,
 	GerritSuggestedReviewerResponse,
 	GerritTopicResponse,
@@ -30,6 +31,7 @@ import got, { OptionsOfTextResponseBody, Response } from 'got/dist/source';
 import { ChangeField } from '../../subscriptions/changeSubscription';
 import { DefaultChangeFilter, GerritChangeFilter } from './filters';
 import { GerritComment, GerritDraftComment } from './gerritComment';
+import { GerritChangeMergeable } from './gerritChangeMergeable';
 import { FileMeta } from '../../../providers/fileProvider';
 import { GerritChangeDetail } from './gerritChangeDetail';
 import { GerritFile, TextContent } from './gerritFile';
@@ -1170,6 +1172,23 @@ export class GerritAPI {
 		return new GerritChangeDetail(json);
 	}
 
+	public async getChangeMergable(
+		changeID: string
+	): Promise<GerritChangeMergeable | null> {
+		const response = await this._tryRequest(
+			this.getURL(`changes/${changeID}/revisions/current//mergeable`),
+			this._get
+		);
+
+		const json =
+			this._handleResponse<GerritMergeableInfoResponse>(response);
+		if (!json) {
+			return null;
+		}
+
+		return new GerritChangeMergeable(json);
+	}
+
 	public async suggestReviewers(
 		changeID: string,
 		query?: string,
@@ -1293,6 +1312,23 @@ export class GerritAPI {
 		}
 
 		return true;
+	}
+
+	public async submit(changeID: string): Promise<boolean> {
+		const response = await this._tryRequest(
+			this.getURL(`changes/${changeID}/submit`),
+			{
+				...this._post,
+				body: JSON.stringify({}),
+			}
+		);
+
+		const json = this._handleResponse<Record<string, unknown>>(response);
+		if (!json) {
+			return false;
+		}
+
+		return json.status === 'MERGED';
 	}
 
 	public async getGerritVersion(): Promise<VersionNumber | null> {

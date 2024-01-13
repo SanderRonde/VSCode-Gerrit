@@ -105,7 +105,7 @@ export async function isUsingGerrit(silent: boolean = false): Promise<boolean> {
 	} else {
 		const config = getConfiguration().get('gerrit.gitRepo');
 		const match = gerritRepos.find(
-			(repo) => repo.rootUri.toString() === config
+			(repo) => repo.rootUri.fsPath === config
 		);
 		if (match) {
 			gerritRepo = match;

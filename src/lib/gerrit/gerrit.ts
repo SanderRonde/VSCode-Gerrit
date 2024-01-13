@@ -3,7 +3,7 @@ import {
 	GitExtension,
 	Repository,
 } from '../../types/vscode-extension-git';
-import { extensions, QuickPickItem, window } from 'vscode';
+import { ConfigurationTarget, extensions, QuickPickItem, window } from 'vscode';
 import { getConfiguration } from '../vscode/config';
 import { isGerritCommit } from '../git/commit';
 import { log } from '../util/log';
@@ -67,7 +67,11 @@ export async function pickGitRepo(): Promise<boolean> {
 		return false;
 	}
 
-	await getConfiguration().update('gerrit.gitRepo', quickPickChoice.label);
+	await getConfiguration().update(
+		'gerrit.gitRepo',
+		quickPickChoice.label,
+		ConfigurationTarget.Workspace
+	);
 	gerritRepo = gerritRepos.find(
 		(repo) => repo.rootUri.fsPath === quickPickChoice.label
 	)!;

@@ -2,6 +2,15 @@
 
 All notable changes to the "gerrit" extension will be documented in this file.
 
+## 1.2.16
+
+-   Fix multiple git repos sometimes not working (#49)
+
+## 1.2.13
+
+-   Remove use of depracated `assignee` operator
+-   Allow posting comments without submitting for review
+
 ## 1.2.12
 
 -   Don't post "this change is ready for review" if change did not go from WIP to ready

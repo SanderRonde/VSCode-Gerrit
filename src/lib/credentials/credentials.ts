@@ -1,9 +1,9 @@
 import { MultiStepEntry, MultiStepper } from '../vscode/multiStep';
 import { getGitReviewFileCached } from './gitReviewFile';
+import { ConfigurationTarget, window } from 'vscode';
 import { getConfiguration } from '../vscode/config';
 import { GerritAPI } from '../gerrit/gerritAPI/api';
 import { optionalArrayEntry } from '../util/util';
-import { ConfigurationTarget } from 'vscode';
 import got from 'got/dist/source';
 
 function applyTrailingSlashFix(url: string): string {
@@ -38,9 +38,10 @@ export async function getGerritURL(): Promise<string | null> {
 	return null;
 }
 
-export async function enterCredentials(): Promise<void> {
+async function enterBasicCredentials(): Promise<void> {
 	const config = getConfiguration();
 	const initialURLValue = await getGerritURL();
+
 	const urlStep = new MultiStepEntry({
 		placeHolder: 'https://gerrithost.com',
 		prompt: 'Enter the URL of your Gerrit server',
@@ -85,7 +86,7 @@ export async function enterCredentials(): Promise<void> {
 				};
 			}
 
-			const api = new GerritAPI(url, username, password);
+			const api = new GerritAPI(url, username, password, null);
 			if (!(await api.testConnection())) {
 				return {
 					isValid: false,
@@ -123,4 +124,95 @@ export async function enterCredentials(): Promise<void> {
 			ConfigurationTarget.Global
 		),
 	]);
+
+	await window.showInformationMessage('Gerrit connection successful!');
+}
+
+async function enterCookieCredentials(): Promise<void> {
+	const config = getConfiguration();
+	const initialURLValue = await getGerritURL();
+
+	const urlStep = new MultiStepEntry({
+		placeHolder: 'https://gerrithost.com',
+		prompt: 'Enter the URL of your Gerrit server',
+		value: initialURLValue ?? undefined,
+		validate: async (url: string) => {
+			try {
+				await got(url);
+				return { isValid: true };
+			} catch (e) {
+				return {
+					isValid: false,
+					message: `Failed to reach URL: "${e as string}""`,
+				};
+			}
+		},
+	});
+	const cookieStep = new MultiStepEntry({
+		placeHolder: '34-char-long alphanumeric string',
+		prompt: (stepper) =>
+			`Enter your Gerrit authentication cookie (go to ${
+				stepper.values[0] ?? 'www.yourgerrithost.com'
+			} and copy the value of the GerritAccount cookie)`,
+		value: config.get('gerrit.auth.cookie'),
+		validate: async (cookie, stepper) => {
+			const [url] = stepper.values;
+			if (!url) {
+				return {
+					isValid: false,
+					message: 'Missing URL',
+				};
+			}
+
+			const api = new GerritAPI(url, null, null, cookie);
+			if (!(await api.testConnection())) {
+				return {
+					isValid: false,
+					message: 'Invalid URL or cookie',
+				};
+			}
+
+			return { isValid: true };
+		},
+	});
+	const result = await new MultiStepper([urlStep, cookieStep]).run();
+
+	if (result === undefined) {
+		// User quit
+		return;
+	}
+
+	const [url, cookie] = result;
+	await Promise.all([
+		...optionalArrayEntry(url !== initialURLValue, () =>
+			config.update('gerrit.auth.url', url, ConfigurationTarget.Global)
+		),
+		config.update('gerrit.auth.cookie', cookie, ConfigurationTarget.Global),
+	]);
+
+	await window.showInformationMessage('Gerrit connection successful!');
+}
+
+export async function enterCredentials(): Promise<void> {
+	const choice = await window.showQuickPick(
+		[
+			{
+				label: 'Enter username and password',
+			},
+			{
+				label: 'Enter cookie',
+			},
+		] as const,
+		{
+			ignoreFocusOut: true,
+			placeHolder: 'How do you want to authenticate?',
+			title: 'Gerrit Authentication',
+		}
+	);
+
+	if (choice?.label === 'Enter username and password') {
+		await enterBasicCredentials();
+	} else {
+		await enterCookieCredentials();
+	}
 }

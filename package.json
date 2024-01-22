@@ -953,6 +953,11 @@
 					"title": "Gerrit password",
 					"description": "Gerrit password (see https://{your_gerit_host}/settings/#HTTPCredentials)"
 				},
+				"gerrit.auth.cookie": {
+					"type": "string",
+					"title": "Gerrit cookie",
+					"description": "Gerrit authentication cookie"
+				},
 				"gerrit.auth.url": {
 					"type": "string",
 					"title": "URL of the gerrit server to use",

@@ -207,9 +207,17 @@ export class GerritAPI {
 	);
 
 	private get _get(): OptionsOfTextResponseBody {
+		const cookie = this._cookie;
 		return {
 			method: 'GET',
 			headers: this._headers(false),
+			cookieJar: cookie
+				? {
+						getCookieString: () =>
+							Promise.resolve(`GerritAccount=${cookie}`),
+						setCookie: () => {},
+				  }
+				: undefined,
 		};
 	}
 
@@ -238,6 +246,7 @@ export class GerritAPI {
 		private readonly _url: string | null,
 		private readonly _username: string | null,
 		private readonly _password: string | null,
+		private readonly _cookie: string | null,
 		private readonly _allowFail: boolean = false
 	) {}
 
@@ -257,16 +266,18 @@ export class GerritAPI {
 	}
 
 	private _headers(withContent: boolean): Record<string, string | undefined> {
-		return {
-			Authorization:
+		const headers: Record<string, string | undefined> = {};
+		if (withContent) {
+			headers['Content-Type'] = 'application/json';
+		}
+		if (this._username && this._password) {
+			headers['Authorization'] =
 				'Basic ' +
-				Buffer.from(
-					`${this._username ?? '?'}:${this._password ?? '?'}`
-				).toString('base64'),
-			...optionalObjectProperty({
-				'Content-Type': withContent ? 'application/json' : undefined,
-			}),
-		};
+				Buffer.from(`${this._username}:${this._password}`).toString(
+					'base64'
+				);
+		}
+		return headers;
 	}
 
 	private _stripMagicPrefix(body: string): string {
@@ -355,10 +366,6 @@ export class GerritAPI {
 			body: string
 		) => void | Promise<void>
 	): Promise<(Response<string> & { strippedBody: string }) | null> {
-		if (!this._username || !this._password || !this._url) {
-			return null;
-		}
-
 		log(`${body?.method || 'GET'} request to "${url}"`);
 		if (shouldDebugRequests()) {
 			logDev({

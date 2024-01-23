@@ -961,7 +961,7 @@
 				"gerrit.extraCookies": {
 					"type": "object",
 					"title": "Extra Gerrit cookies",
-					"description": "Other cookies besides GerritAccount to send on every request"
+					"description": "Other cookies besides the authentication cookie to send on every request"
 				},
 				"gerrit.auth.url": {
 					"type": "string",

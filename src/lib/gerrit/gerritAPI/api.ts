@@ -211,24 +211,24 @@ export class GerritAPI {
 	);
 
 	private get _cookieJar(): PromiseCookieJar | undefined {
-		const cookie: Array<[string, string]> = this._cookie
-			? [['GerritAccount', this._cookie]]
-			: [];
-		const extraCookies = this._extraCookies
-			? [...Object.entries(this._extraCookies)]
-			: [];
-		const allCookies = cookie
-			.concat(extraCookies)
-			.map(([key, value]: [string, string]) => `${key}=${value}`)
+		const cookies = this._extraCookies ?? {};
+		if (this._cookie) {
+			cookies['GerritAccount'] = this._cookie;
+		}
+
+		if (Object.entries(cookies).length === 0) {
+			return;
+		}
+
+		const cookieString = Object.entries(cookies)
+			.map(([key, value]) => `${key}=${value}`)
 			.join(';');
-		return allCookies != ''
-			? {
-					getCookieString: () => {
-						return Promise.resolve(allCookies);
-					},
-					setCookie: () => Promise.resolve(),
-			  }
-			: undefined;
+		return {
+			getCookieString: () => {
+				return Promise.resolve(cookieString);
+			},
+			setCookie: () => Promise.resolve(),
+		};
 	}
 
 	private get _get(): OptionsOfTextResponseBody {

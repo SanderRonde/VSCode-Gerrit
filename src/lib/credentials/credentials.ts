@@ -41,6 +41,7 @@ export async function getGerritURL(): Promise<string | null> {
 async function enterBasicCredentials(): Promise<void> {
 	const config = getConfiguration();
 	const initialURLValue = await getGerritURL();
+	const extraCookies = config.get('gerrit.extraCookies');
 
 	const urlStep = new MultiStepEntry({
 		placeHolder: 'https://gerrithost.com',
@@ -86,7 +87,13 @@ async function enterBasicCredentials(): Promise<void> {
 				};
 			}
 
-			const api = new GerritAPI(url, username, password, null);
+			const api = new GerritAPI(
+				url,
+				username,
+				password,
+				null,
+				extraCookies ?? null
+			);
 			if (!(await api.testConnection())) {
 				return {
 					isValid: false,
@@ -131,6 +138,7 @@ async function enterBasicCredentials(): Promise<void> {
 async function enterCookieCredentials(): Promise<void> {
 	const config = getConfiguration();
 	const initialURLValue = await getGerritURL();
+	const extraCookies = config.get('gerrit.extraCookies');
 
 	const urlStep = new MultiStepEntry({
 		placeHolder: 'https://gerrithost.com',
@@ -164,7 +172,13 @@ async function enterCookieCredentials(): Promise<void> {
 				};
 			}
 
-			const api = new GerritAPI(url, null, null, cookie);
+			const api = new GerritAPI(
+				url,
+				null,
+				null,
+				cookie,
+				extraCookies ?? null
+			);
 			if (!(await api.testConnection())) {
 				return {
 					isValid: false,

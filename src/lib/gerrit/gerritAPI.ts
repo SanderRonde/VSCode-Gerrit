@@ -32,6 +32,7 @@ export async function checkConnection(): Promise<void> {
 	const username = config.get('gerrit.auth.username');
 	const password = config.get('gerrit.auth.password');
 	const cookie = config.get('gerrit.auth.cookie');
+	const extraCookies = config.get('gerrit.extraCookies');
 
 	if (!url || ((!username || !password) && !cookie)) {
 		await showInvalidSettingsMessage(
@@ -44,7 +45,8 @@ export async function checkConnection(): Promise<void> {
 		url,
 		username ?? null,
 		password ?? null,
-		cookie ?? null
+		cookie ?? null,
+		extraCookies ?? null
 	);
 	if (!(await api.testConnection())) {
 		await showInvalidSettingsMessage(
@@ -64,6 +66,7 @@ export async function createAPI(
 	const username = config.get('gerrit.auth.username');
 	const password = config.get('gerrit.auth.password');
 	const cookie = config.get('gerrit.auth.cookie');
+	const extraCookies = config.get('gerrit.extraCookies');
 
 	if (!url || ((!username || !password) && !cookie)) {
 		await setContextProp('gerrit:connected', false);
@@ -88,6 +91,7 @@ export async function createAPI(
 		username ?? null,
 		password ?? null,
 		cookie ?? null,
+		extraCookies ?? null,
 		allowFail
 	);
 	await setContextProp('gerrit:connected', true);
@@ -125,7 +129,7 @@ export async function getAPIForSubscription(
 
 	const newAPI = await createAPI(allowFail);
 	if (!newAPI) {
-		return new GerritAPI(null, null, null, null, allowFail);
+		return new GerritAPI(null, null, null, null, null, allowFail);
 	}
 	if (allowFail) {
 		failAllowedAPI = newAPI;

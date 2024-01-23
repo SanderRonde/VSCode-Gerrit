@@ -958,6 +958,11 @@
 					"title": "Gerrit cookie",
 					"description": "Gerrit authentication cookie"
 				},
+				"gerrit.extraCookies": {
+					"type": "object",
+					"title": "Extra Gerrit cookies",
+					"description": "Other cookies besides the authentication cookie to send on every request"
+				},
 				"gerrit.auth.url": {
 					"type": "string",
 					"title": "URL of the gerrit server to use",

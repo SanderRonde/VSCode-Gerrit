@@ -20,6 +20,11 @@ import {
 	MultiLevelCacheContainer,
 } from '../../util/cache';
 import { PATCHSET_LEVEL_KEY } from '../../../views/activityBar/changes/changeTreeView/patchSetLevelCommentsTreeView';
+import got, {
+	OptionsOfTextResponseBody,
+	PromiseCookieJar,
+	Response,
+} from 'got/dist/source';
 import { fileCache } from '../../../views/activityBar/changes/changeTreeView/file/fileCache';
 import {
 	APISubscriptionManager,
@@ -27,7 +32,6 @@ import {
 } from '../../subscriptions/subscriptions';
 import { PatchsetDescription } from '../../../views/activityBar/changes/changeTreeView';
 import { optionalArrayEntry, optionalObjectProperty } from '../../util/util';
-import got, { OptionsOfTextResponseBody, Response } from 'got/dist/source';
 import { ChangeField } from '../../subscriptions/changeSubscription';
 import { DefaultChangeFilter, GerritChangeFilter } from './filters';
 import { GerritComment, GerritDraftComment } from './gerritComment';
@@ -206,18 +210,32 @@ export class GerritAPI {
 		'api.getGroups'
 	);
 
+	private get _cookieJar(): PromiseCookieJar | undefined {
+		const cookies = this._extraCookies ?? {};
+		if (this._cookie) {
+			cookies['GerritAccount'] = this._cookie;
+		}
+
+		if (Object.entries(cookies).length === 0) {
+			return;
+		}
+
+		const cookieString = Object.entries(cookies)
+			.map(([key, value]) => `${key}=${value}`)
+			.join(';');
+		return {
+			getCookieString: () => {
+				return Promise.resolve(cookieString);
+			},
+			setCookie: () => Promise.resolve(),
+		};
+	}
+
 	private get _get(): OptionsOfTextResponseBody {
-		const cookie = this._cookie;
 		return {
 			method: 'GET',
 			headers: this._headers(false),
-			cookieJar: cookie
-				? {
-						getCookieString: () =>
-							Promise.resolve(`GerritAccount=${cookie}`),
-						setCookie: () => {},
-				  }
-				: undefined,
+			cookieJar: this._cookieJar,
 		};
 	}
 
@@ -225,6 +243,7 @@ export class GerritAPI {
 		return {
 			method: 'POST',
 			headers: this._headers(true),
+			cookieJar: this._cookieJar,
 		};
 	}
 
@@ -232,6 +251,7 @@ export class GerritAPI {
 		return {
 			method: 'PUT',
 			headers: this._headers(true),
+			cookieJar: this._cookieJar,
 		};
 	}
 
@@ -239,6 +259,7 @@ export class GerritAPI {
 		return {
 			method: 'DELETE',
 			headers: this._headers(false),
+			cookieJar: this._cookieJar,
 		};
 	}
 
@@ -247,6 +268,7 @@ export class GerritAPI {
 		private readonly _username: string | null,
 		private readonly _password: string | null,
 		private readonly _cookie: string | null,
+		private readonly _extraCookies: Record<string, string> | null,
 		private readonly _allowFail: boolean = false
 	) {}
 

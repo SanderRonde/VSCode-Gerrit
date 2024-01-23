@@ -27,7 +27,7 @@ import {
 } from '../../subscriptions/subscriptions';
 import { PatchsetDescription } from '../../../views/activityBar/changes/changeTreeView';
 import { optionalArrayEntry, optionalObjectProperty } from '../../util/util';
-import got, { OptionsOfTextResponseBody, Response } from 'got/dist/source';
+import got, { OptionsOfTextResponseBody, PromiseCookieJar, Response } from 'got/dist/source';
 import { ChangeField } from '../../subscriptions/changeSubscription';
 import { DefaultChangeFilter, GerritChangeFilter } from './filters';
 import { GerritComment, GerritDraftComment } from './gerritComment';
@@ -206,18 +206,25 @@ export class GerritAPI {
 		'api.getGroups'
 	);
 
+	private get _cookieJar(): PromiseCookieJar | undefined {
+		const cookie: Array<[string, string]> = this._cookie ? [["GerritAccount", this._cookie]] : [];
+		const extraCookies = this._extraCookies ? [...Object.entries(this._extraCookies)] : [];
+		const allCookies = cookie.concat(extraCookies).map(([key, value]: [string, string]) => `${key}=${value}`).join(";");
+		return allCookies != ""
+			? {
+				getCookieString: () => {
+					return Promise.resolve(allCookies)
+				},
+				setCookie: () => Promise.resolve(),
+			}
+			: undefined;
+	}
+
 	private get _get(): OptionsOfTextResponseBody {
-		const cookie = this._cookie;
 		return {
 			method: 'GET',
 			headers: this._headers(false),
-			cookieJar: cookie
-				? {
-						getCookieString: () =>
-							Promise.resolve(`GerritAccount=${cookie}`),
-						setCookie: () => {},
-				  }
-				: undefined,
+			cookieJar: this._cookieJar,
 		};
 	}
 
@@ -225,6 +232,7 @@ export class GerritAPI {
 		return {
 			method: 'POST',
 			headers: this._headers(true),
+			cookieJar: this._cookieJar,
 		};
 	}
 
@@ -232,6 +240,7 @@ export class GerritAPI {
 		return {
 			method: 'PUT',
 			headers: this._headers(true),
+			cookieJar: this._cookieJar,
 		};
 	}
 
@@ -239,6 +248,7 @@ export class GerritAPI {
 		return {
 			method: 'DELETE',
 			headers: this._headers(false),
+			cookieJar: this._cookieJar
 		};
 	}
 
@@ -247,8 +257,9 @@ export class GerritAPI {
 		private readonly _username: string | null,
 		private readonly _password: string | null,
 		private readonly _cookie: string | null,
+		private readonly _extraCookies: Record<string, string> | null,
 		private readonly _allowFail: boolean = false
-	) {}
+	) { }
 
 	public static async performRequest(
 		url: string,

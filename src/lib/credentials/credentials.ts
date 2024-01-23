@@ -86,7 +86,7 @@ async function enterBasicCredentials(): Promise<void> {
 				};
 			}
 
-			const api = new GerritAPI(url, username, password, null);
+			const api = new GerritAPI(url, username, password, null, null);
 			if (!(await api.testConnection())) {
 				return {
 					isValid: false,
@@ -164,7 +164,7 @@ async function enterCookieCredentials(): Promise<void> {
 				};
 			}
 
-			const api = new GerritAPI(url, null, null, cookie);
+			const api = new GerritAPI(url, null, null, cookie, null);
 			if (!(await api.testConnection())) {
 				return {
 					isValid: false,

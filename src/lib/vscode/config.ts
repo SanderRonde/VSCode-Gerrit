@@ -39,6 +39,7 @@ interface ConfigSettings {
 	'gerrit.auth.username'?: string;
 	'gerrit.auth.password'?: string;
 	'gerrit.auth.cookie'?: string;
+	'gerrit.extraCookies'?: Record<string, string>;
 	'gerrit.selectedView': string;
 	'gerrit.gerrit.expandComments': ExpandComments;
 	'gerrit.changesViews': ChangesView[];

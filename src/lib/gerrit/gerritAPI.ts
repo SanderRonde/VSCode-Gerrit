@@ -46,7 +46,7 @@ export async function checkConnection(): Promise<void> {
 		username ?? null,
 		password ?? null,
 		cookie ?? null,
-		extraCookies ?? null,
+		extraCookies ?? null
 	);
 	if (!(await api.testConnection())) {
 		await showInvalidSettingsMessage(

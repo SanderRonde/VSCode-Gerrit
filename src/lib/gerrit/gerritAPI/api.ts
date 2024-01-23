@@ -20,6 +20,11 @@ import {
 	MultiLevelCacheContainer,
 } from '../../util/cache';
 import { PATCHSET_LEVEL_KEY } from '../../../views/activityBar/changes/changeTreeView/patchSetLevelCommentsTreeView';
+import got, {
+	OptionsOfTextResponseBody,
+	PromiseCookieJar,
+	Response,
+} from 'got/dist/source';
 import { fileCache } from '../../../views/activityBar/changes/changeTreeView/file/fileCache';
 import {
 	APISubscriptionManager,
@@ -27,7 +32,6 @@ import {
 } from '../../subscriptions/subscriptions';
 import { PatchsetDescription } from '../../../views/activityBar/changes/changeTreeView';
 import { optionalArrayEntry, optionalObjectProperty } from '../../util/util';
-import got, { OptionsOfTextResponseBody, PromiseCookieJar, Response } from 'got/dist/source';
 import { ChangeField } from '../../subscriptions/changeSubscription';
 import { DefaultChangeFilter, GerritChangeFilter } from './filters';
 import { GerritComment, GerritDraftComment } from './gerritComment';
@@ -207,16 +211,23 @@ export class GerritAPI {
 	);
 
 	private get _cookieJar(): PromiseCookieJar | undefined {
-		const cookie: Array<[string, string]> = this._cookie ? [["GerritAccount", this._cookie]] : [];
-		const extraCookies = this._extraCookies ? [...Object.entries(this._extraCookies)] : [];
-		const allCookies = cookie.concat(extraCookies).map(([key, value]: [string, string]) => `${key}=${value}`).join(";");
-		return allCookies != ""
+		const cookie: Array<[string, string]> = this._cookie
+			? [['GerritAccount', this._cookie]]
+			: [];
+		const extraCookies = this._extraCookies
+			? [...Object.entries(this._extraCookies)]
+			: [];
+		const allCookies = cookie
+			.concat(extraCookies)
+			.map(([key, value]: [string, string]) => `${key}=${value}`)
+			.join(';');
+		return allCookies != ''
 			? {
-				getCookieString: () => {
-					return Promise.resolve(allCookies)
-				},
-				setCookie: () => Promise.resolve(),
-			}
+					getCookieString: () => {
+						return Promise.resolve(allCookies);
+					},
+					setCookie: () => Promise.resolve(),
+			  }
 			: undefined;
 	}
 
@@ -248,7 +259,7 @@ export class GerritAPI {
 		return {
 			method: 'DELETE',
 			headers: this._headers(false),
-			cookieJar: this._cookieJar
+			cookieJar: this._cookieJar,
 		};
 	}
 
@@ -259,7 +270,7 @@ export class GerritAPI {
 		private readonly _cookie: string | null,
 		private readonly _extraCookies: Record<string, string> | null,
 		private readonly _allowFail: boolean = false
-	) { }
+	) {}
 
 	public static async performRequest(
 		url: string,

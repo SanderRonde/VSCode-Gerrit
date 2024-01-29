@@ -60,7 +60,7 @@ export class DocumentCommentManager {
 	private _threadLineCount: Map<number, number> = new Map();
 
 	public constructor(
-		private readonly _document: Uri,
+		public readonly document: Uri,
 		private readonly _commentController: CommentController,
 		public readonly filePath: string,
 		public readonly metadata: {
@@ -148,13 +148,13 @@ export class DocumentCommentManager {
 		});
 	}
 
-	public async refreshComments(filePath: string): Promise<void> {
+	public async refreshComments(): Promise<void> {
 		this.dispose();
-		await this.loadComments(filePath);
+		await this.loadComments(true);
 	}
 
-	public async loadComments(filePath: string): Promise<this> {
-		const fileMeta = FileMetaWithSideAndBase.tryFrom(this._document);
+	public async loadComments(forceUpdate: boolean = false): Promise<this> {
+		const fileMeta = FileMetaWithSideAndBase.tryFrom(this.document);
 		if (fileMeta?.isEmpty()) {
 			return this;
 		}
@@ -173,9 +173,14 @@ export class DocumentCommentManager {
 			}
 		);
 		const comments =
-			(await commentSubscription.getValue()).get(filePath) ?? [];
-		commentSubscription.subscribeOnce(
-			new WeakRef(() => this.refreshComments(filePath))
+			(await commentSubscription.getValue(forceUpdate)).get(
+				this.filePath
+			) ?? [];
+		commentSubscription.subscribe(
+			new WeakRef(() => this.refreshComments())
+		);
+		(await GerritChange.getChange(changeID)).subscribe(
+			new WeakRef(() => this.refreshComments())
 		);
 		const thisSideComments =
 			isPatchSetLevel || !fileMeta
@@ -252,7 +257,7 @@ export class DocumentCommentManager {
 		}
 
 		const vscodeThread = this._commentController.createCommentThread(
-			this._document,
+			this.document,
 			thread.range,
 			thread.comments
 		) as CommentThread & Partial<GerritCommentThreadProps>;
@@ -336,6 +341,10 @@ export class CommentManager {
 		string,
 		DocumentCommentManager
 	> = new Map();
+	private static readonly _commentManagersByChangeID: Map<
+		string,
+		DocumentCommentManager[]
+	> = new Map();
 
 	private static _createManager(
 		document: TextDocument,
@@ -359,6 +368,10 @@ export class CommentManager {
 			diffData
 		);
 		this._commentManagersByURI.set(document.uri.toString(), manager);
+		if (!this._commentManagersByChangeID.has(metaData.changeID)) {
+			this._commentManagersByChangeID.set(metaData.changeID, []);
+		}
+		this._commentManagersByChangeID.get(metaData.changeID)!.push(manager);
 
 		return manager;
 	}
@@ -588,6 +601,18 @@ export class CommentManager {
 					this._commentManagersByURI.get(key)!.dispose();
 					this._commentManagersByURI.delete(key);
 				}
+				if (this._commentManagersByChangeID.has(meta.changeID)) {
+					this._commentManagersByChangeID.set(
+						meta.changeID,
+						this._commentManagersByChangeID
+							.get(meta.changeID)!
+							.filter((commentManager) => {
+								return (
+									commentManager.document.toString() !== key
+								);
+							})
+					);
+				}
 			})
 		);
 		this._commentController.commentingRangeProvider = {
@@ -608,7 +633,7 @@ export class CommentManager {
 									revision: meta.commit,
 								}
 							);
-							await manager.loadComments(meta.filePath);
+							await manager.loadComments();
 						})();
 					}
 					return [new Range(0, 0, lineCount - 1, 0)];
@@ -681,7 +706,7 @@ export class CommentManager {
 									newHash: newHash,
 								}
 							);
-							await manager.loadComments(file.filePath);
+							await manager.loadComments();
 						})();
 					}
 
@@ -696,6 +721,12 @@ export class CommentManager {
 		uri: Uri
 	): DocumentCommentManager | null {
 		return this._commentManagersByURI.get(uri.toString()) || null;
+	}
+
+	public static getFileManagersForChangeID(
+		changeID: string
+	): DocumentCommentManager[] {
+		return this._commentManagersByChangeID.get(changeID) || [];
 	}
 
 	public static collapseAll(): void {
@@ -716,6 +747,7 @@ export class CommentManager {
 		this._commentManagersByURI.forEach((m) => m.dispose());
 
 		this._commentManagersByURI.clear();
+		this._commentManagersByChangeID.clear();
 		this._disposables.clear();
 	}
 }

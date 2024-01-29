@@ -20,6 +20,7 @@ import { GerritChange } from '../../lib/gerrit/gerritAPI/gerritChange';
 import { GerritChangeStatus } from '../../lib/gerrit/gerritAPI/types';
 import { GerritGroup } from '../../lib/gerrit/gerritAPI/gerritGroup';
 import { GerritUser } from '../../lib/gerrit/gerritAPI/gerritUser';
+import { CommentManager } from '../../providers/commentProvider';
 import { TypedWebview, TypedWebviewView } from './review/types';
 import { GerritAPIWith } from '../../lib/gerrit/gerritAPI/api';
 import { getCurrentChangeID } from '../../lib/git/commit';
@@ -352,6 +353,9 @@ class ReviewWebviewProvider implements WebviewViewProvider, Disposable {
 			await srcView.postMessage({
 				type: 'publishSuccess',
 			});
+			CommentManager.getFileManagersForChangeID(change.changeID).forEach(
+				(manager) => void manager.refreshComments()
+			);
 			await subscription.invalidate();
 		} else {
 			await srcView.postMessage({

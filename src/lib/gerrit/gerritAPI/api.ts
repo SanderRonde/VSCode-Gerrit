@@ -1205,7 +1205,7 @@ export class GerritAPI {
 		changeID: string
 	): Promise<GerritChangeMergeable | null> {
 		const response = await this._tryRequest(
-			this.getURL(`changes/${changeID}/revisions/current//mergeable`),
+			this.getURL(`changes/${changeID}/revisions/current/mergeable`),
 			this._get
 		);
 

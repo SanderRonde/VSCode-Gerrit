@@ -340,26 +340,22 @@ const _ReviewPane: React.VFC<ReviewPaneProps> = ({ currentState }) => {
 					))}
 			</div>
 			<div style={styles.spacing}></div>
-			{currentState.mergeable && (
-				<StateButton
-					title="Submit patch"
-					onSubmit={onSubmit}
-					currentState={buttonState}
-					onStateUpdate={setButtonState}
-				>
-					<div style={styles.rightPadding}>{'Submit patch'}</div>
-					<span
-						slot="end"
-						className="codicon codicon-check-all"
-					></span>
-				</StateButton>
-			)}
-			{currentState.isOwnWIP ? (
-				<div
-					style={{
-						marginTop: 10,
-					}}
-				>
+			<div style={styles.gap}>
+				{currentState.mergeable && (
+					<StateButton
+						title="Submit patch"
+						onSubmit={onSubmit}
+						currentState={buttonState}
+						onStateUpdate={setButtonState}
+					>
+						<div style={styles.rightPadding}>{'Submit patch'}</div>
+						<span
+							slot="end"
+							className="codicon codicon-check-all"
+						></span>
+					</StateButton>
+				)}
+				{currentState.isOwnWIP ? (
 					<StateButton
 						title="Post comments and start review for this patch"
 						onSubmit={onPost}
@@ -371,18 +367,21 @@ const _ReviewPane: React.VFC<ReviewPaneProps> = ({ currentState }) => {
 						</div>
 						<span slot="end" className="codicon codicon-add"></span>
 					</StateButton>
-				</div>
-			) : (
-				<StateButton
-					title="Post comments"
-					onSubmit={onPost}
-					currentState={buttonState}
-					onStateUpdate={setButtonState}
-				>
-					<div style={styles.rightPadding}>{'Send'}</div>
-					<span slot="end" className="codicon codicon-comment"></span>
-				</StateButton>
-			)}
+				) : (
+					<StateButton
+						title="Post comments"
+						onSubmit={onPost}
+						currentState={buttonState}
+						onStateUpdate={setButtonState}
+					>
+						<div style={styles.rightPadding}>{'Send'}</div>
+						<span
+							slot="end"
+							className="codicon codicon-comment"
+						></span>
+					</StateButton>
+				)}
+			</div>
 			<div style={styles.doubleSpacing}></div>
 		</div>
 	);
@@ -439,5 +438,10 @@ const styles = createStyles({
 		zIndex: 10,
 		right: '10px',
 		bottom: '10px',
+	},
+	gap: {
+		display: 'flex',
+		flexDirection: 'column',
+		gap: '10px',
 	},
 });

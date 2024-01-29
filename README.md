@@ -2,6 +2,8 @@
 
 Extension for integrating the [gerrit code review tool](https://www.gerritcodereview.com/) into VSCode. Allows viewing of Gerrit changes, the file changes they contain and their diffs, as well as commenting on these changes. Also enables you to create and submit new changes, as well as of course ammending existing ones.
 
+ ![VSCode Installs](https://img.shields.io/vscode-marketplace/d/sanderronde.vscode--gerrit.svg?label=VSCode%20Marketplace%20Downloads)
+
 ## Setup
 
 To set up the extension, there's a few settings you need to configure. To get these values, go to your gerrit user settings (click on the little cogwheel) and scroll down to "HTTP Credentials". Then you need to choose between either entering your HTTP username and password or using cookie-based authentication.

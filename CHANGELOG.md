@@ -2,6 +2,10 @@
 
 All notable changes to the "gerrit" extension will be documented in this file.
 
+## 1.2.17
+
+-   Refresh comments when posting/publishing
+
 ## 1.2.16
 
 -   Fix multiple git repos sometimes not working (#49)

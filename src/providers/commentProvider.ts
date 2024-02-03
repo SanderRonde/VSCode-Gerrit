@@ -57,6 +57,7 @@ interface GerritCommentThreadProps {
 export class DocumentCommentManager {
 	private _threadMap: CacheContainer<string, GerritCommentThread> =
 		new CacheContainer();
+	private _createdThreads = new Set<CommentThread>();
 	private _threadLineCount: Map<number, number> = new Map();
 
 	public constructor(
@@ -261,6 +262,7 @@ export class DocumentCommentManager {
 			thread.range,
 			thread.comments
 		) as CommentThread & Partial<GerritCommentThreadProps>;
+		this._createdThreads.add(vscodeThread);
 		const gthread = GerritCommentThread.from(vscodeThread);
 		gthread?.setComments(thread.comments, true);
 		return gthread;
@@ -286,6 +288,7 @@ export class DocumentCommentManager {
 		}
 		this._threadMap.clear();
 		this._threadLineCount.clear();
+		this._createdThreads.clear();
 	}
 }
 

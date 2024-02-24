@@ -54,9 +54,6 @@ export class ChangeTreeView
 	extends SelfDisposable
 	implements TreeItemWithChildren
 {
-	public patchSetBase: PatchsetDescription | null = null;
-	public patchSetCurrent: PatchsetDescription | null = null;
-
 	public get change(): Promise<GerritChange | null> {
 		return this._subscription.getValue();
 	}
@@ -64,7 +61,9 @@ export class ChangeTreeView
 	private constructor(
 		public readonly changeID: string,
 		public readonly parent: ViewPanel | SearchResultsTreeProvider,
-		private readonly _subscription: Subscribable<GerritChange | null>
+		private readonly _subscription: Subscribable<GerritChange | null>,
+		private readonly _patchSetBase: PatchsetDescription | null = null,
+		private readonly _patchSetCurrent: PatchsetDescription | null = null
 	) {
 		super(`changeTreeView.${changeID}`);
 	}
@@ -78,7 +77,22 @@ export class ChangeTreeView
 			GerritAPIWith.DETAILED_ACCOUNTS,
 		]);
 
-		const instance = new this(changeID, parent, subscription);
+		let patchsetBase = null;
+		let patchsetCurrent = null;
+		if (parent instanceof ViewPanel) {
+			const patchsets = parent.patchsetsForChange.get(changeID);
+			if (patchsets) {
+				patchsetBase = patchsets.patchSetBase;
+				patchsetCurrent = patchsets.patchSetCurrent;
+			}
+		}
+		const instance = new this(
+			changeID,
+			parent,
+			subscription,
+			patchsetBase,
+			patchsetCurrent
+		);
 		instance._disposables.push(subscription.disposable);
 		subscription.subscribe(new WeakRef(() => parent.reload()));
 		return instance;
@@ -164,7 +178,7 @@ export class ChangeTreeView
 	private async _getEndRevision(
 		change: GerritChange
 	): Promise<GerritRevision | null> {
-		if (this.patchSetCurrent === null) {
+		if (this._patchSetCurrent === null) {
 			return await change.getCurrentRevision();
 		}
 		const revisions = await change.revisions();
@@ -174,7 +188,7 @@ export class ChangeTreeView
 
 		return (
 			Object.values(revisions).find(
-				(r) => r.revisionID === this.patchSetCurrent!.id
+				(r) => r.revisionID === this._patchSetCurrent!.id
 			) ?? null
 		);
 	}
@@ -188,9 +202,9 @@ export class ChangeTreeView
 				() => []
 			);
 		}
-		return (await currentRevision.files(this.patchSetBase)).mapSubscription(
-			(i) => Object.values(i)
-		);
+		return (
+			await currentRevision.files(this._patchSetBase)
+		).mapSubscription((i) => Object.values(i));
 	}
 
 	private _collapseFilePathMap(
@@ -248,7 +262,7 @@ export class ChangeTreeView
 
 	private async _buildContextValue(): Promise<string> {
 		const values = [TREE_ITEM_TYPE_CHANGE];
-		if (this.patchSetBase !== null || this.patchSetCurrent !== null) {
+		if (this._patchSetBase !== null || this._patchSetCurrent !== null) {
 			values.push(TREE_ITEM_CHANGE_CUSTOM_PATCHSET_SELECTION);
 		}
 		const currentChangeID = await getCurrentChangeIDCached();
@@ -388,13 +402,17 @@ export class ChangeTreeView
 			...ChangeTreeView.getFilesAndFolders(
 				change,
 				collapsed,
-				this.patchSetBase
+				this._patchSetBase
 			),
 		];
 	}
 
 	public async openPatchsetSelector(): Promise<void> {
-		if (!this.parent || !(await this.change)) {
+		if (
+			!this.parent ||
+			!(await this.change) ||
+			!(this.parent instanceof ViewPanel)
+		) {
 			// Should not be reachable, this command can only be ran on change explorer changes
 			return;
 		}
@@ -413,33 +431,35 @@ export class ChangeTreeView
 			return;
 		}
 
-		this.patchSetBase =
-			result[0] === null
-				? null
-				: {
-						number: result[0],
-						id: revisionArr.find((r) => r.number === result[0])!
-							.revisionID,
-				  };
-		this.patchSetCurrent =
-			result[1] === null
-				? null
-				: {
-						number: result[1],
-						id: revisionArr.find((r) => r.number === result[1])!
-							.revisionID,
-				  };
+		this.parent.patchsetsForChange.set(this.changeID, {
+			patchSetBase:
+				result[0] === null
+					? null
+					: {
+							number: result[0],
+							id: revisionArr.find((r) => r.number === result[0])!
+								.revisionID,
+					  },
+			patchSetCurrent:
+				result[1] === null
+					? null
+					: {
+							number: result[1],
+							id: revisionArr.find((r) => r.number === result[1])!
+								.revisionID,
+					  },
+		});
 
 		await this.parent.refresh();
 	}
 
 	public async resetPatchsetSelector(): Promise<void> {
-		if (!this.parent) {
+		if (!this.parent || !(this.parent instanceof ViewPanel)) {
 			// Should not be reachable, this command can only be ran on change explorer changes
 			return;
 		}
 
-		this.patchSetBase = this.patchSetCurrent = null;
+		this.parent.patchsetsForChange.delete(this.changeID);
 		await this.parent.refresh();
 	}
 }

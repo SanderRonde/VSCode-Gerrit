@@ -7,13 +7,13 @@ import { GerritChange } from '../../../lib/gerrit/gerritAPI/gerritChange';
 import { TreeItemWithChildren, TreeViewItem } from '../shared/treeTypes';
 import { Disposable, TreeItem, TreeItemCollapsibleState } from 'vscode';
 import { Subscribable } from '../../../lib/subscriptions/subscriptions';
+import { ChangeTreeView, PatchsetDescription } from './changeTreeView';
 import { GerritAPIWith } from '../../../lib/gerrit/gerritAPI/api';
 import { optionalArrayEntry } from '../../../lib/util/util';
 import { ChangesPanel } from '../../../lib/vscode/config';
 import { FetchMoreTreeItem } from './fetchMoreTreeItem';
 import { RootTreeViewProvider } from './rootTreeView';
 import { Refreshable } from '../shared/refreshable';
-import { ChangeTreeView } from './changeTreeView';
 import { log } from '../../../lib/util/log';
 
 export enum DashboardGroupContainerGroup {
@@ -30,10 +30,17 @@ export class ViewPanel
 	implements TreeItemWithChildren
 {
 	private _lastSubscription: Subscribable<GerritChange[]> | null = null;
-
 	protected _initialLimit: number = this._getDefaultLimit();
 	protected _fetchMoreCount: number =
 		this._panel.extraEntriesFetchCount ?? 25;
+
+	public patchsetsForChange: Map<
+		string,
+		{
+			patchSetBase: PatchsetDescription | null;
+			patchSetCurrent: PatchsetDescription | null;
+		}
+	> = new Map();
 
 	public constructor(
 		public readonly parent: RootTreeViewProvider,

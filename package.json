@@ -124,7 +124,8 @@
 			},
 			{
 				"command": "gerrit.openChangeOnline",
-				"title": "Open On Gerrit"
+				"title": "Open online",
+				"icon": "$(globe)"
 			},
 			{
 				"command": "gerrit.openChangeSelector",
@@ -154,7 +155,7 @@
 			},
 			{
 				"command": "gerrit.openOnline",
-				"title": "Open On Gerrit"
+				"title": "Open file on Gerrit"
 			},
 			{
 				"command": "gerrit.openOriginal",
@@ -703,27 +704,32 @@
 			],
 			"view/item/context": [
 				{
-					"command": "gerrit.quickCheckout",
+					"command": "gerrit.openChangeOnline",
 					"when": "view == gerrit:changeExplorer && viewItem =~ /gerritchange/",
 					"group": "inline@1"
 				},
 				{
-					"command": "gerrit.checkoutBranch",
+					"command": "gerrit.quickCheckout",
 					"when": "view == gerrit:changeExplorer && viewItem =~ /gerritchange/",
 					"group": "inline@2"
 				},
 				{
-					"command": "gerrit.dropQuickCheckout",
-					"when": "view == gerrit:quickCheckout && viewItem =~ /quickCheckout/",
+					"command": "gerrit.checkoutBranch",
+					"when": "view == gerrit:changeExplorer && viewItem =~ /gerritchange/",
 					"group": "inline@3"
 				},
 				{
-					"command": "gerrit.applyQuickCheckout",
+					"command": "gerrit.dropQuickCheckout",
 					"when": "view == gerrit:quickCheckout && viewItem =~ /quickCheckout/",
 					"group": "inline@4"
 				},
 				{
-					"command": "gerrit.openCurrentOnline",
+					"command": "gerrit.applyQuickCheckout",
+					"when": "view == gerrit:quickCheckout && viewItem =~ /quickCheckout/",
+					"group": "inline@5"
+				},
+				{
+					"command": "gerrit.openOnline",
 					"when": "view == gerrit:changeExplorer && viewItem =~ /filechange/",
 					"group": "openFile@1"
 				},
@@ -763,24 +769,29 @@
 					"group": "achange@2"
 				},
 				{
+					"command": "gerrit.openChangeOnline",
+					"when": "view == gerrit:changeExplorer && viewItem =~ /gerritchange/",
+					"group": "achange@3"
+				},
+				{
 					"command": "gerrit.rebase",
 					"when": "view == gerrit:changeExplorer && viewItem =~ /gerritchange/ && viewItem =~ /noCurrent/",
-					"group": "achange@3"
+					"group": "achange@4"
 				},
 				{
 					"command": "gerrit.rebaseCurrent",
 					"when": "view == gerrit:changeExplorer && viewItem =~ /gerritchange/ && viewItem =~ /yesCurrent/",
-					"group": "achange@4"
+					"group": "achange@5"
 				},
 				{
 					"command": "gerrit.recursiveRebase",
 					"when": "view == gerrit:changeExplorer && viewItem =~ /gerritchange/ && viewItem =~ /noCurrent/",
-					"group": "achange@5"
+					"group": "achange@6"
 				},
 				{
 					"command": "gerrit.recursiveRebaseCurrent",
 					"when": "view == gerrit:changeExplorer && viewItem =~ /gerritchange/ && viewItem =~ /yesCurrent/",
-					"group": "achange@6"
+					"group": "achange@7"
 				},
 				{
 					"command": "gerrit.applyQuickCheckout",

@@ -145,8 +145,9 @@ export const commands: {
 		keybinding: EDITOR_TEXT_FOCUS,
 	},
 	'gerrit.openChangeOnline': {
-		title: 'Open On Gerrit',
+		title: 'Open online',
 		inCommandPalette: false,
+		icon: '$(globe)',
 	},
 	'gerrit.openChangeSelector': {
 		title: 'Open Change Selector',
@@ -176,7 +177,7 @@ export const commands: {
 		inCommandPalette: false,
 	},
 	'gerrit.openOnline': {
-		title: 'Open On Gerrit',
+		title: 'Open file on Gerrit',
 		inCommandPalette: false,
 	},
 	'gerrit.openOriginal': {
@@ -399,6 +400,13 @@ export const views: {
 	'view/item/context': {
 		inline: [
 			{
+				command: GerritExtensionCommands.CHANGE_OPEN_ONLINE,
+				when: and(
+					IS_GERRIT_CHANGE_EXPLORER_VIEW,
+					viewItemContains(TREE_ITEM_TYPE_CHANGE)
+				),
+			},
+			{
 				command: GerritExtensionCommands.QUICK_CHECKOUT,
 				when: and(
 					IS_GERRIT_CHANGE_EXPLORER_VIEW,
@@ -429,7 +437,7 @@ export const views: {
 		],
 		openFile: [
 			{
-				command: GerritExtensionCommands.OPEN_CURRENT_CHANGE_ONLINE,
+				command: GerritExtensionCommands.FILE_OPEN_ONLINE,
 				when: and(
 					IS_GERRIT_CHANGE_EXPLORER_VIEW,
 					viewItemContains(TREE_ITEM_TYPE_FILE)
@@ -486,6 +494,13 @@ export const views: {
 			},
 			{
 				command: GerritExtensionCommands.QUICK_CHECKOUT,
+				when: and(
+					IS_GERRIT_CHANGE_EXPLORER_VIEW,
+					viewItemContains(TREE_ITEM_TYPE_CHANGE)
+				),
+			},
+			{
+				command: GerritExtensionCommands.CHANGE_OPEN_ONLINE,
 				when: and(
 					IS_GERRIT_CHANGE_EXPLORER_VIEW,
 					viewItemContains(TREE_ITEM_TYPE_CHANGE)

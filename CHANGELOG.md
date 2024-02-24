@@ -2,6 +2,10 @@
 
 All notable changes to the "gerrit" extension will be documented in this file.
 
+## 1.2.20
+
+-   Add support for a URI handler (see README)
+
 ## 1.2.18
 
 -   Fix patchset selector

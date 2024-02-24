@@ -2,6 +2,12 @@
 
 All notable changes to the "gerrit" extension will be documented in this file.
 
+## 1.2.18
+
+-   Fix patchset selector
+-   Fix some buttons in the change overview panel
+-   Add an "open online" button to the change overview panel
+
 ## 1.2.17
 
 -   Refresh comments when posting/publishing

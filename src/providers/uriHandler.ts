@@ -10,22 +10,40 @@ import {
 } from 'vscode';
 import { FileTreeView } from '../views/activityBar/changes/changeTreeView/fileTreeView';
 import { GerritChange } from '../lib/gerrit/gerritAPI/gerritChange';
-import { getCurrentChangeID, isChangeID } from '../lib/git/commit';
+import { getCurrentChangeID } from '../lib/git/commit';
 import { gitCheckoutRemote } from '../lib/git/git';
 
 export class URIHandler implements UriHandler {
 	private async _handleChangeCheckout(query: {
 		checkout?: string;
-		changeID?: string;
+		change?: string;
 		patchSet?: `${number}`;
 		file?: string;
 		line?: `${number}`;
 	}): Promise<void> {
-		if (query.changeID && query.checkout) {
+		const { changeID } = await (async (): Promise<{
+			changeID: string | undefined;
+			changeNumber: number | undefined;
+		}> => {
+			if (!query.change) {
+				return {
+					changeNumber: undefined,
+					changeID: undefined,
+				};
+			}
+
+			const change = await GerritChange.getChangeOnce(query.change, []);
+			return {
+				changeNumber: change?.number,
+				changeID: change?.id,
+			};
+		})();
+
+		if (changeID && query.checkout) {
 			// If set, checkout change, if not, stay on master and diff
 			if (
 				!(await gitCheckoutRemote(
-					query.changeID,
+					changeID,
 					query.patchSet ? Number(query.patchSet) : undefined,
 					false
 				))
@@ -35,11 +53,9 @@ export class URIHandler implements UriHandler {
 		}
 
 		if (query.file) {
-			const changeID = query.changeID;
 			if (
 				!query.checkout &&
 				changeID &&
-				isChangeID(changeID) &&
 				!(await this._isCurrentChange(changeID))
 			) {
 				// Diff against this

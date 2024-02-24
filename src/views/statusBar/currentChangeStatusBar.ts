@@ -189,7 +189,7 @@ export async function openChangeSelector(): Promise<void> {
 		return;
 	}
 	if (changeNumber.type === 'changeId') {
-		await gitCheckoutRemote(changeNumber.changeId, true);
+		await gitCheckoutRemote(changeNumber.changeId, undefined, true);
 	} else {
 		await gitCheckoutBranch(changeNumber.branchName);
 	}

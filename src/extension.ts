@@ -28,6 +28,7 @@ import { registerCommands } from './commands/commands';
 import { setupChangeIDCache } from './lib/git/commit';
 import { createOutputChannel } from './lib/util/log';
 import { isUsingGerrit } from './lib/gerrit/gerrit';
+import { URIHandler } from './providers/uriHandler';
 import { VersionNumber } from './lib/util/version';
 import { storageInit } from './lib/vscode/storage';
 import { getAPI } from './lib/gerrit/gerritAPI';
@@ -159,6 +160,8 @@ export async function activate(context: ExtensionContext): Promise<void> {
 			new FileModificationStatusProvider()
 		)
 	);
+
+	context.subscriptions.push(window.registerUriHandler(new URIHandler()));
 
 	// Add disposables
 	context.subscriptions.push(await setupChangeIDCache());

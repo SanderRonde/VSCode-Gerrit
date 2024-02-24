@@ -2,7 +2,7 @@
 
 Extension for integrating the [gerrit code review tool](https://www.gerritcodereview.com/) into VSCode. Allows viewing of Gerrit changes, the file changes they contain and their diffs, as well as commenting on these changes. Also enables you to create and submit new changes, as well as of course ammending existing ones.
 
- ![VSCode Installs](https://img.shields.io/vscode-marketplace/i/sanderronde.vscode--gerrit.svg?label=VSCode%20Marketplace%20Installs)
+![VSCode Installs](https://img.shields.io/vscode-marketplace/i/sanderronde.vscode--gerrit.svg?label=VSCode%20Marketplace%20Installs)
 
 ## Setup
 
@@ -44,6 +44,24 @@ The change selector can be found in the statusbar. It will at all times list the
 ### Push for review
 
 The Gerrit extension also adds a "Push for review" button in your git panel. It's the vertical line with a circle in the middle. When you click it, the extension will run `git review` for you. If all goes well it then allows you to open the link online, among some other actions.
+
+### URI handler
+
+This extension registers a URI handler for `vscode://sanderronde.vscode-gerrit` URIs. These allow you to open files and changes in your editor. You can either check out the changes or simply preview them. An example use case for this is sending a "view in your editor" link to your coworker so they can inspect your changes in their editor instead of in the web view.
+
+The following (all optional) fields are supported:
+
+-   `changeID` - The relevant change. If not supplied, defaults to the currently checked out change. Must have the format `I[0-9a-f]{40}` (so not just the patch number).
+-   `patchSet` - The relevant patch set. If not supplied, defaults to the latest patch set. Must be a number.
+-   `checkout` - If provided, the change will be checked out. If not, the change will be previewed.
+-   `file` - The file to open.
+-   `line` - The line to scroll to.
+
+Some examples:
+
+-   `vscode://sanderronde.vscode-gerrit?changeID=I1234567890abcdef1234567890abcdef12345678&checkout` - Checks out a change
+-   `vscode://sanderronde.vscode-gerrit?changeID=I1234567890abcdef1234567890abcdef12345678&file=index.ts&line=10` - Previews a file in a change without checking it out
+-   `vscode://sanderronde.vscode-gerrit?changeID=I1234567890abcdef1234567890abcdef12345678&checkout&patchset=2` - Checks out an old patchset of a change
 
 ### Stream events
 

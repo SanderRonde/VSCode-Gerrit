@@ -6,11 +6,16 @@ import { createInittableValue } from '../util/cache';
 import { onChangeLastCommit } from './git';
 import { Disposable } from 'vscode';
 
-const gerritChangeIDRegex = /Change-Id: (([a-zA-Z0-9])?([a-z0-9]{40}))/;
+const commitChangeIDRegex = /Change-Id: (([a-zA-Z0-9])?([a-z0-9]{40}))/;
 
 export function getChangeID(commit: GitCommit): string | null {
 	const msg = commit.message;
-	return gerritChangeIDRegex.exec(msg)?.[1] ?? null;
+	return commitChangeIDRegex.exec(msg)?.[1] ?? null;
+}
+
+const changeIDRegex = /(([a-zA-Z0-9])?([a-z0-9]{40}))/;
+export function isChangeID(msg: string): boolean {
+	return changeIDRegex.test(msg);
 }
 
 export async function getCurrentChangeID(): Promise<string | null> {

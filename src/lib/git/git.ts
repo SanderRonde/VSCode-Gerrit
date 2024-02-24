@@ -152,12 +152,28 @@ export async function ensureCleanWorkingTree(
 			}
 		);
 		if (!success) {
-			if (!silent) {
-				void window.showErrorMessage(
-					'You have unstaged changes. Please commit or stash them and try again'
-				);
+			if (silent) {
+				return false;
 			}
-			return false;
+			const choice = await window.showWarningMessage(
+				'You have unstaged changes. Please commit or stash them',
+				{
+					title: 'Stash changes' as const,
+				}
+			);
+			if (choice?.title !== 'Stash changes') {
+				return false;
+			}
+			const stashName = await window.showInputBox({
+				value: 'gerrit-stash',
+				title: 'Stash name',
+			});
+			if (!stashName) {
+				return false;
+			}
+			if (!(await createStash(gitURI, stashName))) {
+				return false;
+			}
 		}
 	}
 
@@ -290,32 +306,31 @@ export function getChangeIDFromCheckoutString(
 
 export async function gitCheckoutRemote(
 	patchNumberOrChangeID: number | string,
+	patchSet: number | undefined = undefined,
 	silent: boolean = false
-): Promise<void> {
+): Promise<boolean> {
 	const uri = getGitURI();
-	if (!uri || !(await ensureCleanWorkingTree(uri))) {
-		return;
+	if (!uri || !(await ensureCleanWorkingTree(uri, silent))) {
+		return false;
 	}
 
-	const { success, stdout } = await tryExecAsync(
-		`git-review -d "${getChangeIDFromCheckoutString(
-			patchNumberOrChangeID
-		)}"`,
-		{
-			cwd: uri,
-			timeout: 10000,
-		}
-	);
+	let changeString =
+		getChangeIDFromCheckoutString(patchNumberOrChangeID) ??
+		patchNumberOrChangeID;
+	if (patchSet) {
+		changeString += `/${patchSet}`;
+	}
+	const { success } = await tryExecAsync(`git-review -d "${changeString}"`, {
+		cwd: uri,
+		timeout: 10000,
+	});
 
-	if (success) {
-		if (!silent) {
-			void window.showInformationMessage(stdout);
-		}
-	} else {
+	if (!success) {
 		void window.showErrorMessage(
 			'Checkout failed. Please see log for more details'
 		);
 	}
+	return success;
 }
 
 const URL_REGEX = /http(s)?[:\w./+]+/g;

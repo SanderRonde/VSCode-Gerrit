@@ -51,7 +51,7 @@ This extension registers a URI handler for `vscode://sanderronde.vscode-gerrit` 
 
 The following (all optional) fields are supported:
 
--   `changeID` - The relevant change. If not supplied, defaults to the currently checked out change. Must have the format `I[0-9a-f]{40}` (so not just the patch number).
+-   `change` - The relevant change. If not supplied, defaults to the currently checked out change. Can be either the change ID or patchset number.
 -   `patchSet` - The relevant patch set. If not supplied, defaults to the latest patch set. Must be a number.
 -   `checkout` - If provided, the change will be checked out. If not, the change will be previewed.
 -   `file` - The file to open.
@@ -59,9 +59,9 @@ The following (all optional) fields are supported:
 
 Some examples:
 
--   `vscode://sanderronde.vscode-gerrit?changeID=I1234567890abcdef1234567890abcdef12345678&checkout` - Checks out a change
--   `vscode://sanderronde.vscode-gerrit?changeID=I1234567890abcdef1234567890abcdef12345678&file=index.ts&line=10` - Previews a file in a change without checking it out
--   `vscode://sanderronde.vscode-gerrit?changeID=I1234567890abcdef1234567890abcdef12345678&checkout&patchset=2` - Checks out an old patchset of a change
+-   `vscode://sanderronde.vscode-gerrit?change=12345&checkout` - Checks out a change
+-   `vscode://sanderronde.vscode-gerrit?change=12345&file=index.ts&line=10` - Previews a file in a change without checking it out
+-   `vscode://sanderronde.vscode-gerrit?change=12345&checkout&patchset=2` - Checks out an old patchset of a change
 
 ### Stream events
 

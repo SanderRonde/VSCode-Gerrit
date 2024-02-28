@@ -245,6 +245,18 @@
 				"title": "Pop Quick Checkout stash (apply and drop)"
 			},
 			{
+				"command": "gerrit.openFileOnGitiles",
+				"title": "Open file on Gitiles"
+			},
+			{
+				"command": "gerrit.openLineOnGitiles",
+				"title": "Open line on Gitiles"
+			},
+			{
+				"command": "gerrit.openLineOnGitilesPermalink",
+				"title": "Open line on Gitiles (permalink)"
+			},
+			{
 				"command": "cmd.gerrit.changeGitRepo",
 				"title": "Gerrit: Change git repo"
 			},
@@ -330,6 +342,18 @@
 			{
 				"command": "cmd.gerrit.dropQuickCheckouts",
 				"title": "Gerrit: Drop Quick Checkout stashes"
+			},
+			{
+				"command": "cmd.gerrit.openFileOnGitiles",
+				"title": "Gerrit: Open file on Gitiles"
+			},
+			{
+				"command": "cmd.gerrit.openLineOnGitiles",
+				"title": "Gerrit: Open line on Gitiles"
+			},
+			{
+				"command": "cmd.gerrit.openLineOnGitilesPermalink",
+				"title": "Gerrit: Open line on Gitiles (permalink)"
 			}
 		],
 		"keybindings": [
@@ -537,6 +561,18 @@
 					"when": "false"
 				},
 				{
+					"command": "gerrit.openFileOnGitiles",
+					"when": "false"
+				},
+				{
+					"command": "gerrit.openLineOnGitiles",
+					"when": "false"
+				},
+				{
+					"command": "gerrit.openLineOnGitilesPermalink",
+					"when": "false"
+				},
+				{
 					"command": "cmd.gerrit.changeGitRepo",
 					"when": "true"
 				},
@@ -606,6 +642,18 @@
 				},
 				{
 					"command": "cmd.gerrit.dropQuickCheckouts",
+					"when": "true"
+				},
+				{
+					"command": "cmd.gerrit.openFileOnGitiles",
+					"when": "true"
+				},
+				{
+					"command": "cmd.gerrit.openLineOnGitiles",
+					"when": "true"
+				},
+				{
+					"command": "cmd.gerrit.openLineOnGitilesPermalink",
 					"when": "true"
 				}
 			],
@@ -872,6 +920,16 @@
 				{
 					"command": "gerrit.recursiveRebaseCurrent",
 					"group": "git_gerrit@3"
+				}
+			],
+			"editor/lineNumber/context": [
+				{
+					"command": "gerrit.openLineOnGitiles",
+					"group": "gerrit@1"
+				},
+				{
+					"command": "gerrit.openLineOnGitilesPermalink",
+					"group": "gerrit@2"
 				}
 			]
 		},

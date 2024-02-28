@@ -268,6 +268,18 @@ export const commands: {
 		title: 'Pop Quick Checkout stash (apply and drop)',
 		inCommandPalette: false,
 	},
+	'gerrit.openFileOnGitiles': {
+		title: 'Open file on Gitiles',
+		inCommandPalette: true,
+	},
+	'gerrit.openLineOnGitiles': {
+		title: 'Open line on Gitiles',
+		inCommandPalette: true,
+	},
+	'gerrit.openLineOnGitilesPermalink': {
+		title: 'Open line on Gitiles (permalink)',
+		inCommandPalette: true,
+	},
 };
 
 export const views: {
@@ -655,6 +667,18 @@ export const views: {
 			},
 			{
 				command: GerritExtensionCommands.RECURSIVE_REBASE_CURRENT,
+			},
+		],
+	},
+	'editor/lineNumber/context': {
+		gerrit: [
+			{
+				command: GerritExtensionCommands.OPEN_LINE_ON_GITILES,
+				submenu: 'gerrit/editor/lineNumber/context/gitiles',
+			},
+			{
+				command: GerritExtensionCommands.OPEN_LINE_ON_GITILES_PERMALINK,
+				submenu: 'gerrit/editor/lineNumber/context/gitiles',
 			},
 		],
 	},

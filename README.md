@@ -45,6 +45,10 @@ The change selector can be found in the statusbar. It will at all times list the
 
 The Gerrit extension also adds a "Push for review" button in your git panel. It's the vertical line with a circle in the middle. When you click it, the extension will run `git review` for you. If all goes well it then allows you to open the link online, among some other actions.
 
+### Open on [gitiles](https://gerrit.googlesource.com/gitiles/)
+
+Adds a `Open on gitiles` gutter action, as well as ones from the command palette. These allow you to open links to the file you're currently viewing on gitiles, allowing you to share your code with others, even if it's not yet merged.
+
 ### URI handler
 
 This extension registers a URI handler for `vscode://sanderronde.vscode-gerrit` URIs. These allow you to open files and changes in your editor. You can either check out the changes or simply preview them. An example use case for this is sending a "view in your editor" link to your coworker so they can inspect your changes in their editor instead of in the web view.

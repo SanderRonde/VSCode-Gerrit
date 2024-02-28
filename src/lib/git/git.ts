@@ -300,8 +300,8 @@ export function getChangeIDFromCheckoutString(
 	if (changeID.indexOf('~') === 0) {
 		return changeID;
 	}
-	const [, , id] = changeID.split('~');
-	return id;
+	const [, idFromPair, idFromTriplet] = changeID.split('~');
+	return idFromTriplet ?? idFromPair;
 }
 
 export async function gitCheckoutRemote(

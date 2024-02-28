@@ -53,8 +53,9 @@ import { enterCredentials } from '../lib/credentials/credentials';
 import { focusChange } from '../lib/commandHandlers/focusChange';
 import { GerritExtensionCommands } from './command-names';
 import { checkConnection } from '../lib/gerrit/gerritAPI';
+import { ExtensionContext, Uri, window } from 'vscode';
+import { openOnGitiles } from '../lib/gitiles/gitiles';
 import { pickGitRepo } from '../lib/gerrit/gerrit';
-import { ExtensionContext, window } from 'vscode';
 import { commands, GerritCodicons } from './defs';
 import { tryExecAsync } from '../lib/git/gitCLI';
 
@@ -353,6 +354,39 @@ export function registerCommands(context: ExtensionContext): void {
 		registerCommand(GerritExtensionCommands.CHANGE_GIT_REPO, pickGitRepo)
 	);
 
+	// Gutter commands
+	const gitilesHandler = (permalink: boolean) => {
+		return (gutter?: { lineNumber: number; uri: Uri }) => {
+			if (gutter) {
+				void openOnGitiles(permalink, gutter.uri, gutter.lineNumber);
+				return;
+			}
+
+			if (!window.activeTextEditor) {
+				void window.showErrorMessage('No file open to open on gitiles');
+				return;
+			}
+
+			void openOnGitiles(
+				permalink,
+				window.activeTextEditor.document.uri,
+				window.activeTextEditor.selection.active.line
+			);
+		};
+	};
+	context.subscriptions.push(
+		registerCommand(
+			GerritExtensionCommands.OPEN_LINE_ON_GITILES,
+			gitilesHandler(false)
+		)
+	);
+	context.subscriptions.push(
+		registerCommand(
+			GerritExtensionCommands.OPEN_LINE_ON_GITILES_PERMALINK,
+			gitilesHandler(true)
+		)
+	);
+
 	// Non-button separate commands
 	context.subscriptions.push(
 		registerCommand(
@@ -362,5 +396,15 @@ export function registerCommands(context: ExtensionContext): void {
 	);
 	context.subscriptions.push(
 		registerCommand(GerritExtensionCommands.FOCUS_CHANGE, focusChange)
+	);
+	context.subscriptions.push(
+		registerCommand(GerritExtensionCommands.OPEN_FILE_ON_GITILES, () => {
+			const uri = window.activeTextEditor?.document.uri;
+			if (!uri) {
+				void window.showErrorMessage('No file open to open on gitiles');
+				return;
+			}
+			void openOnGitiles(false, uri);
+		})
 	);
 }

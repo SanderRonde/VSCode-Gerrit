@@ -2,6 +2,10 @@
 
 All notable changes to the "gerrit" extension will be documented in this file.
 
+## 1.1.27
+
+-   Remove `.git` postfix from `.gitreview` project name
+
 ## 1.1.26
 
 -   Add `Open on gitiles` gutter action and command palette action

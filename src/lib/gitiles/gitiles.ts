@@ -32,7 +32,11 @@ export async function openOnGitiles(
 
 	const branch = await getCurrentBranch();
 
-	const basePath = `https://${gitReviewFile.host}/plugins/gitiles/${gitReviewFile.project}/+`;
+	let project = gitReviewFile.project;
+	if (project.endsWith('.git')) {
+		project = project.slice(0, -'.git'.length);
+	}
+	const basePath = `https://${gitReviewFile.host}/plugins/gitiles/${project}/+`;
 	const relativeFilePath = path.relative(
 		workspace.workspaceFolders[0].uri.fsPath,
 		uri.fsPath

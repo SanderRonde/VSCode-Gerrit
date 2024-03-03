@@ -2,6 +2,10 @@
 
 All notable changes to the "gerrit" extension will be documented in this file.
 
+## 1.1.28
+
+-   URI handler is smarter about when to open diff viewer and then to open the file locally.
+
 ## 1.1.27
 
 -   Remove `.git` postfix from `.gitreview` project name

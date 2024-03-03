@@ -10,8 +10,8 @@ import {
 } from 'vscode';
 import { FileTreeView } from '../views/activityBar/changes/changeTreeView/fileTreeView';
 import { GerritChange } from '../lib/gerrit/gerritAPI/gerritChange';
-import { getCurrentChangeID } from '../lib/git/commit';
 import { gitCheckoutRemote } from '../lib/git/git';
+import { tryExecAsync } from '../lib/git/gitCLI';
 
 export class URIHandler implements UriHandler {
 	private async _handleChangeCheckout(query: {
@@ -21,21 +21,24 @@ export class URIHandler implements UriHandler {
 		file?: string;
 		line?: `${number}`;
 	}): Promise<void> {
-		const { changeID } = await (async (): Promise<{
+		const { changeID, change } = await (async (): Promise<{
 			changeID: string | undefined;
 			changeNumber: number | undefined;
+			change: GerritChange | undefined;
 		}> => {
 			if (!query.change) {
 				return {
 					changeNumber: undefined,
 					changeID: undefined,
+					change: undefined,
 				};
 			}
 
 			const change = await GerritChange.getChangeOnce(query.change, []);
 			return {
 				changeNumber: change?.number,
-				changeID: change?.id,
+				changeID: change?.change_id,
+				change: change ?? undefined,
 			};
 		})();
 
@@ -56,7 +59,8 @@ export class URIHandler implements UriHandler {
 			if (
 				!query.checkout &&
 				changeID &&
-				!(await this._isCurrentChange(changeID))
+				change &&
+				!(await this._isInCurrentTree(change, Number(query.patchSet)))
 			) {
 				// Diff against this
 				const revision = await (async () => {
@@ -127,12 +131,32 @@ export class URIHandler implements UriHandler {
 		}
 	}
 
-	private async _isCurrentChange(changeID: string): Promise<boolean> {
-		const currentChangeID = await getCurrentChangeID();
-		if (!currentChangeID) {
+	private async _isInCurrentTree(
+		change: GerritChange,
+		patchSet?: number
+	): Promise<boolean> {
+		const revisions = await change.revisions();
+		if (!revisions) {
 			return false;
 		}
-		return currentChangeID === changeID;
+		const revision =
+			patchSet !== undefined
+				? Object.values(revisions).find(
+						(revision) => revision.number === patchSet
+				  )
+				: await change.getCurrentRevision();
+		if (!revision) {
+			return false;
+		}
+
+		// Check if git hash of the revision is somewhere in the git log
+		const proc = await tryExecAsync(
+			`git merge-base --is-ancestor ${revision.revisionID} HEAD`,
+			{
+				cwd: workspace.workspaceFolders?.[0].uri.fsPath,
+			}
+		);
+		return proc.success;
 	}
 
 	public handleUri(uri: Uri): ProviderResult<void> {
@@ -142,7 +166,11 @@ export class URIHandler implements UriHandler {
 			parsedQuery[key] = value || '1';
 		});
 
-		void this._handleChangeCheckout(parsedQuery);
+		void this._handleChangeCheckout({
+			...parsedQuery,
+			patchSet: (parsedQuery.patchSet ??
+				parsedQuery.patchset) as `${number}`,
+		});
 
 		return undefined;
 	}

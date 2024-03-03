@@ -23,10 +23,13 @@ import { GerritUser } from './gerritUser';
 export type CommentMap = Map<string, (GerritComment | GerritDraftComment)[]>;
 
 export class GerritChange extends DynamicallyFetchable {
+	/** Format: project~branch~I{40-hex-chars} */
 	public override changeID: string;
+	/** Format: project~branch~I{40-hex-chars} */
 	public id: string;
 	public project: string;
 	public branch: string;
+	/** Format: I{40-hex-chars} */
 	public change_id: string;
 	public subject: string;
 	public status: GerritChangeStatus;

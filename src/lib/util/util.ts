@@ -69,7 +69,7 @@ export function decodeBase64(text: string): string {
  * condition ? ifTrue ?? fallback : fallback
  * ```
  */
-export function tertiaryWithFallback<V>(
+export function ternaryWithFallback<V>(
 	condition: boolean,
 	ifTrue: V | null,
 	fallback: V

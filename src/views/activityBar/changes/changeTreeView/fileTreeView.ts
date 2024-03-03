@@ -31,7 +31,7 @@ import { getAPIForSubscription } from '../../../../lib/gerrit/gerritAPI';
 import { IterableWeakMap } from '../../../../lib/util/garbageCollection';
 import { DocumentManager } from '../../../../providers/commentProvider';
 import { TreeItemWithoutChildren } from '../../shared/treeTypes';
-import { tertiaryWithFallback } from '../../../../lib/util/util';
+import { ternaryWithFallback } from '../../../../lib/util/util';
 import { PatchsetDescription } from '../changeTreeView';
 import * as path from 'path';
 
@@ -116,7 +116,7 @@ export class FileTreeView implements TreeItemWithoutChildren {
 			[OPEN_FILE_IS_CHANGE_DIFF],
 			`DIFF-${key}`
 		);
-		const newURI = tertiaryWithFallback(
+		const newURI = ternaryWithFallback(
 			patchsetBase === null && (await file.isLocalFile(newContent)),
 			file.getLocalURI(
 				GerritCommentSide.RIGHT,

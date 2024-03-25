@@ -173,8 +173,7 @@ class ReviewWebviewProvider implements WebviewViewProvider, Disposable {
 			!reviewers ||
 			!cc ||
 			!draftComments ||
-			!self ||
-			!mergeable
+			!self
 		) {
 			return undefined;
 		}
@@ -219,7 +218,7 @@ class ReviewWebviewProvider implements WebviewViewProvider, Disposable {
 			isNew: change.status === GerritChangeStatus.NEW,
 			fetchedAt:
 				change.fetchedAt.timestamp() + detail.fetchedAt.timestamp(),
-			mergeable: mergeable.mergeable,
+			mergeable: mergeable?.mergeable ?? false,
 		};
 	}
 

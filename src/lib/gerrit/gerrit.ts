@@ -26,7 +26,8 @@ async function getGerritRepos(silent: boolean = true): Promise<Repository[]> {
 	if (!gitAPI) {
 		return [];
 	}
-	return await Promise.all(
+	const skipRepoCheck = getConfiguration().get('gerrit.skipGerritRepoCheck', false);
+	return skipRepoCheck ? gitAPI.repositories : await Promise.all(
 		gitAPI.repositories.filter(async (repo) => {
 			// Get the last 2 commits and check there's it's a gerrit one
 			const lastCommit = await repo.log({ maxEntries: 2 });

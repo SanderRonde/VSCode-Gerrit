@@ -1357,6 +1357,18 @@
 					"title": "Allow requests to failed/invalid SSL certs",
 					"description": "Note: before you use this, ask your server maintainer to fix their certs. This option can can be dangerous.",
 					"default": false
+				},
+				"gerrit.skipGerritRepoCheck": {
+					"type": "boolean",
+					"title": "Skip gerrit repo validation",
+					"description": "Assume all available git repos are gerrit repos, and skip the validation step.",
+					"default": false
+				},
+				"gerrit.addAuthStringToUrl": {
+					"type": "boolean",
+					"title": "Add \"a/\" to the URL when authenticated.",
+					"description": "Whether \"a/\" gets added to gerrit URLs while authenticated, disabling this treats all URLs the same regardless of auth.",
+					"default": true
 				}
 			}
 		}

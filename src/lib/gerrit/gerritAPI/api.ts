@@ -211,7 +211,8 @@ export class GerritAPI {
 	);
 
 	private get _cookieJar(): PromiseCookieJar | undefined {
-		const cookies = this._extraCookies ?? {};
+		// This is secretly a proxy... So we need to spread it to make it writable
+		const cookies = { ...(this._extraCookies ?? {}) };
 		if (this._cookie) {
 			cookies['GerritAccount'] = this._cookie;
 		}

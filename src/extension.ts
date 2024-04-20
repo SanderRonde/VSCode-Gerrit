@@ -1,10 +1,13 @@
 import {
+	CurrentChangeStatusBarManager,
+	showCurrentChangeStatusBarIcon,
+} from './views/statusBar/currentChangeStatusBar';
+import {
 	startListeningForStreamEvents,
 	testEnableStreamEvents,
 } from './lib/stream-events/stream-events';
 import { FileModificationStatusProvider } from './providers/fileModificationStatusProvider';
 import { showQuickCheckoutStatusBarIcons } from './views/statusBar/quickCheckoutStatusBar';
-import { showCurrentChangeStatusBarIcon } from './views/statusBar/currentChangeStatusBar';
 import { getOrCreateQuickCheckoutTreeProvider } from './views/activityBar/quickCheckout';
 import {
 	ConfigurationTarget,
@@ -49,7 +52,9 @@ export async function activate(context: ExtensionContext): Promise<void> {
 	createOutputChannel();
 
 	// Register commands
-	registerCommands(context);
+	const statusBar = new CurrentChangeStatusBarManager();
+	context.subscriptions.push(statusBar);
+	registerCommands(statusBar, context);
 
 	// Check if we're even using gerrit
 	const usesGerrit = await isUsingGerrit();
@@ -96,7 +101,7 @@ export async function activate(context: ExtensionContext): Promise<void> {
 	}
 
 	// Register status bar entry
-	await showCurrentChangeStatusBarIcon(context);
+	await showCurrentChangeStatusBarIcon(statusBar, context);
 	await showQuickCheckoutStatusBarIcons(context);
 
 	// Test stream events

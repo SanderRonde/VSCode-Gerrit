@@ -141,6 +141,11 @@ export async function selectChange(includeMaster: boolean = false): Promise<
 		  }
 	>((resolve) => {
 		disposables.push(
+			quickPick.onDidHide(() => {
+				resolve(null);
+			})
+		);
+		disposables.push(
 			quickPick.onDidAccept(() => {
 				const currentLabel = quickPick.selectedItems[0]?.label;
 				if (includeMaster && currentLabel === mainBranchName) {
@@ -183,16 +188,32 @@ export async function selectChange(includeMaster: boolean = false): Promise<
 	});
 }
 
-export async function openChangeSelector(): Promise<void> {
-	const changeNumber = await selectChange(true);
-	if (!changeNumber) {
+export async function openChangeSelector(
+	statusBar: CurrentChangeStatusBarManager
+): Promise<void> {
+	statusBar.setOverride({
+		text: '$(list-unordered) Picking change...',
+		tooltip: 'Picking change to check out',
+	});
+	const change = await selectChange(true);
+	if (!change) {
+		statusBar.setOverride(null);
 		return;
 	}
-	if (changeNumber.type === 'changeId') {
-		await gitCheckoutRemote(changeNumber.changeId, undefined, true);
+	if (change.type === 'changeId') {
+		statusBar.setOverride({
+			text: `$(loading~spin) Checking out #${change.changeId}`,
+			tooltip: `Checking out change #${change.changeId}`,
+		});
+		await gitCheckoutRemote(change.changeId, undefined, true);
 	} else {
-		await gitCheckoutBranch(changeNumber.branchName);
+		statusBar.setOverride({
+			text: `$(loading~spin) Checking out ${change.branchName}`,
+			tooltip: `Checking out branch ${change.branchName}`,
+		});
+		await gitCheckoutBranch(change.branchName);
 	}
+	statusBar.setOverride(null);
 }
 
 async function gitCheckoutBranch(branchName: string): Promise<void> {
@@ -216,55 +237,10 @@ async function gitCheckoutBranch(branchName: string): Promise<void> {
 	}
 }
 
-async function statusbarUpdateHandler(
-	lastCommit: GitCommit,
-	statusBar: StatusBarItem
-): Promise<void> {
-	if (!isGerritCommit(lastCommit)) {
-		return statusBar.hide();
-	}
-
-	const changeID = getChangeID(lastCommit);
-	if (!changeID) {
-		statusBar.text = '$(git-commit) unpublished change';
-		statusBar.tooltip = 'Unpublished gerrit change, no ChangeID set';
-		return statusBar.show();
-	}
-
-	const subscription = await GerritChange.getChange(changeID, [], {
-		allowFail: true,
-	});
-	subscription.subscribeOnce(
-		new WeakRef(async () => {
-			await statusbarUpdateHandler(lastCommit, statusBar);
-		}),
-		{ onSame: true }
-	);
-	const change = await subscription.getValue();
-
-	if (!change) {
-		// Try again in a few minutes
-		setTimeout(() => {
-			void (async () => {
-				if ((await subscription.getValue()) === null) {
-					void subscription.getValue(true);
-				}
-			})();
-		}, 5 * 60 * 1000);
-		return statusBar.hide();
-	}
-
-	statusBar.text = `$(git-commit) #${change.number}`;
-	statusBar.tooltip = `#${change.number}: ${change.subject}\nClick to list changes for checkout`;
-	statusBar.show();
-}
-
 export async function showCurrentChangeStatusBarIcon(
+	currentChangeStatusBar: CurrentChangeStatusBarManager,
 	context: ExtensionContext
 ): Promise<void> {
-	const statusBar = window.createStatusBarItem(StatusBarAlignment.Left);
-	statusBar.command = GerritExtensionCommands.OPEN_CHANGE_SELECTOR;
-
 	const repo = getGitRepo();
 	if (!repo) {
 		return;
@@ -272,7 +248,91 @@ export async function showCurrentChangeStatusBarIcon(
 
 	context.subscriptions.push(
 		await onChangeLastCommit(async (lastCommit) => {
-			await statusbarUpdateHandler(lastCommit, statusBar);
+			await currentChangeStatusBar.onCommitUpdate(lastCommit);
 		}, true)
 	);
+}
+
+export class CurrentChangeStatusBarManager implements Disposable {
+	private _instance: StatusBarItem = (() => {
+		const statusBar = window.createStatusBarItem(StatusBarAlignment.Left);
+		statusBar.command = GerritExtensionCommands.OPEN_CHANGE_SELECTOR;
+		return statusBar;
+	})();
+	private _contents: { text: string; tooltip: string } | null = null;
+	private _override: { text: string; tooltip: string } | null = null;
+
+	public constructor() {}
+
+	private _show(text: string, tooltip: string): void {
+		this._contents = {
+			text,
+			tooltip,
+		};
+		if (this._override) {
+			this._instance.text = this._override.text;
+			this._instance.tooltip = this._override.tooltip;
+		} else {
+			this._instance.text = text;
+			this._instance.tooltip = tooltip;
+		}
+		this._instance.show();
+	}
+
+	public setOverride(
+		override: { text: string; tooltip: string } | null
+	): void {
+		this._override = override;
+		if (this._contents) {
+			// Restore/apply
+			this._show(this._contents.text, this._contents.tooltip);
+		}
+	}
+
+	public async onCommitUpdate(lastCommit: GitCommit): Promise<void> {
+		if (!isGerritCommit(lastCommit)) {
+			return this._instance.hide();
+		}
+
+		const changeID = getChangeID(lastCommit);
+		if (!changeID) {
+			this._show(
+				'$(git-commit) unpublished change',
+				'Unpublished gerrit change, no ChangeID set'
+			);
+			return;
+		}
+
+		const subscription = await GerritChange.getChange(changeID, [], {
+			allowFail: true,
+		});
+		subscription.subscribeOnce(
+			new WeakRef(async () => {
+				await this.onCommitUpdate(lastCommit);
+			}),
+			{ onSame: true }
+		);
+		const change = await subscription.getValue();
+
+		if (!change) {
+			// Try again in a few minutes
+			setTimeout(() => {
+				void (async () => {
+					if ((await subscription.getValue()) === null) {
+						void subscription.getValue(true);
+					}
+				})();
+			}, 5 * 60 * 1000);
+			return this._instance.hide();
+		}
+
+		this._show(
+			`$(git-commit) #${change.number}`,
+			`#${change.number}: ${change.subject}\nClick to list changes for checkout`
+		);
+	}
+
+	public dispose(): void {
+		this._instance.dispose();
+	}
 }

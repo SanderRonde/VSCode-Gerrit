@@ -33,6 +33,10 @@ import {
 	quickCheckout,
 } from '../lib/git/quick-checkout';
 import {
+	CurrentChangeStatusBarManager,
+	openChangeSelector,
+} from '../views/statusBar/currentChangeStatusBar';
+import {
 	nextUnresolvedComment,
 	previousUnresolvedComment,
 } from '../providers/comments/commentCommands';
@@ -44,7 +48,6 @@ import {
 } from '../lib/git/git';
 import { openCurrentChangeOnline } from '../lib/commandHandlers/openCurrentChangeOnline';
 import { clearSearchResults, search } from '../views/activityBar/search/search';
-import { openChangeSelector } from '../views/statusBar/currentChangeStatusBar';
 import { ChangeTreeView } from '../views/activityBar/changes/changeTreeView';
 import { listenForStreamEvents } from '../lib/stream-events/stream-events';
 import { createAutoRegisterCommand } from 'vscode-generate-package-json';
@@ -73,7 +76,10 @@ async function checkoutChange(uri: string, changeID: string): Promise<boolean> {
 	return true;
 }
 
-export function registerCommands(context: ExtensionContext): void {
+export function registerCommands(
+	currentChangeStatusBar: CurrentChangeStatusBarManager,
+	context: ExtensionContext
+): void {
 	const registerCommand = createAutoRegisterCommand<GerritCodicons>(commands);
 
 	// Credentials/connection
@@ -190,13 +196,13 @@ export function registerCommands(context: ExtensionContext): void {
 	context.subscriptions.push(
 		registerCommand(
 			GerritExtensionCommands.OPEN_CHANGE_SELECTOR,
-			openChangeSelector
+			async () => openChangeSelector(currentChangeStatusBar)
 		)
 	);
 	context.subscriptions.push(
 		registerCommand(
 			GerritExtensionCommands.OPEN_CHANGE_SELECTOR2,
-			openChangeSelector
+			async () => openChangeSelector(currentChangeStatusBar)
 		)
 	);
 	context.subscriptions.push(

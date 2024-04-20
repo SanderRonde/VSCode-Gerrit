@@ -12,7 +12,6 @@ import { GerritChange } from '../gerrit/gerritAPI/gerritChange';
 import { GerritChangeStatus } from '../gerrit/gerritAPI/types';
 import { getLastCommits, tryExecAsync } from './gitCLI';
 import { ProgressLocation, window } from 'vscode';
-import { VersionNumber } from '../util/version';
 import { getAPI } from '../gerrit/gerritAPI';
 
 async function buildDependencyTree(maxCommits: number = 10): Promise<
@@ -85,20 +84,13 @@ async function buildDependencyTree(maxCommits: number = 10): Promise<
 }
 
 export async function rebase(
-	onto: string,
-	gitVersion: VersionNumber,
 	uri: string,
 	...extraOptions: {
 		title: string;
 		callback: () => void | Promise<void>;
 	}[]
 ): Promise<boolean> {
-	const rebaseFlag = gitVersion.isGreaterThanOrEqual(
-		new VersionNumber(2, 18, 0)
-	)
-		? '--rebase-merges'
-		: '--preserve-merges';
-	const rebaseCommand = `git rebase ${rebaseFlag} ${onto}`;
+	const rebaseCommand = 'git pull --rebase';
 	const { success } = await tryExecAsync(rebaseCommand, {
 		cwd: uri,
 	});
@@ -111,7 +103,7 @@ export async function rebase(
 		);
 		if (!abortSuccess) {
 			void window.showErrorMessage(
-				'Rebase failed and abortion of rebase failed, please check the log panel for details.'
+				'Rebase failed and aborting of rebase failed, please check the log panel for details.'
 			);
 			return false;
 		}
@@ -141,7 +133,7 @@ export async function rebase(
 	return true;
 }
 
-export async function rebaseOntoMain(): Promise<void> {
+export async function rebaseOntoParent(): Promise<void> {
 	await window.withProgress(
 		{
 			location: ProgressLocation.Notification,
@@ -173,37 +165,16 @@ export async function rebaseOntoMain(): Promise<void> {
 			}
 
 			progress.report({
-				message: 'Getting git version',
+				message: 'Rebasing',
 				increment: 20,
 			});
-			const gitVersion = await getGitVersion(gitURI);
-			if (!gitVersion || token.isCancellationRequested) {
+			if (!(await rebase(gitURI))) {
 				return;
 			}
 
 			progress.report({
-				message: 'Fetching remote version',
-				increment: 20,
-			});
-			const remoteBranch = await ensureMainBranchUpdated(
-				gitURI,
-				gitReviewFile
-			);
-			if (!remoteBranch || token.isCancellationRequested) {
-				return;
-			}
-
-			progress.report({
-				message: `Rebasing onto ${remoteBranch}`,
-				increment: 20,
-			});
-			if (!(await rebase(remoteBranch, gitVersion, gitURI))) {
-				return;
-			}
-
-			progress.report({
-				message: `Rebased onto main branch: ${remoteBranch}`,
-				increment: 20,
+				message: 'Rebased onto parent branch',
+				increment: 60,
 			});
 		}
 	);
@@ -334,7 +305,6 @@ export async function recursiveRebase(): Promise<void> {
 
 			const numOperations = dependencyTree.length + 1;
 			const progressPerOperation = 80 / numOperations;
-			let lastBranch = remoteBranch;
 			let currentProgress = 20;
 			for (let i = 0; i < dependencyTree.length; i++) {
 				const operation = dependencyTree[i];
@@ -364,7 +334,7 @@ export async function recursiveRebase(): Promise<void> {
 				}
 
 				if (
-					!(await rebase(lastBranch, gitVersion, gitURI, {
+					!(await rebase(gitURI, {
 						title: 'Back to original branch',
 						callback: async () => {
 							if (
@@ -385,7 +355,6 @@ export async function recursiveRebase(): Promise<void> {
 				) {
 					return;
 				}
-				lastBranch = (await getCurrentBranch())!;
 				currentProgress += progressPerOperation;
 			}
 
@@ -401,7 +370,7 @@ export async function recursiveRebase(): Promise<void> {
 			currentProgress += progressPerOperation;
 
 			if (
-				!(await rebase(remoteBranch, gitVersion, gitURI, {
+				!(await rebase(gitURI, {
 					title: 'Back to original branch',
 					callback: async () => {
 						if (

@@ -158,22 +158,51 @@ export async function ensureCleanWorkingTree(
 			const choice = await window.showWarningMessage(
 				'You have unstaged changes. Please commit or stash them',
 				{
+					title: 'Amend all changes' as const,
+				},
+				{
 					title: 'Stash changes' as const,
 				}
 			);
-			if (choice?.title !== 'Stash changes') {
+			if (!choice) {
 				return false;
 			}
-			const stashName = await window.showInputBox({
-				value: 'gerrit-stash',
-				title: 'Stash name',
-			});
-			if (!stashName) {
-				return false;
+			if (choice.title === 'Stash changes') {
+				const stashName = await window.showInputBox({
+					value: 'gerrit-stash',
+					title: 'Stash name',
+				});
+				if (!stashName) {
+					return false;
+				}
+				if (!(await createStash(gitURI, stashName))) {
+					return false;
+				}
 			}
-			if (!(await createStash(gitURI, stashName))) {
-				return false;
+			if (choice.title === 'Amend all changes') {
+				const { success } = await tryExecAsync('git add .', {
+					cwd: gitURI,
+				});
+				if (!success) {
+					void window.showErrorMessage(
+						'Failed to add all changes, see log for details'
+					);
+					return false;
+				}
+				const { success: commitSuccess } = await tryExecAsync(
+					'git commit -C HEAD --amend',
+					{
+						cwd: gitURI,
+					}
+				);
+				if (!commitSuccess) {
+					void window.showErrorMessage(
+						'Failed to amend changes, see log for details'
+					);
+					return false;
+				}
 			}
+			return true;
 		}
 	}
 
@@ -267,11 +296,7 @@ async function ensureNoRebaseErrors(): Promise<boolean> {
 		return false;
 	}
 
-	const remoteBranch =
-		gitReviewFile.branch ??
-		gitReviewFile.defaultbranch ??
-		DEFAULT_GIT_REVIEW_FILE.branch;
-	return rebase(remoteBranch, gitVersion, gitURI, {
+	return rebase(gitURI, {
 		title: 'Run Git Review',
 		callback: () => {
 			const terminal = window.createTerminal('Git Review');
@@ -335,18 +360,26 @@ export async function gitCheckoutRemote(
 
 const URL_REGEX = /http(s)?[:\w./+]+/g;
 export async function gitReview(): Promise<void> {
+	const config = getConfiguration();
+	const showProgressInNotification = config.get(
+		'gerrit.messages.postReviewNotification',
+		true
+	);
 	const { success, stdout, handled } = await window.withProgress<{
 		success: boolean;
 		stdout: string;
 		handled: boolean;
 	}>(
 		{
-			location: ProgressLocation.SourceControl,
+			location: showProgressInNotification
+				? ProgressLocation.Notification
+				: ProgressLocation.SourceControl,
 			title: 'Pushing for review',
 		},
 		async (progress) => {
 			progress.report({
 				message: 'Ensuring no rebase errors',
+				increment: 10,
 			});
 			const uri = getGitURI();
 			if (!uri) {
@@ -365,7 +398,7 @@ export async function gitReview(): Promise<void> {
 				};
 			}
 			progress.report({
-				increment: 10,
+				increment: 40,
 			});
 
 			progress.report({
@@ -431,7 +464,7 @@ export async function gitReview(): Promise<void> {
 				});
 			});
 			progress.report({
-				increment: 90,
+				increment: 50,
 			});
 
 			return result;

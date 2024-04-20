@@ -48,7 +48,7 @@ import { openChangeSelector } from '../views/statusBar/currentChangeStatusBar';
 import { ChangeTreeView } from '../views/activityBar/changes/changeTreeView';
 import { listenForStreamEvents } from '../lib/stream-events/stream-events';
 import { createAutoRegisterCommand } from 'vscode-generate-package-json';
-import { rebaseOntoMain, recursiveRebase } from '../lib/git/rebase';
+import { rebaseOntoParent, recursiveRebase } from '../lib/git/rebase';
 import { enterCredentials } from '../lib/credentials/credentials';
 import { focusChange } from '../lib/commandHandlers/focusChange';
 import { GerritExtensionCommands } from './command-names';
@@ -284,7 +284,7 @@ export function registerCommands(context: ExtensionContext): void {
 					return;
 				}
 
-				await rebaseOntoMain();
+				await rebaseOntoParent();
 			}
 		)
 	);
@@ -292,7 +292,7 @@ export function registerCommands(context: ExtensionContext): void {
 		registerCommand(
 			GerritExtensionCommands.REBASE_CURRENT,
 			// eslint-disable-next-line @typescript-eslint/no-unsafe-return
-			async () => await rebaseOntoMain()
+			async () => await rebaseOntoParent()
 		)
 	);
 	context.subscriptions.push(

@@ -2,6 +2,14 @@
 
 All notable changes to the "gerrit" extension will be documented in this file.
 
+## 1.1.30
+
+-   Improve UI around "git review" command and change selector
+
+## 1.1.29
+
+-   Fix issue where review panel would not load in some cases.
+
 ## 1.1.28
 
 -   URI handler is smarter about when to open diff viewer and then to open the file locally.

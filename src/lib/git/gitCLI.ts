@@ -58,6 +58,7 @@ export async function tryExecAsync(
 				log(`Tried to run "${cmd}", but failed`);
 				log(`Stdout: ${stdout.toString()}`);
 				log(`Stderr: ${stderr.toString()}`);
+				log(`Error: ${err.message}`);
 			}
 			resolve({
 				success: !err,

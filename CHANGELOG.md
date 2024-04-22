@@ -2,6 +2,11 @@
 
 All notable changes to the "gerrit" extension will be documented in this file.
 
+## 1.1.31
+
+-   Allow changing authenticated URL from `a/`. Useful for the AOSP Gerrit instance.
+-   Use more of the last commits to determine whether the current repo is a gerrit repo.
+
 ## 1.1.30
 
 -   Improve UI around "git review" command and change selector

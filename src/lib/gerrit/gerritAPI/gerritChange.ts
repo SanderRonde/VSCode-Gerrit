@@ -13,7 +13,6 @@ import { GerritComment, GerritDraftComment } from './gerritComment';
 import { Subscribable } from '../../subscriptions/subscriptions';
 import { getAPI, getAPIForSubscription } from '../gerritAPI';
 import { ChangesOffsetParams, GerritAPIWith } from './api';
-import { GerritChangeDetail } from './gerritChangeDetail';
 import { GerritRevision } from './gerritRevision';
 import { DynamicallyFetchable } from './shared';
 import { DateTime } from '../../util/dateTime';
@@ -312,14 +311,5 @@ export class GerritChange extends DynamicallyFetchable {
 		}
 
 		return await currentRevision.commit();
-	}
-
-	public async getDetail(): Promise<GerritChangeDetail | null> {
-		const api = await getAPI();
-		if (!api) {
-			return null;
-		}
-
-		return api.getChangeDetail(this.changeID);
 	}
 }

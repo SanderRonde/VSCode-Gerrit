@@ -611,8 +611,8 @@ export class GerritAPI {
 			return '';
 		}
 		const trailingSlash = this._url.endsWith('/') ? '' : '/';
-		const useAuthStr = getConfiguration().get('gerrit.addAuthStringToUrl', true);
-		const authStr = (auth && useAuthStr) ? 'a/' : '';
+		const authUrlPrefix = getConfiguration().get('gerrit.customAuthUrlPrefix', 'a/');
+		const authStr = auth ? authUrlPrefix : '';
 		return `${this._url}${trailingSlash}${authStr}${path}`;
 	}
 

@@ -48,6 +48,7 @@ interface ConfigSettings {
 	'gerrit.messages.postReviewNotification': boolean;
 	'gerrit.quickCheckout.dropAllStashes': boolean;
 	'gerrit.quickCheckout.showInStatusBar': boolean;
+	'gerrit.customAuthUrlPrefix': string;
 	'gerrit.streamEvents': boolean;
 	'gerrit.forceEnable': boolean;
 	'gerrit.gitRepo'?: string;

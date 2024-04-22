@@ -1357,6 +1357,12 @@
 					"title": "Allow requests to failed/invalid SSL certs",
 					"description": "Note: before you use this, ask your server maintainer to fix their certs. This option can can be dangerous.",
 					"default": false
+				},
+				"gerrit.customAuthUrlPrefix": {
+					"type": "string",
+					"title": "Add a custom prefix to use for authenticated links",
+					"description": "Changes the default authentication prefix from \"a/\" to a custom string. This should only be necessary if using a non-standard gerrit instance.",
+					"default": "a/"
 				}
 			}
 		}

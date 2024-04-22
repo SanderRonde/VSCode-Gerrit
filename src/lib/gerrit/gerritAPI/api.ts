@@ -612,7 +612,11 @@ export class GerritAPI {
 			return '';
 		}
 		const trailingSlash = this._url.endsWith('/') ? '' : '/';
-		const authStr = auth ? 'a/' : '';
+		const authUrlPrefix = getConfiguration().get(
+			'gerrit.customAuthUrlPrefix',
+			'a/'
+		);
+		const authStr = auth ? authUrlPrefix : '';
 		return `${this._url}${trailingSlash}${authStr}${path}`;
 	}
 

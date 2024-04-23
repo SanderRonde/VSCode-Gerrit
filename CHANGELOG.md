@@ -2,6 +2,10 @@
 
 All notable changes to the "gerrit" extension will be documented in this file.
 
+## 1.1.32
+
+-   Fix typo that prevents comment link from working
+
 ## 1.1.31
 
 -   Allow changing authenticated URL from `a/`. Useful for the AOSP Gerrit instance.

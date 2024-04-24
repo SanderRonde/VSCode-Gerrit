@@ -52,6 +52,10 @@ interface ConfigSettings {
 	'gerrit.streamEvents': boolean;
 	'gerrit.forceEnable': boolean;
 	'gerrit.gitRepo'?: string;
+	'gerrit.changeTitleTemplate': {
+		title: string;
+		subtitle: string;
+	};
 }
 
 interface TypedWorkspaceConfiguration<T> extends WorkspaceConfiguration {

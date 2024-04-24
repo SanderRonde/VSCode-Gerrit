@@ -1057,6 +1057,35 @@
 					"type": "string",
 					"description": "Git repository to use (only needed for multi-git-repo setups)"
 				},
+				"gerrit.changeTitleTemplate": {
+					"type": "object",
+					"description": "Templates for showing the titles of changes in the CHANGES view. Use ${number}, ${subject/title}, ${owner}, ${repo}, ${branch}, ${status} as templates.",
+					"properties": {
+						"title": {
+							"description": "Title of change, shown first in white text",
+							"examples": [
+								"${number}: ${subject} (${owner})",
+								"${number}: ${subject} (${owner}/${repo}/${branch})",
+								"${number}: ${subject} (${owner}/${repo}/${branch}/${status})"
+							],
+							"default": "#${number}: ${subject}"
+						},
+						"subtitle": {
+							"description": "Subtitle of change, shown behind title in grey text",
+							"examples": [
+								"by ${owner}",
+								"($owner)",
+								"${owner}/${repo}/${branch}",
+								"${owner}/${repo}/${branch}/${status}"
+							],
+							"default": "by ${owner}"
+						}
+					},
+					"default": {
+						"title": "#${number}: ${subject}",
+						"subtitle": "by ${owner}"
+					}
+				},
 				"gerrit.forceEnable": {
 					"type": "boolean",
 					"default": false,

@@ -13,6 +13,7 @@ import { GerritComment, GerritDraftComment } from './gerritComment';
 import { Subscribable } from '../../subscriptions/subscriptions';
 import { getAPI, getAPIForSubscription } from '../gerritAPI';
 import { ChangesOffsetParams, GerritAPIWith } from './api';
+import { getConfiguration } from '../../vscode/config';
 import { GerritRevision } from './gerritRevision';
 import { DynamicallyFetchable } from './shared';
 import { DateTime } from '../../util/dateTime';
@@ -311,5 +312,63 @@ export class GerritChange extends DynamicallyFetchable {
 		}
 
 		return await currentRevision.commit();
+	}
+
+	public async getFormattedNames(): Promise<{
+		label: string;
+		description?: string;
+	}> {
+		const template = getConfiguration().get('gerrit.changeTitleTemplate');
+
+		let owner: GerritUser | null = null;
+		const getTemplateValueContent = async (
+			templateValue: string
+		): Promise<string> => {
+			if (templateValue === 'number') {
+				return String(this.number);
+			}
+			if (templateValue === 'subject' || templateValue === 'title') {
+				return this.subject;
+			}
+			if (templateValue === 'owner') {
+				owner ??= await this.detailedOwner();
+				return owner?.getName() ?? '<no_owner>';
+			}
+			if (templateValue === 'repo') {
+				return this.project;
+			}
+			if (templateValue === 'branch') {
+				return this.branch;
+			}
+			if (templateValue === 'status') {
+				if (this.workInProgress) {
+					return 'WIP';
+				}
+				return this.status;
+			}
+			return '<unknown_template_value>';
+		};
+
+		const getSingleFormattedName = async (
+			template: string
+		): Promise<string> => {
+			for (
+				let match = /\${(\w+)}/.exec(template);
+				match;
+				match = /\${(\w+)}/.exec(template)
+			) {
+				const [fullMatch, templateValue] = match;
+				const value = await getTemplateValueContent(templateValue);
+				template = template.replace(fullMatch, value);
+			}
+			return template;
+		};
+
+		return {
+			description: await getSingleFormattedName(
+				template.subtitle ?? '<no_subtitle>'
+			),
+			label: await getSingleFormattedName(template.title ?? '<no_title>'),
+		};
 	}
 }

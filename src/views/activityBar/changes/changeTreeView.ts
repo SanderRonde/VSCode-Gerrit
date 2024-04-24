@@ -357,17 +357,14 @@ export class ChangeTreeView
 			};
 		}
 
-		const changeNumber = `#${change.number}`;
-
-		const owner = await change.detailedOwner();
-
+		const { label, description } = await change.getFormattedNames();
 		return {
-			label: `${changeNumber}: ${change.subject}`,
+			label: label,
 			collapsibleState: TreeItemCollapsibleState.Collapsed,
 			tooltip: change.subject,
 			contextValue: await this._buildContextValue(),
 			iconPath: new ThemeIcon('git-pull-request'),
-			description: owner ? `by ${owner.getName(true)!}` : undefined,
+			description: description,
 		};
 	}
 

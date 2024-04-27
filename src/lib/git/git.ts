@@ -148,7 +148,7 @@ export async function ensureCleanWorkingTree(
 			'git diff --ignore-submodules --quiet',
 			{
 				cwd: gitURI,
-				silent,
+				silent: true,
 			}
 		);
 		if (!success) {
@@ -211,7 +211,7 @@ export async function ensureCleanWorkingTree(
 			'git diff --cached --ignore-submodules --quiet',
 			{
 				cwd: gitURI,
-				silent,
+				silent: true,
 			}
 		);
 		if (!success) {

@@ -571,7 +571,7 @@ async function jumpToUnresolvedCommentShared(
 	// Now get new active editor
 	const newEditor = window.activeTextEditor!;
 
-	const fileComments = data.unresolvedThreads.get(filePath)!;
+	const fileComments = data.unresolvedThreads.get(filePath) ?? [];
 	const index =
 		typeof commentIndex === 'number'
 			? commentIndex

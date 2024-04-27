@@ -41,7 +41,7 @@ async function getGerritRepos(silent: boolean = true): Promise<Repository[]> {
 			if (lastCommit.some((c) => !isGerritCommit(c))) {
 				if (!silent) {
 					log(
-						'No gerrit commits found in last 2 commits, skipping repo.'
+						'No gerrit commits found in last 50 commits, skipping repo.'
 					);
 				}
 				return false;

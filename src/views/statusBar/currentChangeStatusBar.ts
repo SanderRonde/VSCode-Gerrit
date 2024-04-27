@@ -315,14 +315,14 @@ export class CurrentChangeStatusBarManager implements Disposable {
 		const change = await subscription.getValue();
 
 		if (!change) {
-			// Try again in a few minutes
+			// Try again in a little while
 			setTimeout(() => {
 				void (async () => {
 					if ((await subscription.getValue()) === null) {
 						void subscription.getValue(true);
 					}
 				})();
-			}, 5 * 60 * 1000);
+			}, 30 * 1000);
 			return this._instance.hide();
 		}
 

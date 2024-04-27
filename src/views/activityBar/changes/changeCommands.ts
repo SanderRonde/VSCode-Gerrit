@@ -65,7 +65,7 @@ export function selectActiveView(): void {
 export async function checkoutBranch(
 	changeTreeView: ChangeTreeView
 ): Promise<void> {
-	await gitCheckoutRemote(changeTreeView.changeID, undefined, true);
+	await gitCheckoutRemote(changeTreeView.changeID, undefined, false);
 }
 
 export async function openChangeOnline(

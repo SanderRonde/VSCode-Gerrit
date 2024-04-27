@@ -2,6 +2,11 @@
 
 All notable changes to the "gerrit" extension will be documented in this file.
 
+## 1.1.34
+
+-   Patch checkout now logs when it fails to checkout a patch
+-   Fix an issue where "next unresolved comment" would cause an error if there were no comments in the file
+
 ## 1.1.33
 
 -   Allow specifying a custom template for the titles of patches in the dashboard

@@ -39,7 +39,7 @@ export function createCacheWrapper<V, A>(
 export function createCacheWrapper<V, A>(
 	getter: (...args: A[]) => V
 ): (...args: A[]) => V;
-export function createCacheWrapper<V, A>(
+export function createCacheWrapper<V extends object, A>(
 	getter: (...args: A[]) => Promise<V> | V
 ): (...args: A[]) => Promise<V> | V {
 	let hasValue: boolean = false;
@@ -82,7 +82,7 @@ export function createCacheSetter<V, A>(
 	id: string,
 	getter: (...args: A[]) => V
 ): (...args: A[]) => V;
-export function createCacheSetter<V, A>(
+export function createCacheSetter<V extends object, A>(
 	id: string,
 	getter: (...args: A[]) => Promise<V> | V
 ): (...args: A[]) => Promise<V> | V {

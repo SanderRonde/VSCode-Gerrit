@@ -6,7 +6,7 @@ import {
 	spawn,
 	SpawnOptionsWithoutStdio,
 } from 'child_process';
-import { getGitRepo } from '../gerrit/gerrit';
+import { Repository } from '../../types/vscode-extension-git';
 import { log } from '../util/log';
 
 export interface GitCommit {
@@ -130,13 +130,10 @@ const COMMIT_FORMAT = '%H%n%B';
 // eslint-disable-next-line no-control-regex
 const COMMIT_REGEX = /(.*)\n([^]*?)(?:\x00)/gm;
 
-export async function getLastCommits(count: number): Promise<GitCommit[]> {
-	const gitRepo = getGitRepo();
-
-	if (!gitRepo) {
-		return [];
-	}
-
+export async function getLastCommits(
+	gerritRepo: Repository,
+	count: number
+): Promise<GitCommit[]> {
 	// We use the native `git log` command here instead of the actual
 	// API because the API shows a loading icon on the status bar every 5s
 	// which is quite annoying
@@ -144,7 +141,7 @@ export async function getLastCommits(count: number): Promise<GitCommit[]> {
 		const stdout = await execAsync(
 			`git log --format='${COMMIT_FORMAT}' -z -n ${count}`,
 			{
-				cwd: gitRepo.rootUri.fsPath,
+				cwd: gerritRepo.rootUri.fsPath,
 			}
 		);
 		let match = COMMIT_REGEX.exec(stdout);

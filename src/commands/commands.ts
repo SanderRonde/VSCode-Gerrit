@@ -40,25 +40,25 @@ import {
 	nextUnresolvedComment,
 	previousUnresolvedComment,
 } from '../providers/comments/commentCommands';
+import { CanFetchMoreTreeProvider } from '../views/activityBar/shared/canFetchMoreTreeProvider';
 import { fetchMoreTreeItemEntries } from '../views/activityBar/changes/fetchMoreTreeItem';
-import {
-	getChangeIDFromCheckoutString,
-	getGitURI,
-	gitReview,
-} from '../lib/git/git';
 import { openCurrentChangeOnline } from '../lib/commandHandlers/openCurrentChangeOnline';
+import { FileTreeView } from '../views/activityBar/changes/changeTreeView/fileTreeView';
 import { clearSearchResults, search } from '../views/activityBar/search/search';
 import { ChangeTreeView } from '../views/activityBar/changes/changeTreeView';
+import { QuickCheckoutTreeEntry } from '../views/activityBar/quickCheckout';
 import { listenForStreamEvents } from '../lib/stream-events/stream-events';
+import { getChangeIDFromCheckoutString, gitReview } from '../lib/git/git';
+import { GerritCommentBase } from '../lib/gerrit/gerritAPI/gerritComment';
 import { createAutoRegisterCommand } from 'vscode-generate-package-json';
+import { CommentThread, ExtensionContext, Uri, window } from 'vscode';
 import { rebaseOntoParent, recursiveRebase } from '../lib/git/rebase';
 import { enterCredentials } from '../lib/credentials/credentials';
 import { focusChange } from '../lib/commandHandlers/focusChange';
+import { Repository } from '../types/vscode-extension-git';
 import { GerritExtensionCommands } from './command-names';
 import { checkConnection } from '../lib/gerrit/gerritAPI';
-import { ExtensionContext, Uri, window } from 'vscode';
 import { openOnGitiles } from '../lib/gitiles/gitiles';
-import { pickGitRepo } from '../lib/gerrit/gerrit';
 import { commands, GerritCodicons } from './defs';
 import { tryExecAsync } from '../lib/git/gitCLI';
 
@@ -78,27 +78,30 @@ async function checkoutChange(uri: string, changeID: string): Promise<boolean> {
 
 export function registerCommands(
 	currentChangeStatusBar: CurrentChangeStatusBarManager,
+	gerritRepo: Repository,
 	context: ExtensionContext
 ): void {
 	const registerCommand = createAutoRegisterCommand<GerritCodicons>(commands);
 
 	// Credentials/connection
 	context.subscriptions.push(
-		registerCommand(
-			GerritExtensionCommands.ENTER_CREDENTIALS,
-			enterCredentials
+		registerCommand(GerritExtensionCommands.ENTER_CREDENTIALS, () =>
+			enterCredentials()
 		)
 	);
 	context.subscriptions.push(
-		registerCommand(
-			GerritExtensionCommands.CHECK_CONNECTION,
-			checkConnection
+		registerCommand(GerritExtensionCommands.CHECK_CONNECTION, () =>
+			checkConnection()
 		)
 	);
 
 	// Comments
 	context.subscriptions.push(
-		registerCommand(GerritExtensionCommands.CANCEL_COMMENT, cancelComment)
+		registerCommand(
+			GerritExtensionCommands.CANCEL_COMMENT,
+			(reply: NewlyCreatedGerritCommentReply | GerritCommentBase) =>
+				cancelComment(reply)
+		)
 	);
 	context.subscriptions.push(
 		registerCommand(
@@ -127,48 +130,55 @@ export function registerCommands(
 		)
 	);
 	context.subscriptions.push(
-		registerCommand(
-			GerritExtensionCommands.COLLAPSE_ALL_COMMENTS,
-			collapseAllComments
+		registerCommand(GerritExtensionCommands.COLLAPSE_ALL_COMMENTS, () =>
+			collapseAllComments()
 		)
 	);
 	context.subscriptions.push(
-		registerCommand(GerritExtensionCommands.DELETE_COMMENT, deleteComment)
+		registerCommand(
+			GerritExtensionCommands.DELETE_COMMENT,
+			(comment: GerritCommentBase) => deleteComment(comment)
+		)
 	);
 	context.subscriptions.push(
-		registerCommand(GerritExtensionCommands.EDIT_COMMENT, editComment)
+		registerCommand(
+			GerritExtensionCommands.EDIT_COMMENT,
+			(comment: GerritCommentBase) => editComment(comment)
+		)
 	);
 	context.subscriptions.push(
 		registerCommand(
 			GerritExtensionCommands.DONE_COMMENT_THREAD,
-			doneComment
+			(comment: GerritCommentBase) => doneComment(comment)
 		)
 	);
 	context.subscriptions.push(
-		registerCommand(GerritExtensionCommands.ACK_COMMENT_THREAD, ackComment)
+		registerCommand(
+			GerritExtensionCommands.ACK_COMMENT_THREAD,
+			(comment: GerritCommentBase) => ackComment(comment)
+		)
 	);
 	context.subscriptions.push(
-		registerCommand(
-			GerritExtensionCommands.NEXT_UNRESOLVED_COMMENT,
-			nextUnresolvedComment
+		registerCommand(GerritExtensionCommands.NEXT_UNRESOLVED_COMMENT, () =>
+			nextUnresolvedComment(gerritRepo)
 		)
 	);
 	context.subscriptions.push(
 		registerCommand(
 			GerritExtensionCommands.PREVIOUS_UNRESOLVED_COMMENT,
-			previousUnresolvedComment
+			() => previousUnresolvedComment(gerritRepo)
 		)
 	);
 	context.subscriptions.push(
 		registerCommand(
 			GerritExtensionCommands.COPY_COMMENT_LINK,
-			copyCommentLink
+			(thread: CommentThread) => copyCommentLink(thread)
 		)
 	);
 	context.subscriptions.push(
 		registerCommand(
 			GerritExtensionCommands.OPEN_COMMENT_ONLINE,
-			openCommentOnline
+			(thread: CommentThread) => openCommentOnline(thread)
 		)
 	);
 
@@ -176,19 +186,19 @@ export function registerCommands(
 	context.subscriptions.push(
 		registerCommand(
 			GerritExtensionCommands.FILE_OPEN_ONLINE,
-			openFileOnline
+			(treeView: FileTreeView) => openFileOnline(treeView)
 		)
 	);
 	context.subscriptions.push(
 		registerCommand(
 			GerritExtensionCommands.FILE_OPEN_MODIFIED,
-			openModified
+			(treeView: FileTreeView) => openModified(treeView)
 		)
 	);
 	context.subscriptions.push(
 		registerCommand(
 			GerritExtensionCommands.FILE_OPEN_ORIGINAL,
-			openOriginal
+			(treeView: FileTreeView) => openOriginal(treeView)
 		)
 	);
 
@@ -196,19 +206,20 @@ export function registerCommands(
 	context.subscriptions.push(
 		registerCommand(
 			GerritExtensionCommands.OPEN_CHANGE_SELECTOR,
-			async () => openChangeSelector(currentChangeStatusBar)
+			async () => openChangeSelector(gerritRepo, currentChangeStatusBar)
 		)
 	);
 	context.subscriptions.push(
 		registerCommand(
 			GerritExtensionCommands.OPEN_CHANGE_SELECTOR2,
-			async () => openChangeSelector(currentChangeStatusBar)
+			async () => openChangeSelector(gerritRepo, currentChangeStatusBar)
 		)
 	);
 	context.subscriptions.push(
 		registerCommand(
 			GerritExtensionCommands.RETRY_LISTEN_FOR_STREAM_EVENTS,
-			listenForStreamEvents
+			async () =>
+				context.subscriptions.push(await listenForStreamEvents())
 		)
 	);
 
@@ -216,33 +227,32 @@ export function registerCommands(
 	context.subscriptions.push(
 		registerCommand(
 			GerritExtensionCommands.FETCH_MORE,
-			fetchMoreTreeItemEntries
+			(group: CanFetchMoreTreeProvider) => fetchMoreTreeItemEntries(group)
 		)
 	);
 	context.subscriptions.push(
-		registerCommand(GerritExtensionCommands.REFRESH_CHANGES, refreshChanges)
-	);
-	context.subscriptions.push(
-		registerCommand(
-			GerritExtensionCommands.CONFIGURE_CHANGE_LIST,
-			configureChangeLists
+		registerCommand(GerritExtensionCommands.REFRESH_CHANGES, () =>
+			refreshChanges()
 		)
 	);
 	context.subscriptions.push(
-		registerCommand(
-			GerritExtensionCommands.SELECT_ACTIVE_VIEW,
-			selectActiveView
+		registerCommand(GerritExtensionCommands.CONFIGURE_CHANGE_LIST, () =>
+			configureChangeLists()
+		)
+	);
+	context.subscriptions.push(
+		registerCommand(GerritExtensionCommands.SELECT_ACTIVE_VIEW, () =>
+			selectActiveView()
 		)
 	);
 
 	// Search
 	context.subscriptions.push(
-		registerCommand(GerritExtensionCommands.SEARCH, search)
+		registerCommand(GerritExtensionCommands.SEARCH, () => search())
 	);
 	context.subscriptions.push(
-		registerCommand(
-			GerritExtensionCommands.CLEAR_SEARCH_RESULTS,
-			clearSearchResults
+		registerCommand(GerritExtensionCommands.CLEAR_SEARCH_RESULTS, () =>
+			clearSearchResults()
 		)
 	);
 
@@ -270,19 +280,23 @@ export function registerCommands(
 
 	// Git
 	context.subscriptions.push(
-		registerCommand(GerritExtensionCommands.CHECKOUT_BRANCH, checkoutBranch)
+		registerCommand(
+			GerritExtensionCommands.CHECKOUT_BRANCH,
+			(changeTreeView: ChangeTreeView) =>
+				checkoutBranch(gerritRepo, changeTreeView)
+		)
 	);
 	context.subscriptions.push(
 		registerCommand(
 			GerritExtensionCommands.CHANGE_OPEN_ONLINE,
-			openChangeOnline
+			(changeTreeView: ChangeTreeView) => openChangeOnline(changeTreeView)
 		)
 	);
 	context.subscriptions.push(
 		registerCommand(
 			GerritExtensionCommands.REBASE,
 			async (changeTreeView: ChangeTreeView) => {
-				const gitURI = getGitURI();
+				const gitURI = gerritRepo.rootUri.fsPath;
 				if (
 					!gitURI ||
 					!(await checkoutChange(gitURI, changeTreeView.changeID))
@@ -290,7 +304,7 @@ export function registerCommands(
 					return;
 				}
 
-				await rebaseOntoParent();
+				await rebaseOntoParent(gerritRepo);
 			}
 		)
 	);
@@ -298,14 +312,14 @@ export function registerCommands(
 		registerCommand(
 			GerritExtensionCommands.REBASE_CURRENT,
 			// eslint-disable-next-line @typescript-eslint/no-unsafe-return
-			async () => await rebaseOntoParent()
+			async () => await rebaseOntoParent(gerritRepo)
 		)
 	);
 	context.subscriptions.push(
 		registerCommand(
 			GerritExtensionCommands.RECURSIVE_REBASE,
 			async (changeTreeView: ChangeTreeView) => {
-				const gitURI = getGitURI();
+				const gitURI = gerritRepo.rootUri.fsPath;
 				if (
 					!gitURI ||
 					!(await checkoutChange(gitURI, changeTreeView.changeID))
@@ -313,7 +327,7 @@ export function registerCommands(
 					return;
 				}
 
-				await recursiveRebase();
+				await recursiveRebase(gerritRepo);
 			}
 		)
 	);
@@ -321,50 +335,66 @@ export function registerCommands(
 		registerCommand(
 			GerritExtensionCommands.RECURSIVE_REBASE_CURRENT,
 			// eslint-disable-next-line @typescript-eslint/no-unsafe-return
-			async () => await recursiveRebase()
+			async () => await recursiveRebase(gerritRepo)
 		)
 	);
 	context.subscriptions.push(
-		registerCommand(GerritExtensionCommands.PUSH_FOR_REVIEW, gitReview)
+		registerCommand(GerritExtensionCommands.PUSH_FOR_REVIEW, () =>
+			gitReview(gerritRepo)
+		)
 	);
 
 	// Quick-checkout
 	context.subscriptions.push(
-		registerCommand(GerritExtensionCommands.QUICK_CHECKOUT, quickCheckout)
+		registerCommand(
+			GerritExtensionCommands.QUICK_CHECKOUT,
+			(changeTreeView: ChangeTreeView) =>
+				quickCheckout(gerritRepo, changeTreeView)
+		)
 	);
 	context.subscriptions.push(
 		registerCommand(
 			GerritExtensionCommands.DROP_QUICK_CHECKOUT,
-			dropQuickCheckout
+			(treeItem: QuickCheckoutTreeEntry) =>
+				dropQuickCheckout(gerritRepo, treeItem)
 		)
 	);
 	context.subscriptions.push(
 		registerCommand(
 			GerritExtensionCommands.QUICK_CHECKOUT_APPLY,
-			applyQuickCheckout
+			(treeItem: QuickCheckoutTreeEntry) =>
+				applyQuickCheckout(gerritRepo, treeItem)
 		)
 	);
 	context.subscriptions.push(
 		registerCommand(
 			GerritExtensionCommands.QUICK_CHECKOUT_POP,
-			popQuickCheckout
+			(treeItem: QuickCheckoutTreeEntry) =>
+				popQuickCheckout(gerritRepo, treeItem)
 		)
 	);
 	context.subscriptions.push(
-		registerCommand(
-			GerritExtensionCommands.DROP_QUICK_CHECKOUTS,
-			dropQuickCheckouts
+		registerCommand(GerritExtensionCommands.DROP_QUICK_CHECKOUTS, () =>
+			dropQuickCheckouts(gerritRepo)
 		)
 	);
-	context.subscriptions.push(
-		registerCommand(GerritExtensionCommands.CHANGE_GIT_REPO, pickGitRepo)
-	);
+
+	// context.subscriptions.push(
+	// 	registerCommand(GerritExtensionCommands.CHANGE_GIT_REPO, () =>
+	// 		pickGitRepo()
+	// 	)
+	// );
 
 	// Gutter commands
 	const gitilesHandler = (permalink: boolean) => {
 		return (gutter?: { lineNumber: number; uri: Uri }) => {
 			if (gutter) {
-				void openOnGitiles(permalink, gutter.uri, gutter.lineNumber);
+				void openOnGitiles(
+					gerritRepo,
+					permalink,
+					gutter.uri,
+					gutter.lineNumber
+				);
 				return;
 			}
 
@@ -374,6 +404,7 @@ export function registerCommands(
 			}
 
 			void openOnGitiles(
+				gerritRepo,
 				permalink,
 				window.activeTextEditor.document.uri,
 				window.activeTextEditor.selection.active.line
@@ -397,11 +428,13 @@ export function registerCommands(
 	context.subscriptions.push(
 		registerCommand(
 			GerritExtensionCommands.OPEN_CURRENT_CHANGE_ONLINE,
-			openCurrentChangeOnline
+			() => openCurrentChangeOnline(gerritRepo)
 		)
 	);
 	context.subscriptions.push(
-		registerCommand(GerritExtensionCommands.FOCUS_CHANGE, focusChange)
+		registerCommand(GerritExtensionCommands.FOCUS_CHANGE, () =>
+			focusChange(gerritRepo)
+		)
 	);
 	context.subscriptions.push(
 		registerCommand(GerritExtensionCommands.OPEN_FILE_ON_GITILES, () => {
@@ -410,7 +443,7 @@ export function registerCommands(
 				void window.showErrorMessage('No file open to open on gitiles');
 				return;
 			}
-			void openOnGitiles(false, uri);
+			void openOnGitiles(gerritRepo, false, uri);
 		})
 	);
 }

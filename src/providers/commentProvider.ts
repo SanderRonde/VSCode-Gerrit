@@ -37,7 +37,7 @@ import { getAPI } from '../lib/gerrit/gerritAPI';
 import * as gitDiffParser from 'gitdiff-parser';
 import path = require('path');
 import { PatchsetDescription } from '../views/activityBar/changes/changeTreeView';
-import { getGitRepo } from '../lib/gerrit/gerrit';
+import { Repository } from '../types/vscode-extension-git';
 
 export interface GerritCommentReply {
 	text: string;
@@ -380,6 +380,7 @@ export class CommentManager {
 	}
 
 	private static async _getFileRanges(
+		gerritRepo: Repository,
 		file: GerritFile,
 		document: TextDocument,
 		prevData?: {
@@ -393,19 +394,20 @@ export class CommentManager {
 		newHash: string;
 	} | null> {
 		const result = await (async () => {
-			const repo = getGitRepo();
-			if (!repo) {
-				return null;
-			}
-
 			if (prevData) {
-				const hashes = await this.getFileHashObjects(file, document);
+				const hashes = await this.getFileHashObjects(
+					gerritRepo,
+					file,
+					document
+				);
 				if (!hashes) {
 					return null;
 				}
 
-				const modifiedHash = await repo.hashObject(document.getText());
-				const modifiedDiff = await repo.diffBlobs(
+				const modifiedHash = await gerritRepo.hashObject(
+					document.getText()
+				);
+				const modifiedDiff = await gerritRepo.diffBlobs(
 					prevData.newHash,
 					modifiedHash
 				);
@@ -421,7 +423,11 @@ export class CommentManager {
 				};
 			}
 
-			const hashes = await this.getFileHashObjects(file, document);
+			const hashes = await this.getFileHashObjects(
+				gerritRepo,
+				file,
+				document
+			);
 			if (!hashes) {
 				return null;
 			}
@@ -429,8 +435,8 @@ export class CommentManager {
 			const { modifiedHash, newHash, oldHash } = hashes;
 
 			const [oldDiff, modifiedDiff] = await Promise.all([
-				repo.diffBlobs(oldHash, newHash),
-				repo.diffBlobs(newHash, modifiedHash),
+				gerritRepo.diffBlobs(oldHash, newHash),
+				gerritRepo.diffBlobs(newHash, modifiedHash),
 			]);
 
 			const parser =
@@ -475,6 +481,7 @@ export class CommentManager {
 	}
 
 	public static async getFileHashObjects(
+		gerritRepo: Repository,
 		file: GerritFile,
 		document: TextDocument
 	): Promise<{
@@ -486,23 +493,18 @@ export class CommentManager {
 			file,
 			null
 		);
-		const repo = getGitRepo();
-		if (!repo) {
-			return null;
-		}
-
 		const [oldHash, newHash, modifiedHash] = await Promise.all([
-			repo.hashObject(
+			gerritRepo.hashObject(
 				(oldContent &&
 					(await FileProvider.provideMetaContent(oldContent.meta))) ||
 					''
 			),
-			repo.hashObject(
+			gerritRepo.hashObject(
 				(newContent &&
 					(await FileProvider.provideMetaContent(newContent.meta))) ||
 					''
 			),
-			repo.hashObject(document.getText()),
+			gerritRepo.hashObject(document.getText()),
 		]);
 
 		return {
@@ -513,15 +515,12 @@ export class CommentManager {
 	}
 
 	public static async getFileFromOpenDocument(
+		gerritRepo: Repository,
 		document: TextDocument
 	): Promise<GerritFile | null> {
 		// No meta, might be a regular checked-out file. We look for the current change
 		// and find out if the current file was changed in that change.
-		const gitRepo = getGitRepo();
-		if (!gitRepo) {
-			return null;
-		}
-		const change = await GerritChange.getCurrentChangeOnce([
+		const change = await GerritChange.getCurrentChangeOnce(gerritRepo, [
 			GerritAPIWith.CURRENT_REVISION,
 			GerritAPIWith.CURRENT_FILES,
 		]);
@@ -592,7 +591,7 @@ export class CommentManager {
 		return line + delta;
 	}
 
-	public static init(): typeof CommentManager {
+	public static init(gerritRepo: Repository): typeof CommentManager {
 		this._disposables.add(
 			workspace.onDidCloseTextDocument((doc) => {
 				const meta = FileMetaWithSideAndBase.tryFrom(doc.uri);
@@ -647,6 +646,7 @@ export class CommentManager {
 					const result = await (async () => {
 						if (manager?.diffData) {
 							const result = await CommentManager._getFileRanges(
+								gerritRepo,
 								manager.diffData.file,
 								document,
 								{
@@ -667,12 +667,14 @@ export class CommentManager {
 
 						const file =
 							await CommentManager.getFileFromOpenDocument(
+								gerritRepo,
 								document
 							);
 						if (!file) {
 							return null;
 						}
 						const result = await CommentManager._getFileRanges(
+							gerritRepo,
 							file,
 							document
 						);

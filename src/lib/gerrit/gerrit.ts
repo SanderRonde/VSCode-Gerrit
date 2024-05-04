@@ -1,17 +1,20 @@
 import {
+	ConfigurationTarget,
+	Disposable,
+	ExtensionContext,
+	extensions,
+	QuickPickItem,
+	Uri,
+	window,
+} from 'vscode';
+import {
 	API,
 	GitExtension,
 	Repository,
 } from '../../types/vscode-extension-git';
-import { ConfigurationTarget, extensions, QuickPickItem, window } from 'vscode';
 import { getConfiguration } from '../vscode/config';
 import { isGerritCommit } from '../git/commit';
 import { log } from '../util/log';
-
-let gerritRepo: Repository | null = null;
-export function getGitRepo(): Repository | null {
-	return gerritRepo;
-}
 
 function getGitAPI(): false | API {
 	const extension = extensions.getExtension<GitExtension>('vscode.git');
@@ -52,7 +55,7 @@ async function getGerritRepos(silent: boolean = true): Promise<Repository[]> {
 	);
 }
 
-export async function pickGitRepo(): Promise<boolean> {
+export async function pickGitRepo(): Promise<Repository | null> {
 	const gerritRepos = await getGerritRepos(false);
 	const items: QuickPickItem[] = gerritRepos.map((repo) => {
 		return {
@@ -64,7 +67,7 @@ export async function pickGitRepo(): Promise<boolean> {
 	});
 
 	if (!quickPickChoice) {
-		return false;
+		return null;
 	}
 
 	await getConfiguration().update(
@@ -72,48 +75,32 @@ export async function pickGitRepo(): Promise<boolean> {
 		quickPickChoice.label,
 		ConfigurationTarget.Workspace
 	);
-	gerritRepo = gerritRepos.find(
+	return gerritRepos.find(
 		(repo) => repo.rootUri.fsPath === quickPickChoice.label
 	)!;
-	return true;
 }
 
-export async function isUsingGerrit(silent: boolean = false): Promise<boolean> {
-	const gitAPI = getGitAPI();
-	if (!gitAPI) {
-		return false;
-	}
-
+async function scanGerritRepos(gitAPI: API): Promise<Repository | null> {
 	if (gitAPI.repositories.length === 0) {
-		if (!silent) {
-			log('Did not find any git repositories, exiting');
-		}
-		return false;
+		log('Did not find any git repositories, exiting');
+		return null;
 	}
 
 	const gerritRepos = await getGerritRepos(true);
 	if (gerritRepos.length === 0) {
-		if (!silent) {
-			log(
-				`Found no gerrit repos in ${gitAPI.repositories.length} repositories, exiting`
-			);
-		}
-		return false;
+		log(
+			`Found no gerrit repos in ${gitAPI.repositories.length} repositories, exiting`
+		);
+		return null;
 	} else if (gerritRepos.length === 1) {
-		gerritRepo = gerritRepos[0];
-		return true;
+		return gerritRepos[0];
 	} else {
 		const config = getConfiguration().get('gerrit.gitRepo');
 		const match = gerritRepos.find(
 			(repo) => repo.rootUri.fsPath === config
 		);
 		if (match) {
-			gerritRepo = match;
-			return true;
-		}
-
-		if (silent) {
-			return false;
+			return match;
 		}
 
 		// Ask user to choose
@@ -127,13 +114,53 @@ export async function isUsingGerrit(silent: boolean = false): Promise<boolean> {
 
 		if (choice !== CHOOSE_OPTION) {
 			await window.showInformationMessage('Gerrit: disabled for now');
-			return false;
+			return null;
 		}
 
-		const success = await pickGitRepo();
-		if (!success) {
+		const pickedRepo = await pickGitRepo();
+		if (!pickedRepo) {
 			await window.showInformationMessage('Gerrit: disabled for now');
 		}
-		return success;
+		return pickedRepo;
 	}
+}
+
+export async function getGerritRepo(
+	context: ExtensionContext
+): Promise<Repository | null> {
+	const gitAPI = getGitAPI();
+	if (!gitAPI) {
+		return null;
+	}
+
+	// If a gerrit repo has been manually set, force-open that one
+	const pickedRepo = getConfiguration().get('gerrit.gitRepo');
+	if (
+		pickedRepo &&
+		!gitAPI.repositories.find((repo) => repo.rootUri.fsPath === pickedRepo)
+	) {
+		await gitAPI.openRepository(Uri.file(pickedRepo));
+	}
+
+	const scannedRepo = await scanGerritRepos(gitAPI);
+	if (scannedRepo) {
+		return scannedRepo;
+	}
+	return new Promise<Repository>((resolve) => {
+		let listener: Disposable | null = gitAPI.onDidOpenRepository(
+			async () => {
+				const repo = await scanGerritRepos(gitAPI);
+				if (repo) {
+					resolve(repo);
+					listener?.dispose();
+					listener = null;
+				}
+			}
+		);
+		context.subscriptions.push({
+			dispose: () => {
+				listener?.dispose();
+			},
+		});
+	});
 }

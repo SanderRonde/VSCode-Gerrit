@@ -13,6 +13,7 @@ import {
 } from '../../lib/util/constants';
 import { FileTreeView } from './changes/changeTreeView/fileTreeView';
 import { RootTreeViewProvider } from './changes/rootTreeView';
+import { Repository } from '../../types/vscode-extension-git';
 import { ChangeTreeView } from './changes/changeTreeView';
 import { onChangeLastCommit } from '../../lib/git/git';
 import { TreeViewItem } from './shared/treeTypes';
@@ -32,7 +33,7 @@ export class ChangesTreeProvider
 		TreeViewItem | undefined | null | void
 	> = this.onDidChangeTreeDataEmitter.event;
 
-	public constructor() {
+	public constructor(gerritRepo: Repository) {
 		ChangesTreeProvider._instances.add(this);
 		this._disposables.push(FileTreeView.init());
 		const interval = setTimeout(() => {
@@ -43,9 +44,13 @@ export class ChangesTreeProvider
 		});
 		void (async () => {
 			this._disposables.push(
-				await onChangeLastCommit(() => {
-					this.refresh();
-				}, false)
+				await onChangeLastCommit(
+					gerritRepo,
+					() => {
+						this.refresh();
+					},
+					false
+				)
 			);
 		})();
 	}
@@ -96,14 +101,16 @@ export class ChangesTreeProvider
 }
 
 let changesTreeProvider: TreeView<TreeViewItem> | null = null;
-export function getOrCreateChangesTreeProvider(): TreeView<TreeViewItem> {
+export function getOrCreateChangesTreeProvider(
+	gerritRepo: Repository
+): TreeView<TreeViewItem> {
 	if (changesTreeProvider) {
 		return changesTreeProvider;
 	}
 	return (changesTreeProvider = window.createTreeView(
 		GERRIT_CHANGE_EXPLORER_VIEW,
 		{
-			treeDataProvider: new ChangesTreeProvider(),
+			treeDataProvider: new ChangesTreeProvider(gerritRepo),
 			showCollapseAll: true,
 		}
 	));

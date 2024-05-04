@@ -131,7 +131,7 @@ export function optionalArrayEntry<V>(
 	condition: boolean,
 	arr: () => Promise<V[] | V>
 ): Promise<V[]>;
-export function optionalArrayEntry<V>(
+export function optionalArrayEntry<V extends object>(
 	condition: boolean,
 	arr: V | V[] | (() => V[] | V) | (() => Promise<V[] | V>)
 ): Promise<V[]> | V[] {

@@ -6,32 +6,24 @@ import {
 	Disposable,
 } from 'vscode';
 import {
-	getGitURI,
-	gitCheckoutRemote,
-	onChangeLastCommit,
-} from '../../lib/git/git';
-import {
 	DefaultChangeFilter,
 	filterOr,
 } from '../../lib/gerrit/gerritAPI/filters';
+import { gitCheckoutRemote, onChangeLastCommit } from '../../lib/git/git';
+
 import { GerritExtensionCommands } from '../../commands/command-names';
 import { GerritChange } from '../../lib/gerrit/gerritAPI/gerritChange';
 import { isGerritCommit, getChangeID } from '../../lib/git/commit';
 import { GitCommit, tryExecAsync } from '../../lib/git/gitCLI';
 import { GerritAPIWith } from '../../lib/gerrit/gerritAPI/api';
-import { getGitRepo } from '../../lib/gerrit/gerrit';
+import { Repository } from '../../types/vscode-extension-git';
 import { getAPI } from '../../lib/gerrit/gerritAPI';
 
-async function getMainBranchName(): Promise<string> {
-	const gitURI = getGitURI();
-	if (!gitURI) {
-		return 'master';
-	}
-
+async function getMainBranchName(gerritRepo: Repository): Promise<string> {
 	const cmd = await tryExecAsync(
 		"git symbolic-ref refs/remotes/origin/HEAD | sed 's@^refs/remotes/origin/@@'",
 		{
-			cwd: gitURI,
+			cwd: gerritRepo.rootUri.fsPath,
 			timeout: 2000,
 		}
 	);
@@ -41,11 +33,17 @@ async function getMainBranchName(): Promise<string> {
 	return 'master';
 }
 
-export async function selectChange(includeMaster?: false): Promise<null | {
+export async function selectChange(
+	gerritRepo: Repository,
+	includeMaster?: false
+): Promise<null | {
 	type: 'changeId';
 	changeId: number;
 }>;
-export async function selectChange(includeMaster: true): Promise<
+export async function selectChange(
+	gerritRepo: Repository,
+	includeMaster: true
+): Promise<
 	| null
 	| {
 			type: 'changeId';
@@ -56,7 +54,10 @@ export async function selectChange(includeMaster: true): Promise<
 			branchName: string;
 	  }
 >;
-export async function selectChange(includeMaster: boolean = false): Promise<
+export async function selectChange(
+	gerritRepo: Repository,
+	includeMaster: boolean = false
+): Promise<
 	| null
 	| {
 			type: 'changeId';
@@ -111,7 +112,7 @@ export async function selectChange(includeMaster: boolean = false): Promise<
 	);
 	let mainBranchName = '';
 	if (includeMaster) {
-		mainBranchName = await getMainBranchName();
+		mainBranchName = await getMainBranchName(gerritRepo);
 		items.push({
 			label: mainBranchName,
 			description: 'Main branch',
@@ -189,13 +190,14 @@ export async function selectChange(includeMaster: boolean = false): Promise<
 }
 
 export async function openChangeSelector(
+	gerritRepo: Repository,
 	statusBar: CurrentChangeStatusBarManager
 ): Promise<void> {
 	statusBar.setOverride({
 		text: '$(list-unordered) Picking change...',
 		tooltip: 'Picking change to check out',
 	});
-	const change = await selectChange(true);
+	const change = await selectChange(gerritRepo, true);
 	if (!change) {
 		statusBar.setOverride(null);
 		return;
@@ -205,28 +207,23 @@ export async function openChangeSelector(
 			text: `$(loading~spin) Checking out #${change.changeId}`,
 			tooltip: `Checking out change #${change.changeId}`,
 		});
-		await gitCheckoutRemote(change.changeId, undefined, true);
+		await gitCheckoutRemote(gerritRepo, change.changeId, undefined, true);
 	} else {
 		statusBar.setOverride({
 			text: `$(loading~spin) Checking out ${change.branchName}`,
 			tooltip: `Checking out branch ${change.branchName}`,
 		});
-		await gitCheckoutBranch(change.branchName);
+		await gitCheckoutBranch(gerritRepo, change.branchName);
 	}
 	statusBar.setOverride(null);
 }
 
-async function gitCheckoutBranch(branchName: string): Promise<void> {
-	const uri = getGitURI();
-	if (!uri) {
-		void window.showErrorMessage(
-			'Checkout failed, failed to find git repo'
-		);
-		return;
-	}
-
+async function gitCheckoutBranch(
+	gerritRepo: Repository,
+	branchName: string
+): Promise<void> {
 	const { success } = await tryExecAsync(`git checkout ${branchName}`, {
-		cwd: uri,
+		cwd: gerritRepo.rootUri.fsPath,
 		timeout: 10000,
 	});
 
@@ -238,18 +235,18 @@ async function gitCheckoutBranch(branchName: string): Promise<void> {
 }
 
 export async function showCurrentChangeStatusBarIcon(
+	gerritRepo: Repository,
 	currentChangeStatusBar: CurrentChangeStatusBarManager,
 	context: ExtensionContext
 ): Promise<void> {
-	const repo = getGitRepo();
-	if (!repo) {
-		return;
-	}
-
 	context.subscriptions.push(
-		await onChangeLastCommit(async (lastCommit) => {
-			await currentChangeStatusBar.onCommitUpdate(lastCommit);
-		}, true)
+		await onChangeLastCommit(
+			gerritRepo,
+			async (lastCommit) => {
+				await currentChangeStatusBar.onCommitUpdate(lastCommit);
+			},
+			true
+		)
 	);
 }
 

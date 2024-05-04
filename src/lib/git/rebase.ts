@@ -3,18 +3,21 @@ import {
 	ensureMainBranchUpdated,
 	getChangeIDFromCheckoutString,
 	getCurrentBranch,
-	getGitURI,
 	getGitVersion,
 } from './git';
 import { getChangeID, getCurrentChangeID, isGerritCommit } from './commit';
 import { getGitReviewFileCached } from '../credentials/gitReviewFile';
 import { GerritChange } from '../gerrit/gerritAPI/gerritChange';
 import { GerritChangeStatus } from '../gerrit/gerritAPI/types';
+import { Repository } from '../../types/vscode-extension-git';
 import { getLastCommits, tryExecAsync } from './gitCLI';
 import { ProgressLocation, window } from 'vscode';
 import { getAPI } from '../gerrit/gerritAPI';
 
-async function buildDependencyTree(maxCommits: number = 10): Promise<
+async function buildDependencyTree(
+	gerritRepo: Repository,
+	maxCommits: number = 10
+): Promise<
 	| {
 			change: GerritChange;
 			onto: GerritChange | null;
@@ -28,7 +31,7 @@ async function buildDependencyTree(maxCommits: number = 10): Promise<
 		return null;
 	}
 
-	const commits = await getLastCommits(maxCommits);
+	const commits = await getLastCommits(gerritRepo, maxCommits);
 
 	if (!commits.every((c) => isGerritCommit(c))) {
 		void window.showInformationMessage(
@@ -66,7 +69,7 @@ async function buildDependencyTree(maxCommits: number = 10): Promise<
 		changes.push(change);
 	}
 	if (commits.length === maxCommits) {
-		return await buildDependencyTree(maxCommits + 10);
+		return await buildDependencyTree(gerritRepo, maxCommits + 10);
 	}
 
 	const operations: {
@@ -133,7 +136,7 @@ export async function rebase(
 	return true;
 }
 
-export async function rebaseOntoParent(): Promise<void> {
+export async function rebaseOntoParent(gerritRepo: Repository): Promise<void> {
 	await window.withProgress(
 		{
 			location: ProgressLocation.Notification,
@@ -145,11 +148,9 @@ export async function rebaseOntoParent(): Promise<void> {
 				message: 'Ensuring working tree is clean',
 				increment: 0,
 			});
-			const gitURI = getGitURI();
 			// Check for clean working tree
 			if (
-				!gitURI ||
-				!(await ensureCleanWorkingTree(gitURI)) ||
+				!(await ensureCleanWorkingTree(gerritRepo.rootUri.fsPath)) ||
 				token.isCancellationRequested
 			) {
 				return;
@@ -168,7 +169,7 @@ export async function rebaseOntoParent(): Promise<void> {
 				message: 'Rebasing',
 				increment: 20,
 			});
-			if (!(await rebase(gitURI))) {
+			if (!(await rebase(gerritRepo.rootUri.fsPath))) {
 				return;
 			}
 
@@ -180,7 +181,7 @@ export async function rebaseOntoParent(): Promise<void> {
 	);
 }
 
-export async function recursiveRebase(): Promise<void> {
+export async function recursiveRebase(gerritRepo: Repository): Promise<void> {
 	await window.withProgress(
 		{
 			location: ProgressLocation.Notification,
@@ -200,10 +201,8 @@ export async function recursiveRebase(): Promise<void> {
 				increment: 0,
 			});
 			// Check for clean working tree
-			const gitURI = getGitURI();
 			if (
-				!gitURI ||
-				!(await ensureCleanWorkingTree(gitURI)) ||
+				!(await ensureCleanWorkingTree(gerritRepo.rootUri.fsPath)) ||
 				token.isCancellationRequested
 			) {
 				return;
@@ -222,7 +221,7 @@ export async function recursiveRebase(): Promise<void> {
 				message: 'Getting git version',
 				increment: getRelativeProgress(5),
 			});
-			const gitVersion = await getGitVersion(gitURI);
+			const gitVersion = await getGitVersion(gerritRepo.rootUri.fsPath);
 			if (!gitVersion || token.isCancellationRequested) {
 				return;
 			}
@@ -232,7 +231,7 @@ export async function recursiveRebase(): Promise<void> {
 				increment: getRelativeProgress(7.5),
 			});
 			const remoteBranch = await ensureMainBranchUpdated(
-				gitURI,
+				gerritRepo.rootUri.fsPath,
 				gitReviewFile
 			);
 			if (!remoteBranch || token.isCancellationRequested) {
@@ -243,7 +242,7 @@ export async function recursiveRebase(): Promise<void> {
 				message: 'Ensuring current change has not been merged',
 				increment: getRelativeProgress(10),
 			});
-			const currentChangeID = await getCurrentChangeID();
+			const currentChangeID = await getCurrentChangeID(gerritRepo);
 			const currentChange =
 				currentChangeID &&
 				(await (await getAPI())
@@ -267,7 +266,7 @@ export async function recursiveRebase(): Promise<void> {
 				message: 'Getting current branch',
 				increment: getRelativeProgress(12.5),
 			});
-			const initialBranch = await getCurrentBranch();
+			const initialBranch = await getCurrentBranch(gerritRepo);
 			if (!initialBranch) {
 				void window.showErrorMessage(
 					'Failed to get current branch, aborting'
@@ -279,7 +278,7 @@ export async function recursiveRebase(): Promise<void> {
 				message: 'Building dependency tree',
 				increment: getRelativeProgress(15),
 			});
-			const dependencyTree = await buildDependencyTree();
+			const dependencyTree = await buildDependencyTree(gerritRepo);
 			if (!dependencyTree || token.isCancellationRequested) {
 				return;
 			}
@@ -293,7 +292,7 @@ export async function recursiveRebase(): Promise<void> {
 				if (answer === CHECKOUT_ORIGINAL_OPTION) {
 					if (
 						!(await tryExecAsync(`git checkout ${initialBranch}`, {
-							cwd: gitURI,
+							cwd: gerritRepo.rootUri.fsPath,
 						}))
 					) {
 						void window.showErrorMessage(
@@ -321,7 +320,7 @@ export async function recursiveRebase(): Promise<void> {
 						operation.change.number
 					)}"`,
 					{
-						cwd: gitURI,
+						cwd: gerritRepo.rootUri.fsPath,
 					}
 				);
 				if (token.isCancellationRequested) {
@@ -334,14 +333,14 @@ export async function recursiveRebase(): Promise<void> {
 				}
 
 				if (
-					!(await rebase(gitURI, {
+					!(await rebase(gerritRepo.rootUri.fsPath, {
 						title: 'Back to original branch',
 						callback: async () => {
 							if (
 								!(await tryExecAsync(
 									`git checkout ${initialBranch}`,
 									{
-										cwd: gitURI,
+										cwd: gerritRepo.rootUri.fsPath,
 									}
 								))
 							) {
@@ -370,14 +369,14 @@ export async function recursiveRebase(): Promise<void> {
 			currentProgress += progressPerOperation;
 
 			if (
-				!(await rebase(gitURI, {
+				!(await rebase(gerritRepo.rootUri.fsPath, {
 					title: 'Back to original branch',
 					callback: async () => {
 						if (
 							!(await tryExecAsync(
 								`git checkout ${initialBranch}`,
 								{
-									cwd: gitURI,
+									cwd: gerritRepo.rootUri.fsPath,
 								}
 							))
 						) {

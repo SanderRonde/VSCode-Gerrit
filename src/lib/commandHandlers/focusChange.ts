@@ -6,11 +6,12 @@ import { SearchResultsTreeProvider } from '../../views/activityBar/searchResults
 import { ChangeTreeView } from '../../views/activityBar/changes/changeTreeView';
 import { selectChange } from '../../views/statusBar/currentChangeStatusBar';
 import { GerritChange } from '../gerrit/gerritAPI/gerritChange';
+import { Repository } from '../../types/vscode-extension-git';
 import { flatten, uniqueComplex } from '../util/util';
 import { setContextProp } from '../vscode/context';
 
-export async function focusChange(): Promise<void> {
-	const changeNumber = await selectChange();
+export async function focusChange(gerritRepo: Repository): Promise<void> {
+	const changeNumber = await selectChange(gerritRepo);
 	if (!changeNumber) {
 		return;
 	}

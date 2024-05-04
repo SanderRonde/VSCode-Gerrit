@@ -11,6 +11,7 @@ import { joinSubscribables } from '../../subscriptions/subscriptionUtil';
 import { DefaultChangeFilter, GerritChangeFilter } from './filters';
 import { GerritComment, GerritDraftComment } from './gerritComment';
 import { Subscribable } from '../../subscriptions/subscriptions';
+import { Repository } from '../../../types/vscode-extension-git';
 import { getAPI, getAPIForSubscription } from '../gerritAPI';
 import { ChangesOffsetParams, GerritAPIWith } from './api';
 import { getConfiguration } from '../../vscode/config';
@@ -194,6 +195,7 @@ export class GerritChange extends DynamicallyFetchable {
 	}
 
 	public static async getCurrentChangeOnce(
+		gerritRepo: Repository,
 		withValues: GerritAPIWith[] = [],
 		{
 			allowFail = true,
@@ -205,7 +207,7 @@ export class GerritChange extends DynamicallyFetchable {
 	): Promise<GerritChange | null> {
 		const changeID = cachedID
 			? await getCurrentChangeIDCached()
-			: await getCurrentChangeID();
+			: await getCurrentChangeID(gerritRepo);
 		if (!changeID) {
 			return null;
 		}

@@ -21,24 +21,25 @@ import { ChangeTreeView } from '../../views/activityBar/changes/changeTreeView';
 import { APISubscriptionManager } from '../subscriptions/subscriptions';
 import { PERIODICAL_GIT_FETCH_INTERVAL } from '../util/constants';
 import { MATCH_ANY } from '../subscriptions/baseSubscriptions';
+import { Repository } from '../../types/vscode-extension-git';
 import { createAwaitingInterval } from '../util/util';
 import { getConfiguration } from '../vscode/config';
 import { VersionNumber } from '../util/version';
 import { getCurrentChangeID } from './commit';
-import { getGitRepo } from '../gerrit/gerrit';
 import { rebase } from './rebase';
 import { log } from '../util/log';
 
 export async function onChangeLastCommit(
+	gerritRepo: Repository,
 	handler: (lastCommit: GitCommit) => void | Promise<void>,
 	callInitial = false
 ): Promise<Disposable> {
-	let currentLastCommit = (await getLastCommits(1))[0];
+	let currentLastCommit = (await getLastCommits(gerritRepo, 1))[0];
 	if (callInitial && currentLastCommit) {
 		await handler(currentLastCommit);
 	}
 	const interval = createAwaitingInterval(async () => {
-		const newLastCommit = (await getLastCommits(1))[0];
+		const newLastCommit = (await getLastCommits(gerritRepo, 1))[0];
 		if (!newLastCommit) {
 			return;
 		}
@@ -283,20 +284,21 @@ export async function getGitVersion(
 	return gitVersion;
 }
 
-async function ensureNoRebaseErrors(): Promise<boolean> {
+async function ensureNoRebaseErrors(gerritRepo: Repository): Promise<boolean> {
 	const gitReviewFile = await getGitReviewFileCached();
-	const gitURI = getGitURI();
-
-	if (!gitURI || !gitReviewFile || !(await ensureCleanWorkingTree(gitURI))) {
+	if (
+		!gitReviewFile ||
+		!(await ensureCleanWorkingTree(gerritRepo.rootUri.fsPath))
+	) {
 		return false;
 	}
 
-	const gitVersion = await getGitVersion(gitURI);
+	const gitVersion = await getGitVersion(gerritRepo.rootUri.fsPath);
 	if (!gitVersion) {
 		return false;
 	}
 
-	return rebase(gitURI, {
+	return rebase(gerritRepo.rootUri.fsPath, {
 		title: 'Run Git Review',
 		callback: () => {
 			const terminal = window.createTerminal('Git Review');
@@ -304,16 +306,6 @@ async function ensureNoRebaseErrors(): Promise<boolean> {
 			terminal.sendText('git review', true);
 		},
 	});
-}
-
-export function getGitURI(): string | null {
-	const gitRepo = getGitRepo();
-	if (!gitRepo) {
-		void window.showErrorMessage('No gerrit repo set');
-		return null;
-	}
-
-	return gitRepo.rootUri.fsPath;
 }
 
 export function getChangeIDFromCheckoutString(
@@ -330,11 +322,12 @@ export function getChangeIDFromCheckoutString(
 }
 
 export async function gitCheckoutRemote(
+	gerritRepo: Repository,
 	patchNumberOrChangeID: number | string,
 	patchSet: number | undefined = undefined,
 	silent: boolean = false
 ): Promise<boolean> {
-	const uri = getGitURI();
+	const uri = gerritRepo.rootUri.fsPath;
 	if (!uri || !(await ensureCleanWorkingTree(uri, silent))) {
 		return false;
 	}
@@ -359,7 +352,7 @@ export async function gitCheckoutRemote(
 }
 
 const URL_REGEX = /http(s)?[:\w./+]+/g;
-export async function gitReview(): Promise<void> {
+export async function gitReview(gerritRepo: Repository): Promise<void> {
 	const config = getConfiguration();
 	const showProgressInNotification = config.get(
 		'gerrit.messages.postReviewNotification',
@@ -381,7 +374,7 @@ export async function gitReview(): Promise<void> {
 				message: 'Ensuring no rebase errors',
 				increment: 10,
 			});
-			const uri = getGitURI();
+			const uri = gerritRepo.rootUri.fsPath;
 			if (!uri) {
 				return {
 					success: false,
@@ -390,7 +383,7 @@ export async function gitReview(): Promise<void> {
 				};
 			}
 
-			if (!(await ensureNoRebaseErrors())) {
+			if (!(await ensureNoRebaseErrors(gerritRepo))) {
 				return {
 					success: false,
 					handled: true,
@@ -471,7 +464,7 @@ export async function gitReview(): Promise<void> {
 		}
 	);
 
-	const changeID = await getCurrentChangeID();
+	const changeID = await getCurrentChangeID(gerritRepo);
 	if (changeID) {
 		await APISubscriptionManager.changeSubscriptions.invalidate({
 			changeID,
@@ -500,7 +493,7 @@ export async function gitReview(): Promise<void> {
 			if (result === viewRemoteOption) {
 				await env.openExternal(Uri.parse(url));
 			} else if (result === openReviewPanelOption) {
-				const changeID = await getCurrentChangeID();
+				const changeID = await getCurrentChangeID(gerritRepo);
 				if (!changeID) {
 					void window.showErrorMessage(
 						'Failed to get current change ID'
@@ -536,8 +529,10 @@ export async function gitReview(): Promise<void> {
 	}
 }
 
-export async function getCurrentBranch(): Promise<string | null> {
-	const uri = getGitURI();
+export async function getCurrentBranch(
+	gerritRepo: Repository
+): Promise<string | null> {
+	const uri = gerritRepo.rootUri.fsPath;
 	if (!uri) {
 		return null;
 	}

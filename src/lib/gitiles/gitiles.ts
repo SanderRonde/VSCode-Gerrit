@@ -3,12 +3,14 @@ import {
 	getGitReviewFileCached,
 } from '../credentials/gitReviewFile';
 import { GerritChange } from '../gerrit/gerritAPI/gerritChange';
+import { Repository } from '../../types/vscode-extension-git';
 import { GitCommit, getLastCommits } from '../git/gitCLI';
 import { Uri, env, window, workspace } from 'vscode';
 import { getCurrentBranch } from '../git/git';
 import * as path from 'path';
 
 export async function openOnGitiles(
+	gerritRepo: Repository,
 	permalink: boolean,
 	uri: Uri,
 	line?: number
@@ -30,7 +32,7 @@ export async function openOnGitiles(
 		gitReviewFile.defaultbranch ??
 		DEFAULT_GIT_REVIEW_FILE.branch;
 
-	const branch = await getCurrentBranch();
+	const branch = await getCurrentBranch(gerritRepo);
 
 	let project = gitReviewFile.project;
 	if (project.endsWith('.git')) {
@@ -43,7 +45,7 @@ export async function openOnGitiles(
 	);
 
 	// Find the revision with the same hash as the current commit
-	const commit = (await getLastCommits(1))[0];
+	const commit = (await getLastCommits(gerritRepo, 1))[0];
 	if (!commit) {
 		void window.showErrorMessage('Failed to find current commit hash');
 		return;
@@ -62,7 +64,7 @@ export async function openOnGitiles(
 			return;
 		}
 
-		const currentChange = await getCurrentChange(commit);
+		const currentChange = await getCurrentChange(gerritRepo, commit);
 		if (currentChange) {
 			await env.openExternal(
 				Uri.parse(
@@ -89,13 +91,16 @@ export async function openOnGitiles(
 	);
 }
 
-async function getCurrentChange(commit: GitCommit): Promise<{
+async function getCurrentChange(
+	gerritRepo: Repository,
+	commit: GitCommit
+): Promise<{
 	changeNumber: number;
 	revision: number;
 } | null> {
 	// Now comes the magical part. If we're not on master we want to figure out on what gerrit
 	// change we are and link to the change & patchset.
-	const change = await GerritChange.getCurrentChangeOnce([], {
+	const change = await GerritChange.getCurrentChangeOnce(gerritRepo, [], {
 		cachedID: true,
 		allowFail: true,
 	});

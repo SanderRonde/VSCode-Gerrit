@@ -9,6 +9,7 @@ import { Disposable, TreeItem, TreeItemCollapsibleState } from 'vscode';
 import { Subscribable } from '../../../lib/subscriptions/subscriptions';
 import { ChangeTreeView, PatchsetDescription } from './changeTreeView';
 import { GerritAPIWith } from '../../../lib/gerrit/gerritAPI/api';
+import { Repository } from '../../../types/vscode-extension-git';
 import { optionalArrayEntry } from '../../../lib/util/util';
 import { ChangesPanel } from '../../../lib/vscode/config';
 import { FetchMoreTreeItem } from './fetchMoreTreeItem';
@@ -43,6 +44,7 @@ export class ViewPanel
 	> = new Map();
 
 	public constructor(
+		protected readonly _gerritRepo: Repository,
 		public readonly parent: RootTreeViewProvider,
 		private readonly _panel: ChangesPanel
 	) {

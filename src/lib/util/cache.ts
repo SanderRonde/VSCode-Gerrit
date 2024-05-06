@@ -33,19 +33,19 @@ export function createInittableValue<V>(): {
 	};
 }
 
-export function createCacheWrapper<V, A>(
-	getter: (...args: A[]) => Promise<V>
-): (...args: A[]) => Promise<V>;
-export function createCacheWrapper<V, A>(
-	getter: (...args: A[]) => V
-): (...args: A[]) => V;
-export function createCacheWrapper<V extends object, A>(
-	getter: (...args: A[]) => Promise<V> | V
-): (...args: A[]) => Promise<V> | V {
+export function createCacheWrapper<V, A extends unknown[]>(
+	getter: (...args: A) => Promise<V>
+): (...args: A) => Promise<V>;
+export function createCacheWrapper<V, A extends unknown[]>(
+	getter: (...args: A) => V
+): (...args: A) => V;
+export function createCacheWrapper<V extends object, A extends unknown[]>(
+	getter: (...args: A) => Promise<V> | V
+): (...args: A) => Promise<V> | V {
 	let hasValue: boolean = false;
 	let value: V | null = null;
 
-	return (...args: A[]) => {
+	return (...args: A) => {
 		if (!hasValue) {
 			const getterResult = getter(...args);
 			if ('then' in getterResult) {

@@ -12,18 +12,12 @@ import {
 	workspace,
 } from 'vscode';
 import { FileTreeView } from '../../views/activityBar/changes/changeTreeView/fileTreeView';
-import {
-	FileMeta,
-	FileMetaCreate,
-	FileMetaWithSideAndBase,
-} from '../fileProvider';
 import { GerritCommentBase } from '../../lib/gerrit/gerritAPI/gerritComment';
 import { CommentManager, DocumentCommentManager } from '../commentProvider';
-import { OPEN_FILE_HAS_UNRESOLVED_COMMENTS } from '../../lib/util/magic';
 import { GerritChange } from '../../lib/gerrit/gerritAPI/gerritChange';
-import { TextContent } from '../../lib/gerrit/gerritAPI/gerritFile';
 import { avg, diff, uniqueComplex } from '../../lib/util/util';
 import { Repository } from '../../types/vscode-extension-git';
+import { FileMeta, FileMetaCreate } from '../fileProvider';
 import { getCurrentChangeID } from '../../lib/git/commit';
 import { CacheContainer } from '../../lib/util/cache';
 import * as gitDiffParser from 'gitdiff-parser';
@@ -524,6 +518,7 @@ async function jumpToUnresolvedCommentShared(
 			}
 
 			const cmd = await FileTreeView.createDiffCommand(
+				gerritRepo,
 				file,
 				diffEditor?.baseRevision ?? null
 			);
@@ -537,34 +532,10 @@ async function jumpToUnresolvedCommentShared(
 				// eslint-disable-next-line @typescript-eslint/no-unsafe-argument
 				...(cmd.arguments ?? [])
 			);
-		} else if (workspace.workspaceFolders?.length === 1) {
-			await commands.executeCommand(
-				'vscode.open',
-				Uri.joinPath(workspace.workspaceFolders[0].uri, filePath)
-			);
 		} else {
-			// Open in single-file editor
-			const content = TextContent.from(
-				FileMeta.createFileMeta({
-					...partialFileMeta,
-					filePath,
-				}),
-				'',
-				'utf8'
-			);
-			const metaWithData =
-				(window.activeTextEditor &&
-					FileMetaWithSideAndBase.tryFrom(
-						window.activeTextEditor.document.uri
-					)) ??
-				null;
 			await commands.executeCommand(
 				'vscode.open',
-				content.toVirtualFile(
-					'BOTH',
-					metaWithData?.baseRevision ?? null,
-					[OPEN_FILE_HAS_UNRESOLVED_COMMENTS]
-				)
+				Uri.joinPath(gerritRepo.rootUri, filePath)
 			);
 		}
 	}

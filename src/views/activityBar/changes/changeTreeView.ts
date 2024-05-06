@@ -26,6 +26,7 @@ import { getCurrentChangeIDCached } from '../../../lib/git/commit';
 import { SelfDisposable } from '../../../lib/util/selfDisposable';
 import { GerritAPIWith } from '../../../lib/gerrit/gerritAPI/api';
 import { FolderTreeView } from './changeTreeView/folderTreeView';
+import { Repository } from '../../../types/vscode-extension-git';
 import { SearchResultsTreeProvider } from '../searchResults';
 import { FileTreeView } from './changeTreeView/fileTreeView';
 import { optionalArrayEntry } from '../../../lib/util/util';
@@ -59,6 +60,7 @@ export class ChangeTreeView
 	}
 
 	private constructor(
+		private readonly _gerritRepo: Repository,
 		public readonly changeID: string,
 		public readonly parent: ViewPanel | SearchResultsTreeProvider,
 		private readonly _subscription: Subscribable<GerritChange | null>,
@@ -69,6 +71,7 @@ export class ChangeTreeView
 	}
 
 	public static async create(
+		gerritRepo: Repository,
 		changeID: string,
 		parent: ViewPanel | SearchResultsTreeProvider
 	): Promise<ChangeTreeView> {
@@ -87,6 +90,7 @@ export class ChangeTreeView
 			}
 		}
 		const instance = new this(
+			gerritRepo,
 			changeID,
 			parent,
 			subscription,
@@ -114,6 +118,7 @@ export class ChangeTreeView
 	}
 
 	public static getFilesAndFolders(
+		gerritRepo: Repository,
 		change: GerritChange,
 		fileMap: FileMap,
 		patchsetStart: PatchsetDescription | null
@@ -125,12 +130,25 @@ export class ChangeTreeView
 		for (const [key, value] of currentValues) {
 			if (value.map.size) {
 				folderValues.push(
-					new FolderTreeView(key, change, value.map, patchsetStart)
+					new FolderTreeView(
+						gerritRepo,
+						key,
+						change,
+						value.map,
+						patchsetStart
+					)
 				);
 			}
 			fileValues.push(
 				...value.files.map(
-					(file) => new FileTreeView(key, change, file, patchsetStart)
+					(file) =>
+						new FileTreeView(
+							gerritRepo,
+							key,
+							change,
+							file,
+							patchsetStart
+						)
 				)
 			);
 		}
@@ -397,6 +415,7 @@ export class ChangeTreeView
 					)
 			),
 			...ChangeTreeView.getFilesAndFolders(
+				this._gerritRepo,
 				change,
 				collapsed,
 				this._patchSetBase

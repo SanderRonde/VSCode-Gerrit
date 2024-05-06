@@ -15,15 +15,18 @@ import { APISubscriptionManager } from '../subscriptions/subscriptions';
 import { GerritExtensionCommands } from '../../commands/command-names';
 import { getContextProp, setContextProp } from '../vscode/context';
 import { MATCH_ANY } from '../subscriptions/baseSubscriptions';
+import { Repository } from '../../types/vscode-extension-git';
 import { StreamEvent } from './stream-event-types';
 import { tryExecAsync } from '../git/gitCLI';
 import { spawn } from 'child_process';
 import { log } from '../util/log';
 
-export async function testEnableStreamEvents(): Promise<boolean> {
+export async function testEnableStreamEvents(
+	gerritRepo: Repository
+): Promise<boolean> {
 	if (getContextProp('gerrit.streamEvents')) {
 		// Test if it works first
-		return canStreamEvents();
+		return canStreamEvents(gerritRepo);
 	}
 
 	// Check if we notified the user already
@@ -43,7 +46,7 @@ export async function testEnableStreamEvents(): Promise<boolean> {
 	);
 	if (answer === ENABLE_OPTION) {
 		await setContextProp('gerrit.streamEvents', true);
-		return await canStreamEvents();
+		return await canStreamEvents(gerritRepo);
 	} else if (answer === MORE_INFO_OPTION) {
 		await env.openExternal(
 			Uri.parse(
@@ -55,8 +58,10 @@ export async function testEnableStreamEvents(): Promise<boolean> {
 	return false;
 }
 
-export async function canStreamEvents(): Promise<boolean> {
-	const gitReviewFile = await getGitReviewFileCached();
+export async function canStreamEvents(
+	gerritRepo: Repository
+): Promise<boolean> {
+	const gitReviewFile = await getGitReviewFileCached(gerritRepo);
 	if (!gitReviewFile) {
 		void window.showErrorMessage(
 			'Failed to find .gitreview file. This file is needed for stream events settings, please provide it'
@@ -93,7 +98,7 @@ export async function canStreamEvents(): Promise<boolean> {
 			} else if (answer === DISABLE_ANSWER) {
 				await setContextProp('gerrit.streamEvents', false);
 			} else if (answer === RETRY_ANSWER) {
-				return await canStreamEvents();
+				return await canStreamEvents(gerritRepo);
 			}
 		} else {
 			const answer = await window.showErrorMessage(
@@ -104,7 +109,7 @@ export async function canStreamEvents(): Promise<boolean> {
 			if (answer === DISABLE_ANSWER) {
 				await setContextProp('gerrit.streamEvents', false);
 			} else if (answer === RETRY_ANSWER) {
-				return await canStreamEvents();
+				return await canStreamEvents(gerritRepo);
 			}
 		}
 		return false;
@@ -180,7 +185,9 @@ function getEventDescription(event: StreamEvent): string {
 let currentListener: Disposable | null = null;
 let statusBar: StatusBarItem | null = null;
 let statusBarIconTimeout: NodeJS.Timeout | null = null;
-export async function listenForStreamEvents(): Promise<Disposable> {
+export async function listenForStreamEvents(
+	gerritRepo: Repository
+): Promise<Disposable> {
 	if (!statusBar) {
 		statusBar = window.createStatusBarItem(StatusBarAlignment.Right, 0);
 	}
@@ -189,7 +196,7 @@ export async function listenForStreamEvents(): Promise<Disposable> {
 		currentListener = null;
 	}
 
-	const gitReviewFile = await getGitReviewFileCached();
+	const gitReviewFile = await getGitReviewFileCached(gerritRepo);
 	if (!gitReviewFile) {
 		void window.showErrorMessage(
 			'Setting up stream-events listener failed because the .gitreview file was missing, please provide it'
@@ -268,8 +275,10 @@ export async function listenForStreamEvents(): Promise<Disposable> {
 	return disposable;
 }
 
-export async function startListeningForStreamEvents(): Promise<Disposable> {
-	await listenForStreamEvents();
+export async function startListeningForStreamEvents(
+	gerritRepo: Repository
+): Promise<Disposable> {
+	await listenForStreamEvents(gerritRepo);
 	return {
 		dispose() {
 			if (currentListener) {

@@ -1,3 +1,4 @@
+import { Repository } from '../../types/vscode-extension-git';
 import { createCacheWrapper } from '../util/cache';
 import { Uri, workspace } from 'vscode';
 import { log } from '../util/log';
@@ -50,27 +51,27 @@ function parseGerritFile(fileContent: string): GitReviewFile | null {
 	return file as GitReviewFile;
 }
 
-export async function getGitReviewFile(): Promise<GitReviewFile | null> {
-	for (const folder of workspace.workspaceFolders || []) {
-		const fileContent = await (async (): Promise<string | null> => {
-			try {
-				return Buffer.from(
-					await workspace.fs.readFile(
-						Uri.joinPath(folder.uri, '.gitreview')
-					)
-				).toString('utf8');
-			} catch (e) {
-				return null;
-			}
-		})();
-		if (!fileContent) {
-			continue;
+export async function getGitReviewFile(
+	gerritRepo: Repository
+): Promise<GitReviewFile | null> {
+	const fileContent = await (async (): Promise<string | null> => {
+		try {
+			return Buffer.from(
+				await workspace.fs.readFile(
+					Uri.joinPath(gerritRepo.rootUri, '.gitreview')
+				)
+			).toString('utf8');
+		} catch (e) {
+			return null;
 		}
+	})();
+	if (!fileContent) {
+		return null;
+	}
 
-		const parsed = parseGerritFile(fileContent);
-		if (parsed) {
-			return parsed;
-		}
+	const parsed = parseGerritFile(fileContent);
+	if (parsed) {
+		return parsed;
 	}
 	return null;
 }

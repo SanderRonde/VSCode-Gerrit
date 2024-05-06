@@ -1,5 +1,6 @@
+import { GitReviewFile, getGitReviewFileCached } from './gitReviewFile';
 import { MultiStepEntry, MultiStepper } from '../vscode/multiStep';
-import { getGitReviewFileCached } from './gitReviewFile';
+import { Repository } from '../../types/vscode-extension-git';
 import { ConfigurationTarget, window } from 'vscode';
 import { getConfiguration } from '../vscode/config';
 import { GerritAPI } from '../gerrit/gerritAPI/api';
@@ -25,22 +26,38 @@ function sanitizeURL(url: string): string {
 	return applySchemeFix(applyTrailingSlashFix(url));
 }
 
-export async function getGerritURL(): Promise<string | null> {
+export function getGerritURLFromReviewFile(
+	gitReviewFile: GitReviewFile | null
+): string | null {
 	const config = getConfiguration();
 	const configuredValue = config.get('gerrit.auth.url');
 	if (configuredValue) {
 		return sanitizeURL(configuredValue);
 	}
-	const gitReviewFile = await getGitReviewFileCached();
 	if (gitReviewFile) {
 		return sanitizeURL(gitReviewFile.host);
 	}
 	return null;
 }
 
-async function enterBasicCredentials(): Promise<void> {
+export async function getGerritURL(
+	gerritRepo: Repository
+): Promise<string | null> {
 	const config = getConfiguration();
-	const initialURLValue = await getGerritURL();
+	const configuredValue = config.get('gerrit.auth.url');
+	if (configuredValue) {
+		return sanitizeURL(configuredValue);
+	}
+	const gitReviewFile = await getGitReviewFileCached(gerritRepo);
+	if (gitReviewFile) {
+		return sanitizeURL(gitReviewFile.host);
+	}
+	return null;
+}
+
+async function enterBasicCredentials(gerritRepo: Repository): Promise<void> {
+	const config = getConfiguration();
+	const initialURLValue = await getGerritURL(gerritRepo);
 	const extraCookies = config.get('gerrit.extraCookies');
 
 	const urlStep = new MultiStepEntry({
@@ -135,9 +152,9 @@ async function enterBasicCredentials(): Promise<void> {
 	await window.showInformationMessage('Gerrit connection successful!');
 }
 
-async function enterCookieCredentials(): Promise<void> {
+async function enterCookieCredentials(gerritRepo: Repository): Promise<void> {
 	const config = getConfiguration();
-	const initialURLValue = await getGerritURL();
+	const initialURLValue = await getGerritURL(gerritRepo);
 	const extraCookies = config.get('gerrit.extraCookies');
 
 	const urlStep = new MultiStepEntry({
@@ -207,7 +224,7 @@ async function enterCookieCredentials(): Promise<void> {
 	await window.showInformationMessage('Gerrit connection successful!');
 }
 
-export async function enterCredentials(): Promise<void> {
+export async function enterCredentials(gerritRepo: Repository): Promise<void> {
 	const choice = await window.showQuickPick(
 		[
 			{
@@ -225,8 +242,8 @@ export async function enterCredentials(): Promise<void> {
 	);
 
 	if (choice?.label === 'Enter username and password') {
-		await enterBasicCredentials();
+		await enterBasicCredentials(gerritRepo);
 	} else {
-		await enterCookieCredentials();
+		await enterCookieCredentials(gerritRepo);
 	}
 }

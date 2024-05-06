@@ -86,7 +86,7 @@ export function registerCommands(
 	// Credentials/connection
 	context.subscriptions.push(
 		registerCommand(GerritExtensionCommands.ENTER_CREDENTIALS, () =>
-			enterCredentials()
+			enterCredentials(gerritRepo)
 		)
 	);
 	context.subscriptions.push(
@@ -219,7 +219,9 @@ export function registerCommands(
 		registerCommand(
 			GerritExtensionCommands.RETRY_LISTEN_FOR_STREAM_EVENTS,
 			async () =>
-				context.subscriptions.push(await listenForStreamEvents())
+				context.subscriptions.push(
+					await listenForStreamEvents(gerritRepo)
+				)
 		)
 	);
 

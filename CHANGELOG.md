@@ -2,6 +2,10 @@
 
 All notable changes to the "gerrit" extension will be documented in this file.
 
+## 1.1.35
+
+-   Filter by current project by default
+
 ## 1.1.34
 
 -   Patch checkout now logs when it fails to checkout a patch

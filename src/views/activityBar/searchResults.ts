@@ -121,7 +121,7 @@ export class SearchResultsTreeProvider
 			return null;
 		}
 
-		const subscription = api.searchChanges(
+		const subscription = await api.searchChanges(
 			query,
 			{
 				offset,

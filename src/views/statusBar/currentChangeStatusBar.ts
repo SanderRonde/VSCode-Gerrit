@@ -74,8 +74,8 @@ export async function selectChange(includeMaster: boolean = false): Promise<
 		return null;
 	}
 
-	const changes = await api
-		.getChanges(
+	const changes = await (
+		await api.getChanges(
 			[
 				[
 					DefaultChangeFilter.IS_OPEN,
@@ -94,7 +94,7 @@ export async function selectChange(includeMaster: boolean = false): Promise<
 			undefined,
 			GerritAPIWith.DETAILED_ACCOUNTS
 		)
-		.getValue(true);
+	).getValue(true);
 
 	const quickPick = window.createQuickPick();
 	const items = await Promise.all(

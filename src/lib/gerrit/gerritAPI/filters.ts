@@ -20,7 +20,15 @@ export type GerritChangeFilter = string & {
 export function filterOr(
 	...changes: DefaultChangeFilter[]
 ): GerritChangeFilter {
-	return `(${changes.join(' OR ')})` as GerritChangeFilter;
+	return `(${changes
+		.map((change) => `(${change})`)
+		.join(' OR ')})` as GerritChangeFilter;
+}
+
+export function filterAnd(...changes: string[]): GerritChangeFilter {
+	return `(${changes
+		.map((change) => `(${change})`)
+		.join(' AND ')})` as GerritChangeFilter;
 }
 
 export function ownerIs(owner: string): GerritChangeFilter {

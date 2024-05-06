@@ -5,8 +5,8 @@ import {
 import { GerritChange } from '../gerrit/gerritAPI/gerritChange';
 import { Repository } from '../../types/vscode-extension-git';
 import { GitCommit, getLastCommits } from '../git/gitCLI';
-import { Uri, env, window, workspace } from 'vscode';
 import { getCurrentBranch } from '../git/git';
+import { Uri, env, window } from 'vscode';
 import * as path from 'path';
 
 export async function openOnGitiles(
@@ -15,15 +15,11 @@ export async function openOnGitiles(
 	uri: Uri,
 	line?: number
 ): Promise<void> {
-	const gitReviewFile = await getGitReviewFileCached();
+	const gitReviewFile = await getGitReviewFileCached(gerritRepo);
 	if (!gitReviewFile) {
 		void window.showErrorMessage(
 			'Failed to find .gitreview file, which is used to determine URL'
 		);
-		return;
-	}
-	if (!workspace.workspaceFolders?.[0]) {
-		void window.showErrorMessage('Failed to find workspace folder');
 		return;
 	}
 
@@ -40,7 +36,7 @@ export async function openOnGitiles(
 	}
 	const basePath = `https://${gitReviewFile.host}/plugins/gitiles/${project}/+`;
 	const relativeFilePath = path.relative(
-		workspace.workspaceFolders[0].uri.fsPath,
+		gerritRepo.rootUri.fsPath,
 		uri.fsPath
 	);
 

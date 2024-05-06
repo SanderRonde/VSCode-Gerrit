@@ -285,7 +285,7 @@ export async function getGitVersion(
 }
 
 async function ensureNoRebaseErrors(gerritRepo: Repository): Promise<boolean> {
-	const gitReviewFile = await getGitReviewFileCached();
+	const gitReviewFile = await getGitReviewFileCached(gerritRepo);
 	if (
 		!gitReviewFile ||
 		!(await ensureCleanWorkingTree(gerritRepo.rootUri.fsPath))

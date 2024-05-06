@@ -1,5 +1,10 @@
+import {
+	GitReviewFile,
+	getGitReviewFileCached,
+} from '../credentials/gitReviewFile';
+import { getGerritURLFromReviewFile } from '../credentials/credentials';
 import { showInvalidSettingsMessage } from '../vscode/messages';
-import { getGerritURL } from '../credentials/credentials';
+import { Repository } from '../../types/vscode-extension-git';
 import { getConfiguration } from '../vscode/config';
 import { setContextProp } from '../vscode/context';
 import { GerritAPI } from './gerritAPI/api';
@@ -13,6 +18,7 @@ let lastConfig: {
 	username: string | undefined;
 	password: string | undefined;
 } | null = null;
+let gitReviewFile: GitReviewFile | null = null;
 
 function hasSameConfig(
 	url: string | undefined,
@@ -28,7 +34,7 @@ function hasSameConfig(
 
 export async function checkConnection(): Promise<void> {
 	const config = getConfiguration();
-	const url = await getGerritURL();
+	const url = getGerritURLFromReviewFile(gitReviewFile);
 	const username = config.get('gerrit.auth.username');
 	const password = config.get('gerrit.auth.password');
 	const cookie = config.get('gerrit.auth.cookie');
@@ -62,7 +68,7 @@ export async function createAPI(
 	allowFail: boolean = false
 ): Promise<GerritAPI | null> {
 	const config = getConfiguration();
-	const url = await getGerritURL();
+	const url = getGerritURLFromReviewFile(gitReviewFile);
 	const username = config.get('gerrit.auth.username');
 	const password = config.get('gerrit.auth.password');
 	const cookie = config.get('gerrit.auth.cookie');
@@ -137,4 +143,13 @@ export async function getAPIForSubscription(
 		api = newAPI;
 	}
 	return newAPI;
+}
+
+// TODO: this is really hacky... Ideally we have explicit dependencies
+// but at that point it becomes such as massive chain of dependencies
+// that I'm not sure it helps...
+export async function setAPIGitReviewFile(
+	gerritRepo: Repository
+): Promise<void> {
+	gitReviewFile = await getGitReviewFileCached(gerritRepo);
 }

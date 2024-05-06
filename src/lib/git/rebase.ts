@@ -160,7 +160,7 @@ export async function rebaseOntoParent(gerritRepo: Repository): Promise<void> {
 				message: 'Getting git review file',
 				increment: 20,
 			});
-			const gitReviewFile = await getGitReviewFileCached();
+			const gitReviewFile = await getGitReviewFileCached(gerritRepo);
 			if (!gitReviewFile || token.isCancellationRequested) {
 				return;
 			}
@@ -212,7 +212,7 @@ export async function recursiveRebase(gerritRepo: Repository): Promise<void> {
 				message: 'Getting git review file',
 				increment: getRelativeProgress(2.5),
 			});
-			const gitReviewFile = await getGitReviewFileCached();
+			const gitReviewFile = await getGitReviewFileCached(gerritRepo);
 			if (!gitReviewFile || token.isCancellationRequested) {
 				return;
 			}

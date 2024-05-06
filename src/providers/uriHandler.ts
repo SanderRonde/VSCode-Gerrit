@@ -6,7 +6,6 @@ import {
 	Uri,
 	UriHandler,
 	window,
-	workspace,
 } from 'vscode';
 import { FileTreeView } from '../views/activityBar/changes/changeTreeView/fileTreeView';
 import { GerritChange } from '../lib/gerrit/gerritAPI/gerritChange';
@@ -93,7 +92,11 @@ export class URIHandler implements UriHandler {
 					);
 					return;
 				}
-				const cmd = await FileTreeView.createDiffCommand(file, null);
+				const cmd = await FileTreeView.createDiffCommand(
+					this._gerritRepo,
+					file,
+					null
+				);
 				if (!cmd) {
 					void window.showErrorMessage(
 						'Could not create diff command'
@@ -106,16 +109,9 @@ export class URIHandler implements UriHandler {
 					...(cmd.arguments ?? [])
 				);
 			} else {
-				const workspaceFolder = workspace.workspaceFolders?.[0].uri;
-				if (!workspaceFolder) {
-					void window.showErrorMessage(
-						'Could not find workspace folder'
-					);
-					return;
-				}
 				await commands.executeCommand(
 					'vscode.open',
-					Uri.joinPath(workspaceFolder, query.file)
+					Uri.joinPath(this._gerritRepo.rootUri, query.file)
 				);
 			}
 		}
@@ -157,7 +153,7 @@ export class URIHandler implements UriHandler {
 		const proc = await tryExecAsync(
 			`git merge-base --is-ancestor ${revision.revisionID} HEAD`,
 			{
-				cwd: workspace.workspaceFolders?.[0].uri.fsPath,
+				cwd: this._gerritRepo.rootUri.fsPath,
 			}
 		);
 		return proc.success;

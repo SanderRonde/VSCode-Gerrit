@@ -30,6 +30,7 @@ import { GerritChange } from '../../../../lib/gerrit/gerritAPI/gerritChange';
 import { getAPIForSubscription } from '../../../../lib/gerrit/gerritAPI';
 import { IterableWeakMap } from '../../../../lib/util/garbageCollection';
 import { DocumentManager } from '../../../../providers/commentProvider';
+import { Repository } from '../../../../types/vscode-extension-git';
 import { TreeItemWithoutChildren } from '../../shared/treeTypes';
 import { ternaryWithFallback } from '../../../../lib/util/util';
 import { PatchsetDescription } from '../changeTreeView';
@@ -50,6 +51,7 @@ export class FileTreeView implements TreeItemWithoutChildren {
 	private static _disposables: Disposable[] = [];
 
 	public constructor(
+		private readonly _gerritRepo: Repository,
 		public filePath: string,
 		public change: GerritChange,
 		public file: GerritFile,
@@ -94,6 +96,7 @@ export class FileTreeView implements TreeItemWithoutChildren {
 	}
 
 	public static async createDiffCommand(
+		gerritRepo: Repository,
 		file: GerritFile,
 		patchsetBase: PatchsetDescription | null
 	): Promise<Command | null> {
@@ -117,8 +120,10 @@ export class FileTreeView implements TreeItemWithoutChildren {
 			`DIFF-${key}`
 		);
 		const newURI = ternaryWithFallback(
-			patchsetBase === null && (await file.isLocalFile(newContent)),
+			patchsetBase === null &&
+				(await file.isLocalFile(gerritRepo, newContent)),
 			file.getLocalURI(
+				gerritRepo,
 				GerritCommentSide.RIGHT,
 				patchsetBase,
 				[OPEN_FILE_IS_CHANGE_DIFF],
@@ -286,6 +291,7 @@ export class FileTreeView implements TreeItemWithoutChildren {
 			) {
 				// Prep cmd
 				const cmd = await FileTreeView.createDiffCommand(
+					this._gerritRepo,
 					this.file,
 					this.patchsetBase
 				);
@@ -341,6 +347,7 @@ export class FileTreeView implements TreeItemWithoutChildren {
 			iconPath: ThemeIcon.File,
 			command:
 				(await FileTreeView.createDiffCommand(
+					this._gerritRepo,
 					this.file,
 					this.patchsetBase
 				)) ?? undefined,

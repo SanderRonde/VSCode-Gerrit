@@ -25,6 +25,7 @@ import { FileProvider, GERRIT_FILE_SCHEME } from './providers/fileProvider';
 import { getConfiguration, initConfigListener } from './lib/vscode/config';
 import { setContextProp, setDefaultContexts } from './lib/vscode/context';
 import { createAutoRegisterCommand } from 'vscode-generate-package-json';
+import { getAPI, setAPIGitReviewFile } from './lib/gerrit/gerritAPI';
 import { GerritExtensionCommands } from './commands/command-names';
 import { GERRIT_SEARCH_RESULTS_VIEW } from './lib/util/constants';
 import { getGerritRepo, pickGitRepo } from './lib/gerrit/gerrit';
@@ -37,7 +38,6 @@ import { createOutputChannel } from './lib/util/log';
 import { URIHandler } from './providers/uriHandler';
 import { VersionNumber } from './lib/util/version';
 import { storageInit } from './lib/vscode/storage';
-import { getAPI } from './lib/gerrit/gerritAPI';
 import { setDevContext } from './lib/util/dev';
 
 export async function activate(context: ExtensionContext): Promise<void> {
@@ -69,6 +69,8 @@ export async function activate(context: ExtensionContext): Promise<void> {
 	if (!gerritRepo) {
 		return;
 	}
+
+	await setAPIGitReviewFile(gerritRepo);
 
 	// Register commands
 	const statusBar = new CurrentChangeStatusBarManager();
@@ -111,9 +113,11 @@ export async function activate(context: ExtensionContext): Promise<void> {
 	void (async () => {
 		if (
 			getConfiguration().get('gerrit.streamEvents') &&
-			(await testEnableStreamEvents())
+			(await testEnableStreamEvents(gerritRepo))
 		) {
-			context.subscriptions.push(await startListeningForStreamEvents());
+			context.subscriptions.push(
+				await startListeningForStreamEvents(gerritRepo)
+			);
 		}
 	})();
 
@@ -133,7 +137,9 @@ export async function activate(context: ExtensionContext): Promise<void> {
 	);
 	context.subscriptions.push(
 		(() => {
-			const searchResultsTreeProvider = new SearchResultsTreeProvider();
+			const searchResultsTreeProvider = new SearchResultsTreeProvider(
+				gerritRepo
+			);
 			const treeView = window.createTreeView(GERRIT_SEARCH_RESULTS_VIEW, {
 				treeDataProvider: searchResultsTreeProvider,
 				showCollapseAll: true,

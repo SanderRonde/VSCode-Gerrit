@@ -24,7 +24,7 @@ export class ChangesTreeProvider
 {
 	private static _instances: Set<ChangesTreeProvider> = new Set();
 	private _disposables: Disposable[] = [];
-	public rootViewProvider = new RootTreeViewProvider(this);
+	public rootViewProvider = new RootTreeViewProvider(this._gerritRepo, this);
 
 	public onDidChangeTreeDataEmitter: EventEmitter<
 		TreeViewItem | undefined | null | void
@@ -33,7 +33,7 @@ export class ChangesTreeProvider
 		TreeViewItem | undefined | null | void
 	> = this.onDidChangeTreeDataEmitter.event;
 
-	public constructor(gerritRepo: Repository) {
+	public constructor(private readonly _gerritRepo: Repository) {
 		ChangesTreeProvider._instances.add(this);
 		this._disposables.push(FileTreeView.init());
 		const interval = setTimeout(() => {
@@ -45,7 +45,7 @@ export class ChangesTreeProvider
 		void (async () => {
 			this._disposables.push(
 				await onChangeLastCommit(
-					gerritRepo,
+					_gerritRepo,
 					() => {
 						this.refresh();
 					},

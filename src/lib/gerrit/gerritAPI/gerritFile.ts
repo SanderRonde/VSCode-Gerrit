@@ -9,6 +9,7 @@ import {
 	GerritRevisionFileStatus,
 } from './types';
 import { PatchsetDescription } from '../../../views/activityBar/changes/changeTreeView';
+import { Repository } from '../../../types/vscode-extension-git';
 import { DynamicallyFetchable } from './shared';
 import { GerritChange } from './gerritChange';
 import { Uri, workspace } from 'vscode';
@@ -131,19 +132,13 @@ export class GerritFile extends DynamicallyFetchable {
 	}
 
 	public getLocalURI(
+		gerritRepo: Repository,
 		forSide: GerritCommentSide,
 		forBaseRevision: PatchsetDescription | null,
 		context: string[],
 		extra?: string
 	): Uri | null {
-		if (
-			!workspace.workspaceFolders ||
-			workspace.workspaceFolders.length !== 1
-		) {
-			return null;
-		}
-		const workspaceFolder = workspace.workspaceFolders[0];
-		const filePath = Uri.joinPath(workspaceFolder.uri, this.filePath);
+		const filePath = Uri.joinPath(gerritRepo.rootUri, this.filePath);
 		return filePath.with({
 			query: FileMetaWithSideAndBase.createFileMetaWithSideAndRevision(
 				{
@@ -160,8 +155,16 @@ export class GerritFile extends DynamicallyFetchable {
 		});
 	}
 
-	public async isLocalFile(content: TextContent): Promise<boolean> {
-		const filePath = this.getLocalURI(GerritCommentSide.LEFT, null, []);
+	public async isLocalFile(
+		gerritRepo: Repository,
+		content: TextContent
+	): Promise<boolean> {
+		const filePath = this.getLocalURI(
+			gerritRepo,
+			GerritCommentSide.LEFT,
+			null,
+			[]
+		);
 		if (!filePath) {
 			return false;
 		}

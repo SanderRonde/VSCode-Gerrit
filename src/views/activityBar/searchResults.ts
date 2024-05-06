@@ -14,6 +14,7 @@ import { GerritChange } from '../../lib/gerrit/gerritAPI/gerritChange';
 import { Subscribable } from '../../lib/subscriptions/subscriptions';
 import { FetchMoreTreeItem } from './changes/fetchMoreTreeItem';
 import { GerritAPIWith } from '../../lib/gerrit/gerritAPI/api';
+import { Repository } from '../../types/vscode-extension-git';
 import { optionalArrayEntry } from '../../lib/util/util';
 import { getAPI } from '../../lib/gerrit/gerritAPI';
 import { Refreshable } from './shared/refreshable';
@@ -44,7 +45,7 @@ export class SearchResultsTreeProvider
 
 	public treeView!: TreeView<TreeViewItem>;
 
-	public constructor() {
+	public constructor(protected readonly _gerritRepo: Repository) {
 		super('SearchResults');
 		SearchResultsTreeProvider._instances.add(this);
 	}

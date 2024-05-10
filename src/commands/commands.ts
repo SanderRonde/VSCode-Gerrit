@@ -299,10 +299,7 @@ export function registerCommands(
 			GerritExtensionCommands.REBASE,
 			async (changeTreeView: ChangeTreeView) => {
 				const gitURI = gerritRepo.rootUri.fsPath;
-				if (
-					!gitURI ||
-					!(await checkoutChange(gitURI, changeTreeView.changeID))
-				) {
+				if (!(await checkoutChange(gitURI, changeTreeView.changeID))) {
 					return;
 				}
 
@@ -322,10 +319,7 @@ export function registerCommands(
 			GerritExtensionCommands.RECURSIVE_REBASE,
 			async (changeTreeView: ChangeTreeView) => {
 				const gitURI = gerritRepo.rootUri.fsPath;
-				if (
-					!gitURI ||
-					!(await checkoutChange(gitURI, changeTreeView.changeID))
-				) {
+				if (!(await checkoutChange(gitURI, changeTreeView.changeID))) {
 					return;
 				}
 

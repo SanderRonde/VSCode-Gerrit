@@ -328,7 +328,7 @@ export async function gitCheckoutRemote(
 	silent: boolean = false
 ): Promise<boolean> {
 	const uri = gerritRepo.rootUri.fsPath;
-	if (!uri || !(await ensureCleanWorkingTree(uri, silent))) {
+	if (!(await ensureCleanWorkingTree(uri, silent))) {
 		return false;
 	}
 
@@ -375,14 +375,6 @@ export async function gitReview(gerritRepo: Repository): Promise<void> {
 				increment: 10,
 			});
 			const uri = gerritRepo.rootUri.fsPath;
-			if (!uri) {
-				return {
-					success: false,
-					handled: true,
-					stdout: '',
-				};
-			}
-
 			if (!(await ensureNoRebaseErrors(gerritRepo))) {
 				return {
 					success: false,
@@ -533,9 +525,6 @@ export async function getCurrentBranch(
 	gerritRepo: Repository
 ): Promise<string | null> {
 	const uri = gerritRepo.rootUri.fsPath;
-	if (!uri) {
-		return null;
-	}
 	const { stdout, success } = await tryExecAsync(
 		'git rev-parse --abbrev-ref HEAD',
 		{

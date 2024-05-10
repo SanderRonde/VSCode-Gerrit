@@ -23,9 +23,9 @@ import { OPEN_FILE_HAS_UNRESOLVED_COMMENTS } from '../../lib/util/magic';
 import { GerritChange } from '../../lib/gerrit/gerritAPI/gerritChange';
 import { TextContent } from '../../lib/gerrit/gerritAPI/gerritFile';
 import { avg, diff, uniqueComplex } from '../../lib/util/util';
+import { Repository } from '../../types/vscode-extension-git';
 import { getCurrentChangeID } from '../../lib/git/commit';
 import { CacheContainer } from '../../lib/util/cache';
-import { getGitRepo } from '../../lib/gerrit/gerrit';
 import * as gitDiffParser from 'gitdiff-parser';
 
 function getCurrentMeta(): FileMeta | null {
@@ -321,7 +321,7 @@ function getClosestNumWithMaxDistance(
 	return sortedNumbers[sortedNumbers.length - 1];
 }
 
-async function getCurrentCommentData(): Promise<{
+async function getCurrentCommentData(gerritRepo: Repository): Promise<{
 	comment: {
 		range: Range | null;
 		comments: GerritCommentBase[];
@@ -333,7 +333,7 @@ async function getCurrentCommentData(): Promise<{
 	filePath: string | undefined;
 } | null> {
 	const meta = getCurrentMeta();
-	const changeID = meta?.changeID ?? (await getCurrentChangeID());
+	const changeID = meta?.changeID ?? (await getCurrentChangeID(gerritRepo));
 	if (!changeID) {
 		void window.showInformationMessage(
 			'Failed to find currently active change'
@@ -419,6 +419,7 @@ function supersortFilePaths(filePaths: string[]): string[] {
 }
 
 async function jumpToUnresolvedCommentShared(
+	gerritRepo: Repository,
 	resolveIndices: (
 		data: Exclude<Awaited<ReturnType<typeof getCurrentCommentData>>, null>
 	) => {
@@ -426,7 +427,7 @@ async function jumpToUnresolvedCommentShared(
 		commentIndex: COMMENT_POSITION | number;
 	}
 ): Promise<void> {
-	const data = await getCurrentCommentData();
+	const data = await getCurrentCommentData(gerritRepo);
 	if (!data) {
 		return;
 	}
@@ -591,13 +592,14 @@ async function jumpToUnresolvedCommentShared(
 		? manager.diffData?.diff
 		: await (async () => {
 				const file = await CommentManager.getFileFromOpenDocument(
+					gerritRepo,
 					window.activeTextEditor!.document
 				);
-				const gitRepo = getGitRepo();
-				if (!file || !gitRepo) {
+				if (!file) {
 					return null;
 				}
 				const hashes = await CommentManager.getFileHashObjects(
+					gerritRepo,
 					file,
 					window.activeTextEditor!.document
 				);
@@ -607,7 +609,7 @@ async function jumpToUnresolvedCommentShared(
 
 				const parser =
 					gitDiffParser as unknown as typeof import('gitdiff-parser').default;
-				const diff = await gitRepo.diffBlobs(
+				const diff = await gerritRepo.diffBlobs(
 					hashes.newHash,
 					hashes.modifiedHash
 				);
@@ -645,8 +647,10 @@ enum COMMENT_POSITION {
 	END = 'end',
 }
 
-export async function nextUnresolvedComment(): Promise<void> {
-	await jumpToUnresolvedCommentShared((data) => {
+export async function nextUnresolvedComment(
+	gerritRepo: Repository
+): Promise<void> {
+	await jumpToUnresolvedCommentShared(gerritRepo, (data) => {
 		const allFilePaths = supersortFilePaths(data.unresolvedThreads.keys());
 
 		// If no file path, return first comment of first file
@@ -707,8 +711,10 @@ export async function nextUnresolvedComment(): Promise<void> {
 	});
 }
 
-export async function previousUnresolvedComment(): Promise<void> {
-	await jumpToUnresolvedCommentShared((data) => {
+export async function previousUnresolvedComment(
+	gerritRepo: Repository
+): Promise<void> {
+	await jumpToUnresolvedCommentShared(gerritRepo, (data) => {
 		const allFilePaths = supersortFilePaths([
 			...data.unresolvedThreads.keys(),
 		]);

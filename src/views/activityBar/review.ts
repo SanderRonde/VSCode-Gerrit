@@ -23,6 +23,7 @@ import { GerritUser } from '../../lib/gerrit/gerritAPI/gerritUser';
 import { CommentManager } from '../../providers/commentProvider';
 import { TypedWebview, TypedWebviewView } from './review/types';
 import { GerritAPIWith } from '../../lib/gerrit/gerritAPI/api';
+import { Repository } from '../../types/vscode-extension-git';
 import { getCurrentChangeID } from '../../lib/git/commit';
 import { onChangeLastCommit } from '../../lib/git/git';
 import { getAPI } from '../../lib/gerrit/gerritAPI';
@@ -42,12 +43,16 @@ class ReviewWebviewProvider implements WebviewViewProvider, Disposable {
 	private readonly _disposables: Disposable[] = [];
 	private _lastState: ReviewWebviewState | null = null;
 
-	private constructor(private readonly _context: ExtensionContext) {}
+	private constructor(
+		private readonly _gerritRepo: Repository,
+		private readonly _context: ExtensionContext
+	) {}
 
 	public static async create(
+		gerritRepo: Repository,
 		context: ExtensionContext
 	): Promise<ReviewWebviewProvider> {
-		return await new this(context).init();
+		return await new this(gerritRepo, context).init();
 	}
 
 	private async _getChangeMessage(
@@ -225,7 +230,7 @@ class ReviewWebviewProvider implements WebviewViewProvider, Disposable {
 	private async _getState(
 		initialState?: ReviewWebviewState
 	): Promise<ReviewWebviewState> {
-		const currentChangeID = await getCurrentChangeID();
+		const currentChangeID = await getCurrentChangeID(this._gerritRepo);
 
 		const overriddenChangeID = await storageGet(
 			'reviewChangeIDOverride',
@@ -452,9 +457,13 @@ class ReviewWebviewProvider implements WebviewViewProvider, Disposable {
 
 	public async init(): Promise<this> {
 		this._context.subscriptions.push(
-			await onChangeLastCommit(async () => {
-				await this.updateAllStates();
-			}, true)
+			await onChangeLastCommit(
+				this._gerritRepo,
+				async () => {
+					await this.updateAllStates();
+				},
+				true
+			)
 		);
 		return this;
 	}
@@ -516,12 +525,14 @@ class ReviewWebviewProvider implements WebviewViewProvider, Disposable {
 
 let reviewWebviewProvider: ReviewWebviewProvider | null = null;
 export async function getOrCreateReviewWebviewProvider(
+	gerritRepo: Repository,
 	context: ExtensionContext
 ): Promise<ReviewWebviewProvider> {
 	if (reviewWebviewProvider) {
 		return reviewWebviewProvider;
 	}
 	return (reviewWebviewProvider = await ReviewWebviewProvider.create(
+		gerritRepo,
 		context
 	));
 }

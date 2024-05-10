@@ -1,6 +1,7 @@
 import { createWeakWrapperDisposer } from '../util/garbageCollection';
 import { GerritChange } from '../gerrit/gerritAPI/gerritChange';
 import { Subscribable } from '../subscriptions/subscriptions';
+import { Repository } from '../../types/vscode-extension-git';
 import { getLastCommits, GitCommit } from './gitCLI';
 import { createInittableValue } from '../util/cache';
 import { onChangeLastCommit } from './git';
@@ -18,8 +19,10 @@ export function isChangeID(msg: string): boolean {
 	return changeIDRegex.test(msg);
 }
 
-export async function getCurrentChangeID(): Promise<string | null> {
-	const lastCommit = (await getLastCommits(1))[0];
+export async function getCurrentChangeID(
+	gerritRepo: Repository
+): Promise<string | null> {
+	const lastCommit = (await getLastCommits(gerritRepo, 1))[0];
 	if (!lastCommit || !isGerritCommit(lastCommit)) {
 		return null;
 	}
@@ -29,14 +32,20 @@ export async function getCurrentChangeID(): Promise<string | null> {
 
 const lastCurrentChangeID = createInittableValue<string | null>();
 
-export async function setupChangeIDCache(): Promise<Disposable> {
-	return await onChangeLastCommit((lastCommit) => {
-		if (lastCommit && isGerritCommit(lastCommit)) {
-			lastCurrentChangeID.setValue(getChangeID(lastCommit));
-		} else {
-			lastCurrentChangeID.setValue(null);
-		}
-	}, true);
+export async function setupChangeIDCache(
+	gerritRepo: Repository
+): Promise<Disposable> {
+	return await onChangeLastCommit(
+		gerritRepo,
+		(lastCommit) => {
+			if (lastCommit && isGerritCommit(lastCommit)) {
+				lastCurrentChangeID.setValue(getChangeID(lastCommit));
+			} else {
+				lastCurrentChangeID.setValue(null);
+			}
+		},
+		true
+	);
 }
 
 export function getCurrentChangeIDCached(): Promise<string | null> {
@@ -48,6 +57,7 @@ export function isGerritCommit(commit: GitCommit): boolean {
 }
 
 export async function onChangeLastCommitOrChange(
+	gerritRepo: Repository,
 	handler: (
 		change: GerritChange | null,
 		lastCommit: GitCommit
@@ -63,29 +73,33 @@ export async function onChangeLastCommitOrChange(
 		createWeakWrapperDisposer(new WeakRef(currentSubscription))
 	);
 	disposables.push(
-		await onChangeLastCommit(async (lastCommit) => {
-			if (currentSubscription.value) {
-				currentSubscription.value.unsubscribe();
-			}
-			currentSubscription = {
-				value:
-					isGerritCommit(lastCommit) && getChangeID(lastCommit)
-						? await GerritChange.getChange(
-								getChangeID(lastCommit)!,
-								[],
-								{ allowFail: true }
-						  )
-						: null,
-			};
+		await onChangeLastCommit(
+			gerritRepo,
+			async (lastCommit) => {
+				if (currentSubscription.value) {
+					currentSubscription.value.unsubscribe();
+				}
+				currentSubscription = {
+					value:
+						isGerritCommit(lastCommit) && getChangeID(lastCommit)
+							? await GerritChange.getChange(
+									getChangeID(lastCommit)!,
+									[],
+									{ allowFail: true }
+							  )
+							: null,
+				};
 
-			const change =
-				(await currentSubscription.value?.getValue()) ?? null;
-			currentSubscription.value?.subscribe(
-				new WeakRef(async (change) => {
-					await handler(change, lastCommit);
-				})
-			);
-			await handler(change, lastCommit);
-		}, callInitial)
+				const change =
+					(await currentSubscription.value?.getValue()) ?? null;
+				currentSubscription.value?.subscribe(
+					new WeakRef(async (change) => {
+						await handler(change, lastCommit);
+					})
+				);
+				await handler(change, lastCommit);
+			},
+			callInitial
+		)
 	);
 }

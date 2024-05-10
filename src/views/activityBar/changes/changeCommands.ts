@@ -6,6 +6,7 @@ import {
 	Uri,
 	env,
 } from 'vscode';
+import { Repository } from '../../../types/vscode-extension-git';
 import { getConfiguration } from '../../../lib/vscode/config';
 import { EXTENSION_ID } from '../../../lib/util/constants';
 import { gitCheckoutRemote } from '../../../lib/git/git';
@@ -63,9 +64,15 @@ export function selectActiveView(): void {
 }
 
 export async function checkoutBranch(
+	gerritRepo: Repository,
 	changeTreeView: ChangeTreeView
 ): Promise<void> {
-	await gitCheckoutRemote(changeTreeView.changeID, undefined, false);
+	await gitCheckoutRemote(
+		gerritRepo,
+		changeTreeView.changeID,
+		undefined,
+		false
+	);
 }
 
 export async function openChangeOnline(

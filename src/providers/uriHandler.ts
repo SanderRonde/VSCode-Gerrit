@@ -10,10 +10,13 @@ import {
 } from 'vscode';
 import { FileTreeView } from '../views/activityBar/changes/changeTreeView/fileTreeView';
 import { GerritChange } from '../lib/gerrit/gerritAPI/gerritChange';
+import { Repository } from '../types/vscode-extension-git';
 import { gitCheckoutRemote } from '../lib/git/git';
 import { tryExecAsync } from '../lib/git/gitCLI';
 
 export class URIHandler implements UriHandler {
+	public constructor(private readonly _gerritRepo: Repository) {}
+
 	private async _handleChangeCheckout(query: {
 		checkout?: string;
 		change?: string;
@@ -46,6 +49,7 @@ export class URIHandler implements UriHandler {
 			// If set, checkout change, if not, stay on master and diff
 			if (
 				!(await gitCheckoutRemote(
+					this._gerritRepo,
 					changeID,
 					query.patchSet ? Number(query.patchSet) : undefined,
 					false

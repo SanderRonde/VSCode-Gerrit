@@ -122,13 +122,7 @@ export class FileTreeView implements TreeItemWithoutChildren {
 		const newURI = ternaryWithFallback(
 			patchsetBase === null &&
 				(await file.isLocalFile(gerritRepo, newContent)),
-			file.getLocalURI(
-				gerritRepo,
-				GerritCommentSide.RIGHT,
-				patchsetBase,
-				[OPEN_FILE_IS_CHANGE_DIFF],
-				`DIFF-${key}`
-			),
+			Uri.joinPath(gerritRepo.rootUri, file.filePath),
 			newContent.toVirtualFile(
 				GerritCommentSide.RIGHT,
 				patchsetBase,

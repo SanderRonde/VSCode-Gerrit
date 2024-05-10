@@ -35,8 +35,8 @@ import { DefaultChangeFilter, GerritChangeFilter, filterAnd } from './filters';
 import { optionalArrayEntry, optionalObjectProperty } from '../../util/util';
 import { ChangeField } from '../../subscriptions/changeSubscription';
 import { GerritComment, GerritDraftComment } from './gerritComment';
-import { getGitReviewFile } from '../../credentials/gitReviewFile';
 import { GerritChangeMergeable } from './gerritChangeMergeable';
+import { GitReviewFile } from '../../credentials/gitReviewFile';
 import { FileMeta } from '../../../providers/fileProvider';
 import { GerritChangeDetail } from './gerritChangeDetail';
 import { GerritFile, TextContent } from './gerritFile';
@@ -271,6 +271,7 @@ export class GerritAPI {
 		private readonly _password: string | null,
 		private readonly _cookie: string | null,
 		private readonly _extraCookies: Record<string, string> | null,
+		private readonly _gitReviewFile: GitReviewFile | null,
 		private readonly _allowFail: boolean = false
 	) {}
 
@@ -596,17 +597,14 @@ export class GerritAPI {
 		};
 	}
 
-	private async _applyAdditionalFilter(): Promise<
-		(existingFilter: string) => string
-	> {
+	private _applyAdditionalFilter(): (existingFilter: string) => string {
 		let projectFilter: string | undefined;
 		const config = getConfiguration();
 		if (config.get('gerrit.filterByProject', true)) {
-			const gitReviewFile = await getGitReviewFile();
-			if (gitReviewFile) {
-				const projectName = gitReviewFile.project.endsWith('.git')
-					? gitReviewFile.project.slice(0, -'.git'.length)
-					: gitReviewFile.project;
+			if (this._gitReviewFile) {
+				const projectName = this._gitReviewFile.project.endsWith('.git')
+					? this._gitReviewFile.project.slice(0, -'.git'.length)
+					: this._gitReviewFile.project;
 				projectFilter = `project:${projectName}`;
 			}
 		}
@@ -680,7 +678,7 @@ export class GerritAPI {
 		);
 	}
 
-	public async getChanges(
+	public getChanges(
 		filters: (DefaultChangeFilter | GerritChangeFilter)[][],
 		offsetParams: ChangesOffsetParams | undefined,
 		onError:
@@ -690,9 +688,9 @@ export class GerritAPI {
 					body: string
 			  ) => void | Promise<void>),
 		...withValues: GerritAPIWith[]
-	): Promise<Subscribable<GerritChange[]>> {
+	): Subscribable<GerritChange[]> {
 		const filterParams: [string, string][] = [];
-		const additionalFilter = await this._applyAdditionalFilter();
+		const additionalFilter = this._applyAdditionalFilter();
 		for (const filter of filters) {
 			const subFilters = filter.filter((subFilter) => {
 				return !subFilter.includes('is:ignored');
@@ -758,7 +756,7 @@ export class GerritAPI {
 		);
 	}
 
-	public async searchChanges(
+	public searchChanges(
 		query: string,
 		offsetParams: ChangesOffsetParams | undefined,
 		onError:
@@ -768,9 +766,9 @@ export class GerritAPI {
 					body: string
 			  ) => void | Promise<void>),
 		...withValues: GerritAPIWith[]
-	): Promise<Subscribable<GerritChange[]>> {
+	): Subscribable<GerritChange[]> {
 		const filterParams: [string, string][] = [
-			['q', (await this._applyAdditionalFilter())(query)],
+			['q', this._applyAdditionalFilter()(query)],
 		];
 
 		return APISubscriptionManager.changesSubscriptions.createFetcher(

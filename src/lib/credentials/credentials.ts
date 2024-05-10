@@ -1,4 +1,8 @@
-import { GitReviewFile, getGitReviewFileCached } from './gitReviewFile';
+import {
+	GitReviewFile,
+	getGitReviewFile,
+	getGitReviewFileCached,
+} from './gitReviewFile';
 import { MultiStepEntry, MultiStepper } from '../vscode/multiStep';
 import { Repository } from '../../types/vscode-extension-git';
 import { ConfigurationTarget, window } from 'vscode';
@@ -109,7 +113,8 @@ async function enterBasicCredentials(gerritRepo: Repository): Promise<void> {
 				username,
 				password,
 				null,
-				extraCookies ?? null
+				extraCookies ?? null,
+				await getGitReviewFile(gerritRepo)
 			);
 			if (!(await api.testConnection())) {
 				return {
@@ -194,7 +199,8 @@ async function enterCookieCredentials(gerritRepo: Repository): Promise<void> {
 				null,
 				null,
 				cookie,
-				extraCookies ?? null
+				extraCookies ?? null,
+				await getGitReviewFile(gerritRepo)
 			);
 			if (!(await api.testConnection())) {
 				return {

@@ -52,7 +52,8 @@ export async function checkConnection(): Promise<void> {
 		username ?? null,
 		password ?? null,
 		cookie ?? null,
-		extraCookies ?? null
+		extraCookies ?? null,
+		gitReviewFile
 	);
 	if (!(await api.testConnection())) {
 		await showInvalidSettingsMessage(
@@ -98,6 +99,7 @@ export async function createAPI(
 		password ?? null,
 		cookie ?? null,
 		extraCookies ?? null,
+		gitReviewFile,
 		allowFail
 	);
 	await setContextProp('gerrit:connected', true);
@@ -135,7 +137,15 @@ export async function getAPIForSubscription(
 
 	const newAPI = await createAPI(allowFail);
 	if (!newAPI) {
-		return new GerritAPI(null, null, null, null, null, allowFail);
+		return new GerritAPI(
+			null,
+			null,
+			null,
+			null,
+			null,
+			gitReviewFile,
+			allowFail
+		);
 	}
 	if (allowFail) {
 		failAllowedAPI = newAPI;

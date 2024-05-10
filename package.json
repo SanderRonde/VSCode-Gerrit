@@ -2,7 +2,7 @@
 	"name": "vscode--gerrit",
 	"displayName": "Gerrit",
 	"description": "VSCode gerrit integration",
-	"version": "1.2.34",
+	"version": "1.2.35",
 	"engines": {
 		"vscode": "^1.62.0",
 		"node": ">=14.16.0"
@@ -1090,6 +1090,11 @@
 					"type": "boolean",
 					"default": false,
 					"description": "Force enable gerrit extension even for unsupported versions"
+				},
+				"gerrit.filterByProject": {
+					"type": "boolean",
+					"default": true,
+					"description": "Filter all changes by the current project"
 				},
 				"gerrit.changesViews": {
 					"type": "array",

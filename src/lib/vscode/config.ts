@@ -43,6 +43,7 @@ interface ConfigSettings {
 	'gerrit.selectedView': string;
 	'gerrit.gerrit.expandComments': ExpandComments;
 	'gerrit.changesViews': ChangesView[];
+	'gerrit.filterByProject': boolean;
 	'gerrit.allowInvalidSSLCerts': boolean;
 	'gerrit.localGitRepoUri': string;
 	'gerrit.messages.postReviewNotification': boolean;

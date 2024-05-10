@@ -59,6 +59,7 @@ export class DocumentCommentManager {
 		new CacheContainer();
 	private _createdThreads = new Set<CommentThread>();
 	private _threadLineCount: Map<number, number> = new Map();
+	private _commentLoader: Promise<void> | null = null;
 
 	public constructor(
 		public readonly document: Uri,
@@ -155,87 +156,102 @@ export class DocumentCommentManager {
 	}
 
 	public async loadComments(forceUpdate: boolean = false): Promise<this> {
-		const fileMeta = FileMetaWithSideAndBase.tryFrom(this.document);
-		if (fileMeta?.isEmpty()) {
+		// This can be called a bunch of times, we batch the same calls
+		if (this._commentLoader) {
+			await this._commentLoader;
 			return this;
 		}
 
-		const isPatchSetLevel =
-			fileMeta && fileMeta.filePath === PATCHSET_LEVEL_KEY;
-		const currentChangeID = await getCurrentChangeIDCached();
-		const changeID = fileMeta?.changeID || currentChangeID;
-		if (!changeID) {
-			return this;
-		}
-		const commentSubscription = await GerritChange.getAllComments(
-			changeID,
-			{
-				allowFail: changeID === currentChangeID,
+		const loaderPromise = (async () => {
+			const fileMeta = FileMetaWithSideAndBase.tryFrom(this.document);
+			if (fileMeta?.isEmpty()) {
+				return;
 			}
-		);
-		const comments =
-			(await commentSubscription.getValue(forceUpdate)).get(
-				this.filePath
-			) ?? [];
-		commentSubscription.subscribe(
-			new WeakRef(() => this.refreshComments())
-		);
-		(await GerritChange.getChange(changeID)).subscribe(
-			new WeakRef(() => this.refreshComments())
-		);
-		const thisSideComments =
-			isPatchSetLevel || !fileMeta
-				? comments
-				: comments.filter(
-						(c) =>
-							c.side ?? GerritCommentSide.RIGHT === fileMeta.side
-				  );
-		let threads = DocumentCommentManager.getThreadRanges(
-			DocumentCommentManager.buildThreadsFromComments(
-				thisSideComments
-			).filter((t) => t.length !== 0)
-		);
-		if (this.diffData?.diff) {
-			threads = threads.map((t) => ({
-				range: DocumentCommentManager.applyDiffToCommentRange(
-					t.range!,
-					this.diffData!.diff
-				),
-				comments: t.comments,
-			}));
-		}
-		if (isPatchSetLevel) {
-			threads = threads.map((thread, index) => {
-				return {
-					comments: thread.comments,
-					range: new Range(
-						new Position(index, 0),
-						new Position(index, 0)
-					),
-				};
-			});
-		}
-		// Hide all threads that were started after the current patchSet
-		threads = threads.filter((thread) => {
-			if (!fileMeta?.commit || thread.comments.length === 0) {
-				return true;
+
+			const isPatchSetLevel =
+				fileMeta && fileMeta.filePath === PATCHSET_LEVEL_KEY;
+			const currentChangeID = await getCurrentChangeIDCached();
+			const changeID = fileMeta?.changeID || currentChangeID;
+			if (!changeID) {
+				return;
 			}
-			const firstComment = thread.comments[0];
-			if (typeof firstComment.patchSet !== 'number') {
-				return true;
-			}
-			return firstComment.patchSet <= fileMeta.commit.number;
-		});
-		for (const thread of threads) {
-			const line = thread.range?.start.line ?? -1;
-			this._threadLineCount.set(
-				line,
-				(this._threadLineCount.get(line) ?? 0) + 1
+			const commentSubscription = await GerritChange.getAllComments(
+				changeID,
+				{
+					allowFail: changeID === currentChangeID,
+				}
 			);
-		}
-		for (const thread of threads) {
-			this.createCommentThread(thread);
-		}
+			const comments =
+				(await commentSubscription.getValue(forceUpdate)).get(
+					this.filePath
+				) ?? [];
+			commentSubscription.subscribe(
+				new WeakRef(() => this.refreshComments())
+			);
+			(await GerritChange.getChange(changeID)).subscribe(
+				new WeakRef(() => this.refreshComments())
+			);
+
+			this.dispose();
+			const thisSideComments =
+				isPatchSetLevel || !fileMeta
+					? comments
+					: comments.filter(
+							(c) =>
+								c.side ??
+								GerritCommentSide.RIGHT === fileMeta.side
+					  );
+			let threads = DocumentCommentManager.getThreadRanges(
+				DocumentCommentManager.buildThreadsFromComments(
+					thisSideComments
+				).filter((t) => t.length !== 0)
+			);
+			if (this.diffData?.diff) {
+				threads = threads.map((t) => ({
+					range: DocumentCommentManager.applyDiffToCommentRange(
+						t.range!,
+						this.diffData!.diff
+					),
+					comments: t.comments,
+				}));
+			}
+			if (isPatchSetLevel) {
+				threads = threads.map((thread, index) => {
+					return {
+						comments: thread.comments,
+						range: new Range(
+							new Position(index, 0),
+							new Position(index, 0)
+						),
+					};
+				});
+			}
+			// Hide all threads that were started after the current patchSet
+			threads = threads.filter((thread) => {
+				if (!fileMeta?.commit || thread.comments.length === 0) {
+					return true;
+				}
+				const firstComment = thread.comments[0];
+				if (typeof firstComment.patchSet !== 'number') {
+					return true;
+				}
+				return firstComment.patchSet <= fileMeta.commit.number;
+			});
+			for (const thread of threads) {
+				const line = thread.range?.start.line ?? -1;
+				this._threadLineCount.set(
+					line,
+					(this._threadLineCount.get(line) ?? 0) + 1
+				);
+			}
+			for (const thread of threads) {
+				this.createCommentThread(thread);
+			}
+			return;
+		})();
+		this._commentLoader = loaderPromise;
+		await loaderPromise;
+		this._commentLoader = null;
 		return this;
 	}
 
@@ -536,15 +552,9 @@ export class CommentManager {
 			return null;
 		}
 
-		const currentWorkspace = workspace.getWorkspaceFolder(document.uri);
-		if (
-			!currentWorkspace ||
-			currentWorkspace.uri.scheme !== document.uri.scheme
-		) {
-			return null;
-		}
+		const gitURI = gerritRepo.rootUri.fsPath;
 		const relativePath = path
-			.relative(currentWorkspace.uri.fsPath, document.uri.fsPath)
+			.relative(gitURI, document.uri.fsPath)
 			.replace(/\\/g, '/');
 		if (!files[relativePath]) {
 			return null;
@@ -594,14 +604,15 @@ export class CommentManager {
 	public static init(gerritRepo: Repository): typeof CommentManager {
 		this._disposables.add(
 			workspace.onDidCloseTextDocument((doc) => {
-				const meta = FileMetaWithSideAndBase.tryFrom(doc.uri);
-				if (!meta) {
-					return;
-				}
 				const key = doc.uri.toString();
 				if (this._commentManagersByURI.has(key)) {
 					this._commentManagersByURI.get(key)!.dispose();
 					this._commentManagersByURI.delete(key);
+				}
+
+				const meta = FileMetaWithSideAndBase.tryFrom(doc.uri);
+				if (!meta) {
+					return;
 				}
 				if (this._commentManagersByChangeID.has(meta.changeID)) {
 					this._commentManagersByChangeID.set(

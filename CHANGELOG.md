@@ -2,6 +2,12 @@
 
 All notable changes to the "gerrit" extension will be documented in this file.
 
+## 1.1.36
+
+-   Use git root as root instead of workspace root
+-   Improve picking of gerrit repo when there are multiple projects
+-   Fix some issues with comments showing twice
+
 ## 1.1.35
 
 -   Filter by current project by default

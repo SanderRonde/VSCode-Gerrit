@@ -48,7 +48,7 @@ export const shouldDebugRequests = isDev;
 /**
  * Log disposing of garbage collected items
  */
-const DEBUG_GARBAGE_COLLECTION_DEFAULT: boolean = true;
+const DEBUG_GARBAGE_COLLECTION_DEFAULT: boolean = false;
 export const shouldDebugGarbageCollection = (): boolean => {
 	if (isDev()) {
 		return DEBUG_GARBAGE_COLLECTION_DEFAULT;

@@ -207,7 +207,7 @@ export async function openChangeSelector(
 			text: `$(loading~spin) Checking out #${change.changeId}`,
 			tooltip: `Checking out change #${change.changeId}`,
 		});
-		await gitCheckoutRemote(gerritRepo, change.changeId, undefined, true);
+		await gitCheckoutRemote(gerritRepo, change.changeId);
 	} else {
 		statusBar.setOverride({
 			text: `$(loading~spin) Checking out ${change.branchName}`,

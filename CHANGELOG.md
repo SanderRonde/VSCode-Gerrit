@@ -2,6 +2,10 @@
 
 All notable changes to the "gerrit" extension will be documented in this file.
 
+## 1.1.37
+
+-   Checkout using change selector doesn't silently fail
+
 ## 1.1.36
 
 -   Use git root as root instead of workspace root

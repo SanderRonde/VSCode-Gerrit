@@ -14,18 +14,34 @@ import {
 } from '../../types/vscode-extension-git';
 import { getConfiguration } from '../vscode/config';
 import { isGerritCommit } from '../git/commit';
+import { wait } from '../util/util';
 import { log } from '../util/log';
 
-function getGitAPI(): false | API {
-	const extension = extensions.getExtension<GitExtension>('vscode.git');
-	if (!extension) {
-		return false;
+async function tryGetGitAPI(): Promise<false | API> {
+	for (let i = 0; i < 1000 * 60; await wait(1000), i += 1000) {
+		try {
+			const extension =
+				extensions.getExtension<GitExtension>('vscode.git');
+			if (!extension) {
+				continue;
+			}
+
+			return extension.exports.getAPI(1);
+		} catch (e) {
+			log('Failed to get git API, retrying in 1 second');
+			continue;
+		}
 	}
-	return extension?.exports.getAPI(1);
+
+	log(
+		'Failed to get git API after 60 seconds, it looks like VSCode has disconnected from the host'
+	);
+
+	return false;
 }
 
 async function getGerritRepos(silent: boolean = true): Promise<Repository[]> {
-	const gitAPI = getGitAPI();
+	const gitAPI = await tryGetGitAPI();
 	if (!gitAPI) {
 		return [];
 	}
@@ -128,7 +144,7 @@ async function scanGerritRepos(gitAPI: API): Promise<Repository | null> {
 export async function getGerritRepo(
 	context: ExtensionContext
 ): Promise<Repository | null> {
-	const gitAPI = getGitAPI();
+	const gitAPI = await tryGetGitAPI();
 	if (!gitAPI) {
 		return null;
 	}

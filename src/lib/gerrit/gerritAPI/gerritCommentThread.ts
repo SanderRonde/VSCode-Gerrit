@@ -9,11 +9,11 @@ import {
 	DocumentCommentManager,
 } from '../../../providers/commentProvider';
 import { GerritCommentBase, GerritDraftComment } from './gerritComment';
-import { getConfiguration } from '../../vscode/config';
-import { ExpandComments } from '../../../commands/types';
 import { CommentThread, CommentThreadCollapsibleState } from 'vscode';
 import { OnceDisposable } from '../../classes/onceDisposable';
 import { FileMeta } from '../../../providers/fileProvider';
+import { ExpandComments } from '../../../commands/types';
+import { getConfiguration } from '../../vscode/config';
 import { CacheContainer } from '../../util/cache';
 
 interface CommentThreadWithGerritComments
@@ -168,9 +168,7 @@ export class GerritCommentThread extends OnceDisposable {
 			return overrideExpand;
 		}
 
-		const expandState = getConfiguration().get(
-			'gerrit.expandComments'
-		);
+		const expandState = getConfiguration().get('gerrit.expandComments');
 		if (expandState === ExpandComments.NEVER) {
 			return CommentThreadCollapsibleState.Collapsed;
 		} else if (expandState === ExpandComments.ALWAYS) {

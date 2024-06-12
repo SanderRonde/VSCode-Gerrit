@@ -35,14 +35,14 @@ import { DefaultChangeFilter, GerritChangeFilter, filterAnd } from './filters';
 import { optionalArrayEntry, optionalObjectProperty } from '../../util/util';
 import { ChangeField } from '../../subscriptions/changeSubscription';
 import { GerritComment, GerritDraftComment } from './gerritComment';
-import { GerritChangeMergeable } from './gerritChangeMergeable';
 import { GitReviewFile } from '../../credentials/gitReviewFile';
+import { GerritChangeMergeable } from './gerritChangeMergeable';
 import { FileMeta } from '../../../providers/fileProvider';
 import { GerritChangeDetail } from './gerritChangeDetail';
-import { GerritFile, TextContent } from './gerritFile';
 import { getConfiguration } from '../../vscode/config';
-import { shouldDebugRequests } from '../../util/dev';
+import { GerritFile, TextContent } from './gerritFile';
 import { READONLY_MODE } from '../../util/constants';
+import { shouldDebugRequests } from '../../util/dev';
 import { VersionNumber } from '../../util/version';
 import { GerritProject } from './gerritProject';
 import { GerritChange } from './gerritChange';
@@ -721,7 +721,7 @@ export class GerritAPI {
 								() => [
 									['n', String(offsetParams!.count)] as [
 										string,
-										string
+										string,
 									],
 								]
 							),
@@ -730,7 +730,7 @@ export class GerritAPI {
 								() => [
 									['S', String(offsetParams!.offset)] as [
 										string,
-										string
+										string,
 									],
 								]
 							),
@@ -793,7 +793,7 @@ export class GerritAPI {
 								() => [
 									['n', String(offsetParams!.count)] as [
 										string,
-										string
+										string,
 									],
 								]
 							),
@@ -802,7 +802,7 @@ export class GerritAPI {
 								() => [
 									['S', String(offsetParams!.offset)] as [
 										string,
-										string
+										string,
 									],
 								]
 							),
@@ -918,7 +918,7 @@ export class GerritAPI {
 							...optionalArrayEntry(!!baseRevision, () => [
 								['base', String(baseRevision!.number)] as [
 									string,
-									string
+									string,
 								],
 							]),
 						]),
@@ -1334,7 +1334,7 @@ export class GerritAPI {
 											),
 										},
 									],
-							  }
+								}
 							: undefined,
 						drafts: options.publishDrafts
 							? 'PUBLISH_ALL_REVISIONS'

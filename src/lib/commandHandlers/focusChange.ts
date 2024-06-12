@@ -25,9 +25,7 @@ export async function focusChange(gerritRepo: Repository): Promise<void> {
 		await Promise.all(
 			panels.map(async (p) =>
 				Promise.all(
-					(
-						await p.getRenderedChildren()
-					).map(async (c) => ({
+					(await p.getRenderedChildren()).map(async (c) => ({
 						tree: c,
 						change: await c.change,
 					}))

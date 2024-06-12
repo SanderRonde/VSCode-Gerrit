@@ -13,7 +13,7 @@ export class SelfDisposable {
 }
 
 export const selfDisposableMixin = <
-	B extends abstract new (...args: any[]) => any
+	B extends abstract new (...args: any[]) => any,
 >(
 	base: B
 ) => {

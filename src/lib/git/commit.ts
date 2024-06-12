@@ -1,9 +1,9 @@
 import { createWeakWrapperDisposer } from '../util/garbageCollection';
 import { GerritChange } from '../gerrit/gerritAPI/gerritChange';
-import { Subscribable } from '../subscriptions/subscriptions';
 import { Repository } from '../../types/vscode-extension-git';
-import { getLastCommits, GitCommit } from './gitCLI';
+import { Subscribable } from '../subscriptions/subscriptions';
 import { createInittableValue } from '../util/cache';
+import { getLastCommits, GitCommit } from './gitCLI';
 import { onChangeLastCommit } from './git';
 import { Disposable } from 'vscode';
 
@@ -86,7 +86,7 @@ export async function onChangeLastCommitOrChange(
 									getChangeID(lastCommit)!,
 									[],
 									{ allowFail: true }
-							  )
+								)
 							: null,
 				};
 

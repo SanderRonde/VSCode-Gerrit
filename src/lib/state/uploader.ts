@@ -1,7 +1,7 @@
 import { GerritChange } from '../gerrit/gerritAPI/gerritChange';
 import { Repository } from '../../types/vscode-extension-git';
-import { getChangeID, isGerritCommit } from '../git/commit';
 import { GerritUser } from '../gerrit/gerritAPI/gerritUser';
+import { getChangeID, isGerritCommit } from '../git/commit';
 import { GerritAPIWith } from '../gerrit/gerritAPI/api';
 import { setContextProp } from '../vscode/context';
 import { onChangeLastCommit } from '../git/git';

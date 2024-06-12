@@ -20,15 +20,15 @@ import { GerritRevision } from '../../../lib/gerrit/gerritAPI/gerritRevision';
 import { GerritChange } from '../../../lib/gerrit/gerritAPI/gerritChange';
 import { TreeItemWithChildren, TreeViewItem } from '../shared/treeTypes';
 import { StorageScope, storageSet } from '../../../lib/vscode/storage';
-import { getAPIForSubscription } from '../../../lib/gerrit/gerritAPI';
 import { GerritFile } from '../../../lib/gerrit/gerritAPI/gerritFile';
+import { getAPIForSubscription } from '../../../lib/gerrit/gerritAPI';
 import { getCurrentChangeIDCached } from '../../../lib/git/commit';
-import { SelfDisposable } from '../../../lib/util/selfDisposable';
 import { GerritAPIWith } from '../../../lib/gerrit/gerritAPI/api';
-import { FolderTreeView } from './changeTreeView/folderTreeView';
+import { SelfDisposable } from '../../../lib/util/selfDisposable';
 import { Repository } from '../../../types/vscode-extension-git';
-import { SearchResultsTreeProvider } from '../searchResults';
+import { FolderTreeView } from './changeTreeView/folderTreeView';
 import { FileTreeView } from './changeTreeView/fileTreeView';
+import { SearchResultsTreeProvider } from '../searchResults';
 import { optionalArrayEntry } from '../../../lib/util/util';
 import { getReviewWebviewProvider } from '../review';
 import { ViewPanel } from './viewPanel';
@@ -455,7 +455,7 @@ export class ChangeTreeView
 							number: result[0],
 							id: revisionArr.find((r) => r.number === result[0])!
 								.revisionID,
-					  },
+						},
 			patchSetCurrent:
 				result[1] === null
 					? null
@@ -463,7 +463,7 @@ export class ChangeTreeView
 							number: result[1],
 							id: revisionArr.find((r) => r.number === result[1])!
 								.revisionID,
-					  },
+						},
 		});
 
 		await this.parent.refresh();

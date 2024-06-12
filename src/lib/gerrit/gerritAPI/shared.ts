@@ -1,7 +1,7 @@
 import { runWith, uniqueSimple, Wither } from '../../util/util';
 import { GerritChange } from './gerritChange';
-import { GerritAPIWith } from './api';
 import { getAPI } from '../gerritAPI';
+import { GerritAPIWith } from './api';
 
 let disableRecursionFlag = false;
 const disableRecursionWither: Wither = {

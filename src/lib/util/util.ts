@@ -84,7 +84,7 @@ export function optionalObjectProperty<
 	O extends {
 		[K: string]: V | undefined;
 	},
-	V
+	V,
 >(
 	object: O
 ): {

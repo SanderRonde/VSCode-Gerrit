@@ -204,7 +204,7 @@ export class CacheContainer<K, V extends object, KK = K>
 			clearTimer: timeout
 				? () => {
 						clearTimeout(timeout);
-				  }
+					}
 				: undefined,
 		});
 	}
@@ -274,7 +274,7 @@ export class MultiLevelCacheContainer<K1, K2, V extends object>
 			clearTimer: timeout
 				? () => {
 						clearTimeout(timeout);
-				  }
+					}
 				: undefined,
 		});
 	}

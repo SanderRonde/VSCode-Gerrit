@@ -6,8 +6,8 @@ import { QuickCheckoutSubscriptionsManager } from './quickCheckoutSubscriptions'
 import { GenericChangeSubscriptionsManager } from './changeSubscription';
 import { ChangesSubscriptionsManager } from './changesSubscriptions';
 import { APISubSubscriptionManagerBase } from './baseSubscriptions';
-import { FilesSubscriptionsManager } from './filesSubscription';
 import { GerritChange } from '../gerrit/gerritAPI/gerritChange';
+import { FilesSubscriptionsManager } from './filesSubscription';
 import { Disposable } from 'vscode';
 
 interface SubscriptionOptions {

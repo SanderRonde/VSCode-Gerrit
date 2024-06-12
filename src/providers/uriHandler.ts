@@ -143,7 +143,7 @@ export class URIHandler implements UriHandler {
 			patchSet !== undefined
 				? Object.values(revisions).find(
 						(revision) => revision.number === patchSet
-				  )
+					)
 				: await change.getCurrentRevision();
 		if (!revision) {
 			return false;

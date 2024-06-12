@@ -8,10 +8,10 @@ import {
 import { PatchsetDescription } from '../../../views/activityBar/changes/changeTreeView';
 import { getCurrentChangeID, getCurrentChangeIDCached } from '../../git/commit';
 import { joinSubscribables } from '../../subscriptions/subscriptionUtil';
-import { DefaultChangeFilter, GerritChangeFilter } from './filters';
 import { GerritComment, GerritDraftComment } from './gerritComment';
-import { Subscribable } from '../../subscriptions/subscriptions';
+import { DefaultChangeFilter, GerritChangeFilter } from './filters';
 import { Repository } from '../../../types/vscode-extension-git';
+import { Subscribable } from '../../subscriptions/subscriptions';
 import { getAPI, getAPIForSubscription } from '../gerritAPI';
 import { ChangesOffsetParams, GerritAPIWith } from './api';
 import { getConfiguration } from '../../vscode/config';
@@ -81,7 +81,7 @@ export class GerritChange extends DynamicallyFetchable {
 					id: response.current_revision,
 					number: response.revisions![response.current_revision]
 						._number,
-			  }
+				}
 			: null;
 
 		if (response.labels) {

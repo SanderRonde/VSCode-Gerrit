@@ -17,9 +17,9 @@ import {
 } from 'vscode';
 import { fileCache } from './views/activityBar/changes/changeTreeView/file/fileCache';
 import { getCommentDecorationProvider } from './providers/commentDecorationProvider';
-import { getOrCreateReviewWebviewProvider } from './views/activityBar/review';
-import { CommentManager, DocumentManager } from './providers/commentProvider';
 import { SearchResultsTreeProvider } from './views/activityBar/searchResults';
+import { CommentManager, DocumentManager } from './providers/commentProvider';
+import { getOrCreateReviewWebviewProvider } from './views/activityBar/review';
 import { getOrCreateChangesTreeProvider } from './views/activityBar/changes';
 import { FileProvider, GERRIT_FILE_SCHEME } from './providers/fileProvider';
 import { getConfiguration, initConfigListener } from './lib/vscode/config';
@@ -30,14 +30,14 @@ import { GerritExtensionCommands } from './commands/command-names';
 import { GERRIT_SEARCH_RESULTS_VIEW } from './lib/util/constants';
 import { getGerritRepo, pickGitRepo } from './lib/gerrit/gerrit';
 import { GerritUser } from './lib/gerrit/gerritAPI/gerritUser';
-import { GerritCodicons, commands } from './commands/defs';
 import { updateUploaderState } from './lib/state/uploader';
+import { GerritCodicons, commands } from './commands/defs';
 import { registerCommands } from './commands/commands';
 import { setupChangeIDCache } from './lib/git/commit';
 import { createOutputChannel } from './lib/util/log';
 import { URIHandler } from './providers/uriHandler';
-import { VersionNumber } from './lib/util/version';
 import { storageInit } from './lib/vscode/storage';
+import { VersionNumber } from './lib/util/version';
 import { setDevContext } from './lib/util/dev';
 
 export async function activate(context: ExtensionContext): Promise<void> {

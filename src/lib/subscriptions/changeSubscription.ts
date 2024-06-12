@@ -17,7 +17,7 @@ interface ChangeSubscriptionsManagerConfig {
 }
 
 export class GenericChangeSubscriptionsManager<
-	T
+	T,
 > extends APISubSubscriptionManagerBase<T, ChangeSubscriptionsManagerConfig> {
 	protected override _getMatches(
 		config: WithMatchAny<ChangeSubscriptionsManagerConfig>

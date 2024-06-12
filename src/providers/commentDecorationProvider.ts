@@ -22,9 +22,8 @@ class CommentDecorationProvider implements FileDecorationProvider {
 		filePath: string,
 		uri: Uri
 	): Promise<number> {
-		const allCommentsSubscription = await GerritChange.getAllComments(
-			changeID
-		);
+		const allCommentsSubscription =
+			await GerritChange.getAllComments(changeID);
 		const allComments = await allCommentsSubscription.getValue();
 		allCommentsSubscription.subscribeOnce(
 			new WeakRef(() => this.refreshFileComments(uri))

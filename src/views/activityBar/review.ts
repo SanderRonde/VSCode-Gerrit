@@ -243,13 +243,13 @@ class ReviewWebviewProvider implements WebviewViewProvider, Disposable {
 				? await this._getChangeState(
 						overriddenChangeID,
 						initialState?.overriddenChange
-				  )
+					)
 				: undefined,
 			currentChange: currentChangeID
 				? await this._getChangeState(
 						currentChangeID,
 						initialState?.currentChange
-				  )
+					)
 				: undefined,
 		};
 		this._lastState = retval;

@@ -9,8 +9,8 @@ import {
 } from 'vscode';
 import { CanFetchMoreTreeProvider } from './shared/canFetchMoreTreeProvider';
 import { getContextProp, setContextProp } from '../../lib/vscode/context';
-import { showInvalidSettingsMessage } from '../../lib/vscode/messages';
 import { GerritChange } from '../../lib/gerrit/gerritAPI/gerritChange';
+import { showInvalidSettingsMessage } from '../../lib/vscode/messages';
 import { Subscribable } from '../../lib/subscriptions/subscriptions';
 import { FetchMoreTreeItem } from './changes/fetchMoreTreeItem';
 import { GerritAPIWith } from '../../lib/gerrit/gerritAPI/api';

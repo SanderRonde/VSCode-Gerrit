@@ -13,11 +13,14 @@ import { Repository } from '../../../types/vscode-extension-git';
 import { DynamicallyFetchable } from './shared';
 import { GerritChange } from './gerritChange';
 import { Uri, workspace } from 'vscode';
-import { GerritAPIWith } from './api';
 import { getAPI } from '../gerritAPI';
+import { GerritAPIWith } from './api';
 
 export class TextContent {
-	private constructor(public buffer: Buffer, public meta: FileMeta) {}
+	private constructor(
+		public buffer: Buffer,
+		public meta: FileMeta
+	) {}
 
 	public static from(
 		meta: FileMeta,

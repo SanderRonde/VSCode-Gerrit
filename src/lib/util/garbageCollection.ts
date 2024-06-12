@@ -68,11 +68,11 @@ export class IterableWeakMap<K, V> {
 			? {
 					isWeak: true;
 					value: WeakRef<V>;
-			  }
+				}
 			: {
 					isWeak: false;
 					wrapper: WeakRef<{ value: V }>;
-			  }
+				}
 	> = new Map();
 
 	public get size(): number {

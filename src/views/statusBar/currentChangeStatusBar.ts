@@ -11,11 +11,11 @@ import {
 } from '../../lib/gerrit/gerritAPI/filters';
 import { gitCheckoutRemote, onChangeLastCommit } from '../../lib/git/git';
 
-import { GerritExtensionCommands } from '../../commands/command-names';
 import { GerritChange } from '../../lib/gerrit/gerritAPI/gerritChange';
+import { GerritExtensionCommands } from '../../commands/command-names';
 import { isGerritCommit, getChangeID } from '../../lib/git/commit';
-import { GitCommit, tryExecAsync } from '../../lib/git/gitCLI';
 import { GerritAPIWith } from '../../lib/gerrit/gerritAPI/api';
+import { GitCommit, tryExecAsync } from '../../lib/git/gitCLI';
 import { Repository } from '../../types/vscode-extension-git';
 import { getAPI } from '../../lib/gerrit/gerritAPI';
 

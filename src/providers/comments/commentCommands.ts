@@ -114,7 +114,7 @@ function buildExpandedThreadRanges(
 							)
 						),
 						thread.range.start.line - EXTRA_RANGE
-				  )
+					)
 				: thread.range.start.line - EXTRA_RANGE,
 			0
 		);
@@ -133,7 +133,7 @@ function buildExpandedThreadRanges(
 							)
 						),
 						thread.range.end.line + EXTRA_RANGE
-				  )
+					)
 				: thread.range.end.line + EXTRA_RANGE;
 		expandedThreads.push({
 			comments: thread.comments,
@@ -231,7 +231,7 @@ function getCurrentComment(
 								manager?.diffData.diff
 							),
 							comments: c.comments,
-					  }
+						}
 			)
 	).filter((c) => !!c.extendedRange && !!c.range) as {
 		extendedRange: Range;
@@ -548,8 +548,8 @@ async function jumpToUnresolvedCommentShared(
 		typeof commentIndex === 'number'
 			? commentIndex
 			: commentIndex === COMMENT_POSITION.START
-			? 0
-			: fileComments.length - 1;
+				? 0
+				: fileComments.length - 1;
 	const comment = fileComments[index]!;
 
 	const manager = CommentManager.getFileManagerForUri(
@@ -560,32 +560,32 @@ async function jumpToUnresolvedCommentShared(
 	const commentDiff = data.currentMeta
 		? null
 		: manager
-		? manager.diffData?.diff
-		: await (async () => {
-				const file = await CommentManager.getFileFromOpenDocument(
-					gerritRepo,
-					window.activeTextEditor!.document
-				);
-				if (!file) {
-					return null;
-				}
-				const hashes = await CommentManager.getFileHashObjects(
-					gerritRepo,
-					file,
-					window.activeTextEditor!.document
-				);
-				if (!hashes) {
-					return null;
-				}
+			? manager.diffData?.diff
+			: await (async () => {
+					const file = await CommentManager.getFileFromOpenDocument(
+						gerritRepo,
+						window.activeTextEditor!.document
+					);
+					if (!file) {
+						return null;
+					}
+					const hashes = await CommentManager.getFileHashObjects(
+						gerritRepo,
+						file,
+						window.activeTextEditor!.document
+					);
+					if (!hashes) {
+						return null;
+					}
 
-				const parser =
-					gitDiffParser as unknown as typeof import('gitdiff-parser').default;
-				const diff = await gerritRepo.diffBlobs(
-					hashes.newHash,
-					hashes.modifiedHash
-				);
-				return parser.parse(diff)[0];
-		  })();
+					const parser =
+						gitDiffParser as unknown as typeof import('gitdiff-parser').default;
+					const diff = await gerritRepo.diffBlobs(
+						hashes.newHash,
+						hashes.modifiedHash
+					);
+					return parser.parse(diff)[0];
+				})();
 
 	const pos = (() => {
 		if (filePath === PATCHSET_LEVEL_KEY) {
@@ -741,7 +741,7 @@ export async function previousUnresolvedComment(
 			allFilePaths.length === 1
 				? allFilePaths[0]
 				: allFilePaths[fileIndex - 1] ??
-				  allFilePaths[allFilePaths.length - 1];
+					allFilePaths[allFilePaths.length - 1];
 		return {
 			filePath: nextFile,
 			commentIndex: COMMENT_POSITION.END,

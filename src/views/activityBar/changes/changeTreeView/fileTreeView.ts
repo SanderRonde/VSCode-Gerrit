@@ -27,8 +27,8 @@ import {
 	GERRIT_FILE_SCHEME,
 } from '../../../../providers/fileProvider';
 import { GerritChange } from '../../../../lib/gerrit/gerritAPI/gerritChange';
-import { getAPIForSubscription } from '../../../../lib/gerrit/gerritAPI';
 import { IterableWeakMap } from '../../../../lib/util/garbageCollection';
+import { getAPIForSubscription } from '../../../../lib/gerrit/gerritAPI';
 import { DocumentManager } from '../../../../providers/commentProvider';
 import { Repository } from '../../../../types/vscode-extension-git';
 import { TreeItemWithoutChildren } from '../../shared/treeTypes';

@@ -12,8 +12,8 @@ import {
 	PERIODICAL_CHANGE_FETCH_INTERVAL,
 } from '../../lib/util/constants';
 import { FileTreeView } from './changes/changeTreeView/fileTreeView';
-import { RootTreeViewProvider } from './changes/rootTreeView';
 import { Repository } from '../../types/vscode-extension-git';
+import { RootTreeViewProvider } from './changes/rootTreeView';
 import { ChangeTreeView } from './changes/changeTreeView';
 import { onChangeLastCommit } from '../../lib/git/git';
 import { TreeViewItem } from './shared/treeTypes';

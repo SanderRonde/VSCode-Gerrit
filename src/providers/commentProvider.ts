@@ -32,8 +32,8 @@ import { GerritFile } from '../lib/gerrit/gerritAPI/gerritFile';
 import { getCurrentChangeIDCached } from '../lib/git/commit';
 import { GerritAPIWith } from '../lib/gerrit/gerritAPI/api';
 import { CacheContainer } from '../lib/util/cache';
-import { uniqueComplex } from '../lib/util/util';
 import { getAPI } from '../lib/gerrit/gerritAPI';
+import { uniqueComplex } from '../lib/util/util';
 import * as gitDiffParser from 'gitdiff-parser';
 import path = require('path');
 import { PatchsetDescription } from '../views/activityBar/changes/changeTreeView';
@@ -200,7 +200,7 @@ export class DocumentCommentManager {
 							(c) =>
 								c.side ??
 								GerritCommentSide.RIGHT === fileMeta.side
-					  );
+						);
 			let threads = DocumentCommentManager.getThreadRanges(
 				DocumentCommentManager.buildThreadsFromComments(
 					thisSideComments
@@ -481,7 +481,7 @@ export class CommentManager {
 				? this.mapOldPositionToNew(
 						modifiedDiffParsed[0],
 						hunk.newStart + hunk.newLines - 1
-				  )
+					)
 				: hunk.newStart + hunk.newLines - 1;
 			if (start > 0 && end > 0) {
 				ranges.push(new Range(start - 1, 0, end - 1, 0));
@@ -779,7 +779,7 @@ async function createComment(
 		? DocumentCommentManager.applyDiffToCommentRange(
 				thread.thread.range,
 				manager.diffData.diff
-		  )
+			)
 		: thread.thread.range;
 
 	const meta = FileMetaWithSideAndBase.tryFrom(thread.thread.uri);

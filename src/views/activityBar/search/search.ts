@@ -1,6 +1,6 @@
 import { Disposable, QuickPickItem, ThemeIcon, window } from 'vscode';
-import { SearchResultsTreeProvider } from '../searchResults';
 import { setContextProp } from '../../../lib/vscode/context';
+import { SearchResultsTreeProvider } from '../searchResults';
 import { getAPI } from '../../../lib/gerrit/gerritAPI';
 import { wait } from '../../../lib/util/util';
 
@@ -804,7 +804,7 @@ export function search(): void {
 						? quickPick.value.slice(
 								0,
 								quickPick.value.lastIndexOf(currentWord)
-						  )
+							)
 						: quickPick.value;
 					// Find current word and replace that with full entry
 					quickPick.value = `${prefix}${entryStr}${

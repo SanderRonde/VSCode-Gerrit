@@ -1,6 +1,6 @@
 import { GerritCommentBase } from '../../../../lib/gerrit/gerritAPI/gerritComment';
-import { Command, TextDocumentShowOptions, ThemeIcon, TreeItem } from 'vscode';
 import { DocumentCommentManager } from '../../../../providers/commentProvider';
+import { Command, TextDocumentShowOptions, ThemeIcon, TreeItem } from 'vscode';
 import { OPEN_FILE_IS_PATCHSET_LEVEL_FILE } from '../../../../lib/util/magic';
 import { GerritChange } from '../../../../lib/gerrit/gerritAPI/gerritChange';
 import { TextContent } from '../../../../lib/gerrit/gerritAPI/gerritFile';

@@ -15,8 +15,8 @@ import {
 } from '../../lib/git/quick-checkout';
 import { TreeItemWithoutChildren, TreeViewItem } from './shared/treeTypes';
 import { GERRIT_QUICK_CHECKOUT_VIEW } from '../../lib/util/constants';
-import { TREE_ITEM_TYPE_QUICK_CHECKOUT } from '../../lib/util/magic';
 import { Subscribable } from '../../lib/subscriptions/subscriptions';
+import { TREE_ITEM_TYPE_QUICK_CHECKOUT } from '../../lib/util/magic';
 import { DateTime } from '../../lib/util/dateTime';
 import { ViewPanel } from './changes/viewPanel';
 

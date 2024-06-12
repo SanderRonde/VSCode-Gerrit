@@ -26,8 +26,8 @@ import { createAwaitingInterval } from '../util/util';
 import { getConfiguration } from '../vscode/config';
 import { VersionNumber } from '../util/version';
 import { getCurrentChangeID } from './commit';
-import { rebase } from './rebase';
 import { log } from '../util/log';
+import { rebase } from './rebase';
 
 export async function onChangeLastCommit(
 	gerritRepo: Repository,

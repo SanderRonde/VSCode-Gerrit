@@ -6,8 +6,8 @@ import {
 import { MultiStepEntry, MultiStepper } from '../vscode/multiStep';
 import { Repository } from '../../types/vscode-extension-git';
 import { ConfigurationTarget, window } from 'vscode';
-import { getConfiguration } from '../vscode/config';
 import { GerritAPI } from '../gerrit/gerritAPI/api';
+import { getConfiguration } from '../vscode/config';
 import { optionalArrayEntry } from '../util/util';
 import got from 'got/dist/source';
 
@@ -147,14 +147,14 @@ async function enterBasicCredentials(gerritRepo: Repository): Promise<void> {
 					'gerrit.auth.username',
 					username,
 					ConfigurationTarget.Global
-			  )
+				)
 			: Promise.resolve(),
 		password
 			? config.update(
 					'gerrit.auth.password',
 					password,
 					ConfigurationTarget.Global
-			  )
+				)
 			: Promise.resolve(),
 	]);
 
@@ -233,7 +233,7 @@ async function enterCookieCredentials(gerritRepo: Repository): Promise<void> {
 					'gerrit.auth.cookie',
 					cookie,
 					ConfigurationTarget.Global
-			  )
+				)
 			: Promise.resolve(),
 	]);
 

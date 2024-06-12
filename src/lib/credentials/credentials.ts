@@ -139,19 +139,23 @@ async function enterBasicCredentials(gerritRepo: Repository): Promise<void> {
 
 	const [url, username, password] = result;
 	await Promise.all([
-		...optionalArrayEntry(url !== initialURLValue, () =>
-			config.update('gerrit.auth.url', url, ConfigurationTarget.Global)
-		),
-		config.update(
-			'gerrit.auth.username',
-			username,
-			ConfigurationTarget.Global
-		),
-		config.update(
-			'gerrit.auth.password',
-			password,
-			ConfigurationTarget.Global
-		),
+		url && url !== initialURLValue
+			? config.update('gerrit.auth.url', url, ConfigurationTarget.Global)
+			: Promise.resolve(),
+		username
+			? config.update(
+					'gerrit.auth.username',
+					username,
+					ConfigurationTarget.Global
+			  )
+			: Promise.resolve(),
+		password
+			? config.update(
+					'gerrit.auth.password',
+					password,
+					ConfigurationTarget.Global
+			  )
+			: Promise.resolve(),
 	]);
 
 	await window.showInformationMessage('Gerrit connection successful!');
@@ -221,10 +225,16 @@ async function enterCookieCredentials(gerritRepo: Repository): Promise<void> {
 
 	const [url, cookie] = result;
 	await Promise.all([
-		...optionalArrayEntry(url !== initialURLValue, () =>
-			config.update('gerrit.auth.url', url, ConfigurationTarget.Global)
-		),
-		config.update('gerrit.auth.cookie', cookie, ConfigurationTarget.Global),
+		url && url !== initialURLValue
+			? config.update('gerrit.auth.url', url, ConfigurationTarget.Global)
+			: Promise.resolve(),
+		cookie
+			? config.update(
+					'gerrit.auth.cookie',
+					cookie,
+					ConfigurationTarget.Global
+			  )
+			: Promise.resolve(),
 	]);
 
 	await window.showInformationMessage('Gerrit connection successful!');

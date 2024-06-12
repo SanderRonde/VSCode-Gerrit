@@ -32,12 +32,14 @@ import {
 	CommandDefinition,
 	commentContains,
 	commentThreadContains,
+	ConfigurationDefinition,
 	DefaultCodiconStrings,
 	inParentheses,
 	or,
 	viewItemContains,
 } from 'vscode-generate-package-json';
 import { GerritExtensionCommands } from './command-names';
+import { ExpandComments, ChangesView } from './types';
 
 type LocalIcons =
 	| 'src/images/icons/comment-down-dark.svg'
@@ -684,4 +686,443 @@ export const views: {
 	},
 };
 
+export const config = {
+	'gerrit.streamEvents': {
+		jsonDefinition: {
+			type: 'boolean',
+			title: "Enable listening for events by SSH'ing to Gerrit",
+			description:
+				"Enable listening for events by SSH'ing to Gerrit. See https://gerrit-review.googlesource.com/Documentation/cmd-stream-events.html for more info",
+			default: false,
+		},
+	},
+	'gerrit.messages.postReviewNotification': {
+		jsonDefinition: {
+			type: 'boolean',
+			title: 'Show notification after running `git review`',
+			description:
+				'Show notification after running `git review` that allows you to either open the change online or in the review panel',
+			default: true,
+		},
+	},
+	'gerrit.quickCheckout.dropAllStashes': {
+		jsonDefinition: {
+			type: 'boolean',
+			title: 'Drop all git stashes after dropping quick checkouts',
+			description:
+				'Drop all git stashes after dropping quick checkouts as well',
+		},
+	},
+	'gerrit.quickCheckout.showInStatusBar': {
+		jsonDefinition: {
+			type: 'boolean',
+			title: 'Show quick checkouts in statusbar',
+			description:
+				'Whether quick checkout stashes should be shown in the statusbar for quick access',
+		},
+	},
+	'gerrit.auth.username': {
+		jsonDefinition: {
+			type: 'string',
+			title: 'Gerrit username',
+			description: 'Gerrit login username',
+		},
+	},
+	'gerrit.auth.password': {
+		jsonDefinition: {
+			type: 'string',
+			title: 'Gerrit password',
+			description:
+				'Gerrit password (see https://{your_gerit_host}/settings/#HTTPCredentials)',
+		},
+	},
+	'gerrit.auth.cookie': {
+		jsonDefinition: {
+			type: 'string',
+			title: 'Gerrit cookie',
+			description: 'Gerrit authentication cookie',
+		},
+	},
+	'gerrit.extraCookies': {
+		jsonDefinition: {
+			type: 'object',
+			title: 'Extra Gerrit cookies',
+			__shape: '' as unknown as Record<string, string>,
+			description:
+				'Other cookies besides the authentication cookie to send on every request',
+		},
+	},
+	'gerrit.auth.url': {
+		jsonDefinition: {
+			type: 'string',
+			title: 'URL of the gerrit server to use',
+			description:
+				'URL of the gerrit server to use (inferred from `.gitreview` if not provided). Uses HTTPS if no scheme is provided',
+		},
+	},
+	'gerrit.selectedView': {
+		jsonDefinition: {
+			type: 'string',
+			title: 'Active changes view',
+			description:
+				'Active changes view, one of the titles in "gerrit.changesViews"',
+			default: 'Dashboard',
+		},
+	},
+	'gerrit.expandComments': {
+		jsonDefinition: {
+			type: 'string',
+			enum: [
+				ExpandComments.ALWAYS,
+				ExpandComments.UNRESOLVED,
+				ExpandComments.NEVER,
+			],
+			default: ExpandComments.UNRESOLVED,
+			description: 'When inline comments should be expanded',
+		},
+	},
+	'gerrit.gitRepo': {
+		jsonDefinition: {
+			type: 'string',
+			description:
+				'Git repository to use (only needed for multi-git-repo setups)',
+		},
+	},
+	'gerrit.changeTitleTemplate': {
+		jsonDefinition: {
+			type: 'object',
+			description:
+				'Templates for showing the titles of changes in the CHANGES view. Use ${number}, ${subject/title}, ${owner}, ${repo}, ${branch}, ${status} as templates.',
+
+			properties: {
+				title: {
+					type: 'string',
+					description: 'Title of change, shown first in white text',
+					examples: [
+						'${number}: ${subject} (${owner})',
+						'${number}: ${subject} (${owner}/${repo}/${branch})',
+						'${number}: ${subject} (${owner}/${repo}/${branch}/${status})',
+					],
+					default: '#${number}: ${subject}',
+				},
+				subtitle: {
+					type: 'string',
+					description:
+						'Subtitle of change, shown behind title in grey text',
+					examples: [
+						'by ${owner}',
+						'($owner)',
+						'${owner}/${repo}/${branch}',
+						'${owner}/${repo}/${branch}/${status}',
+					],
+					default: 'by ${owner}',
+				},
+			},
+			default: {
+				title: '#${number}: ${subject}',
+				subtitle: 'by ${owner}',
+			},
+		},
+	},
+	'gerrit.forceEnable': {
+		jsonDefinition: {
+			type: 'boolean',
+			default: false,
+			description:
+				'Force enable gerrit extension even for unsupported versions',
+		},
+	},
+	'gerrit.filterByProject': {
+		jsonDefinition: {
+			type: 'boolean',
+			default: true,
+			description: 'Filter all changes by the current project',
+		},
+	},
+	'gerrit.changesViews': {
+		jsonDefinition: {
+			type: 'array',
+			title: 'Changes views',
+			description:
+				'A set of changes views. You can choose the currently selected view in the CHANGES view',
+			minItems: 1,
+			__shape: '' as unknown as ChangesView[],
+			items: {
+				type: 'object',
+				title: 'View',
+				description:
+					'A single changes view similar to your Gerrit dashboard',
+				required: ['title', 'panels'],
+				properties: {
+					title: {
+						type: 'string',
+						description: 'Name of this view',
+					},
+					panels: {
+						type: 'array',
+						title: 'Panels',
+						description: 'Panels in a changes view',
+						items: {
+							type: 'object',
+							title: 'Pane',
+							description:
+								'One pane in the changes view. These can be collapsed or expanded',
+							required: ['title', 'filters'],
+							properties: {
+								title: {
+									type: 'string',
+									title: 'Title of the pane',
+								},
+								refreshInterval: {
+									type: 'number',
+									title: 'Refresh interval (in seconds)',
+									description:
+										'Interval at which the entire pane is refreshed. Use 0 for no auto-refreshing',
+									default: 300,
+								},
+								defaultCollapsed: {
+									type: 'boolean',
+									title: 'Whether this pane should be collapsed by default',
+									default: false,
+								},
+								initialFetchCount: {
+									type: 'number',
+									title: 'Fetch count',
+									description:
+										'How many entries to fetch initially',
+									default: 25,
+								},
+								extraEntriesFetchCount: {
+									type: 'number',
+									title: 'Extra entries to fetch',
+									description:
+										'Extra entries to fetch on clicking "fetch more"',
+									default: 25,
+								},
+								filters: {
+									type: 'array',
+									title: 'Filters',
+									description:
+										'Filters to apply to the search, see Gerrit docs: https://gerrit-review.googlesource.com/Documentation/user-search.html',
+									minItems: 1,
+									items: {
+										type: 'string',
+										title: 'Filter',
+										description:
+											'Gerrit filter to use. See Gerrit docs: https://gerrit-review.googlesource.com/Documentation/user-search.html',
+									},
+									default: ['is:open', 'owner:self'],
+								},
+							},
+							examples: [
+								{
+									title: 'Your Turn',
+									refreshInterval: 300,
+									defaultCollapsed: false,
+									initialFetchCount: 25,
+									extraEntriesFetchCount: 25,
+									filters: ['attention:self'],
+								},
+								{
+									title: 'Work In Progress',
+									refreshInterval: 300,
+									defaultCollapsed: false,
+									initialFetchCount: 25,
+									extraEntriesFetchCount: 25,
+									filters: [
+										'is:open',
+										'owner:self',
+										'is:wip',
+									],
+								},
+								{
+									title: 'Outgoing Reviews',
+									refreshInterval: 300,
+									defaultCollapsed: false,
+									initialFetchCount: 25,
+									extraEntriesFetchCount: 25,
+									filters: [
+										'is:open',
+										'owner:self',
+										'-is:wip',
+									],
+								},
+								{
+									title: 'Incoming Reviews',
+									refreshInterval: 300,
+									defaultCollapsed: false,
+									initialFetchCount: 25,
+									extraEntriesFetchCount: 25,
+									filters: [
+										'is:open',
+										'-owner:self',
+										'-is:wip',
+										'reviewer:self',
+									],
+								},
+								{
+									title: 'CCed on',
+									refreshInterval: 300,
+									defaultCollapsed: false,
+									initialFetchCount: 25,
+									extraEntriesFetchCount: 25,
+									filters: ['is:open', 'cc:self'],
+								},
+								{
+									title: 'Recently Closed',
+									refreshInterval: 1500,
+									defaultCollapsed: true,
+									initialFetchCount: 10,
+									extraEntriesFetchCount: 25,
+									filters: [
+										'is:closed',
+										'-is:wip OR owner:self',
+										'owner:self OR reviewer:self OR cc:self',
+									],
+								},
+							],
+						},
+					},
+				},
+			},
+			default: [
+				{
+					title: 'Dashboard',
+					panels: [
+						{
+							title: 'Your Turn',
+							refreshInterval: 300,
+							defaultCollapsed: false,
+							initialFetchCount: 25,
+							extraEntriesFetchCount: 25,
+							filters: ['attention:self'],
+						},
+						{
+							title: 'Work In Progress',
+							refreshInterval: 300,
+							defaultCollapsed: false,
+							initialFetchCount: 25,
+							extraEntriesFetchCount: 25,
+							filters: ['is:open', 'owner:self', 'is:wip'],
+						},
+						{
+							title: 'Outgoing Reviews',
+							refreshInterval: 300,
+							defaultCollapsed: false,
+							initialFetchCount: 25,
+							extraEntriesFetchCount: 25,
+							filters: ['is:open', 'owner:self', '-is:wip'],
+						},
+						{
+							title: 'Incoming Reviews',
+							refreshInterval: 300,
+							defaultCollapsed: false,
+							initialFetchCount: 25,
+							extraEntriesFetchCount: 25,
+							filters: [
+								'is:open',
+								'-owner:self',
+								'-is:wip',
+								'reviewer:self',
+							],
+						},
+						{
+							title: 'CCed on',
+							refreshInterval: 300,
+							defaultCollapsed: false,
+							initialFetchCount: 25,
+							extraEntriesFetchCount: 25,
+							filters: ['is:open', 'cc:self'],
+						},
+						{
+							title: 'Recently Closed',
+							refreshInterval: 1500,
+							defaultCollapsed: true,
+							initialFetchCount: 10,
+							extraEntriesFetchCount: 25,
+							filters: [
+								'is:closed',
+								'-is:wip OR owner:self',
+								'owner:self OR reviewer:self OR cc:self',
+							],
+						},
+					],
+				},
+				{
+					title: 'Starred',
+					panels: [
+						{
+							title: 'Starred',
+							refreshInterval: 500,
+							defaultCollapsed: false,
+							initialFetchCount: 25,
+							extraEntriesFetchCount: 25,
+							filters: ['is:starred'],
+						},
+					],
+				},
+				{
+					title: 'Watched',
+					panels: [
+						{
+							title: 'Watched',
+							refreshInterval: 500,
+							defaultCollapsed: false,
+							initialFetchCount: 25,
+							extraEntriesFetchCount: 25,
+							filters: ['is:watched', 'is:open'],
+						},
+					],
+				},
+				{
+					title: 'Draft',
+					panels: [
+						{
+							title: 'Draft',
+							refreshInterval: 500,
+							defaultCollapsed: false,
+							initialFetchCount: 25,
+							extraEntriesFetchCount: 25,
+							filters: ['has:draft'],
+						},
+					],
+				},
+				{
+					title: 'My Changes',
+					panels: [
+						{
+							title: 'My Changes',
+							refreshInterval: 500,
+							defaultCollapsed: false,
+							initialFetchCount: 25,
+							extraEntriesFetchCount: 25,
+							filters: ['is:open', 'owner:self'],
+						},
+					],
+				},
+			],
+		},
+	},
+	'gerrit.allowInvalidSSLCerts': {
+		jsonDefinition: {
+			type: 'boolean',
+			title: 'Allow requests to failed/invalid SSL certs',
+			description:
+				'Note: before you use this, ask your server maintainer to fix their certs. This option can can be dangerous.',
+			default: false,
+		},
+	},
+	'gerrit.customAuthUrlPrefix': {
+		jsonDefinition: {
+			type: 'string',
+			title: 'Add a custom prefix to use for authenticated links',
+			description:
+				'Changes the default authentication prefix from "a/" to a custom string. This should only be necessary if using a non-standard gerrit instance.',
+			default: 'a/',
+		},
+	},
+} as const;
+
 export const commandDefinitions = GerritExtensionCommands;
+
+export const configuration = config as Record<string, ConfigurationDefinition>;

@@ -1062,6 +1062,7 @@
 					"description": "Templates for showing the titles of changes in the CHANGES view. Use ${number}, ${subject/title}, ${owner}, ${repo}, ${branch}, ${status} as templates.",
 					"properties": {
 						"title": {
+							"type": "string",
 							"description": "Title of change, shown first in white text",
 							"examples": [
 								"${number}: ${subject} (${owner})",
@@ -1071,6 +1072,7 @@
 							"default": "#${number}: ${subject}"
 						},
 						"subtitle": {
+							"type": "string",
 							"description": "Subtitle of change, shown behind title in grey text",
 							"examples": [
 								"by ${owner}",
@@ -1433,7 +1435,7 @@
 		"copy": "ts-node -T scripts/copy.ts",
 		"package": "bun run prepack && bun vsce package",
 		"package-dev": "bun prepush && bun run build:debug && bun vsce package",
-		"generate-package": "generate-package-json generate --input src/commands/defs.ts -w -p package.json --handler src/commands/commands.ts --validate --prefix Gerrit && prettier --write package.json",
+		"generate-package": "generate-package-json generate --name Gerrit --input src/commands/defs.ts -w -p package.json --handler src/commands/commands.ts --validate --prefix Gerrit && prettier --write package.json",
 		"prepush": "bun generate-package && bun format-staged && bun lint --fix && bun compile"
 	},
 	"devDependencies": {
@@ -1475,7 +1477,7 @@
 		"ts-node": "^10.4.0",
 		"typescript": "^4.5.2",
 		"vsce": "^2.6.0",
-		"vscode-generate-package-json": "^1.0.8"
+		"vscode-generate-package-json": "1.2.2"
 	},
 	"dependencies": {
 		"gitdiff-parser": "^0.2.2",

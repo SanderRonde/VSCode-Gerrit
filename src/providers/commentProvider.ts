@@ -895,7 +895,7 @@ export async function ackComment(comment: GerritCommentBase): Promise<void> {
 
 async function getThreadWebLink(thread: CommentThread): Promise<string | null> {
 	const gerritThread = GerritCommentThread.from(thread);
-	if (!gerritThread || !gerritThread.lastComment) {
+	if (!gerritThread?.lastComment) {
 		void window.showErrorMessage('Failed to find comment');
 		return null;
 	}

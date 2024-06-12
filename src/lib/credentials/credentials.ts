@@ -8,7 +8,6 @@ import { Repository } from '../../types/vscode-extension-git';
 import { ConfigurationTarget, window } from 'vscode';
 import { GerritAPI } from '../gerrit/gerritAPI/api';
 import { getConfiguration } from '../vscode/config';
-import { optionalArrayEntry } from '../util/util';
 import got from 'got/dist/source';
 
 function applyTrailingSlashFix(url: string): string {

@@ -177,7 +177,7 @@ export class FileTreeView implements TreeItemWithoutChildren {
 					return;
 				}
 				const meta = FileMeta.tryFrom(e.uri);
-				if (!meta || !meta.extra || !meta.extra.startsWith('DIFF-')) {
+				if (!meta?.extra?.startsWith('DIFF-')) {
 					return;
 				}
 
@@ -193,7 +193,7 @@ export class FileTreeView implements TreeItemWithoutChildren {
 			return null;
 		}
 		const meta = FileMeta.tryFrom(uri);
-		if (!meta || !meta.extra || !meta.extra.startsWith('DIFF-')) {
+		if (!meta?.extra?.startsWith('DIFF-')) {
 			return null;
 		}
 
@@ -254,9 +254,7 @@ export class FileTreeView implements TreeItemWithoutChildren {
 			}
 			const meta = FileMeta.tryFrom(doc.uri);
 			if (
-				!meta ||
-				!meta.extra ||
-				!meta.extra.startsWith('DIFF-') ||
+				!meta?.extra?.startsWith('DIFF-') ||
 				meta.filePath !== this.filePath
 			) {
 				continue;

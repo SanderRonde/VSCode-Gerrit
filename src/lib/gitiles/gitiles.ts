@@ -49,7 +49,7 @@ export async function openOnGitiles(
 
 	const lineNumber = line ? `#${line}` : '';
 	if (!permalink) {
-		if (!branch || !branch.includes('/')) {
+		if (!branch?.includes('/')) {
 			// If we're on some one-word branch, link to that branch itself
 			await env.openExternal(
 				Uri.parse(

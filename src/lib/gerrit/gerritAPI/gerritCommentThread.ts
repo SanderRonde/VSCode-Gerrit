@@ -34,7 +34,7 @@ export class GerritCommentThread extends OnceDisposable {
 		new CacheContainer();
 
 	private readonly _threadID: string;
-	private _thread: CommentThreadWithGerritComments;
+	private readonly _thread: CommentThreadWithGerritComments;
 	private readonly _filePath: string | undefined;
 
 	private get _manager(): DocumentCommentManager | null {
@@ -199,7 +199,7 @@ export class GerritCommentThread extends OnceDisposable {
 			this._thread.label = 'Comment (unresolved)';
 		}
 
-		this._thread.canReply = !this.lastComment || !this.lastComment?.isDraft;
+		this._thread.canReply = !this.lastComment?.isDraft;
 
 		if (isInitial) {
 			this._thread.collapsibleState = this._shouldExpandComments();

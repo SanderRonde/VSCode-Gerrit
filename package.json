@@ -1,1486 +1,1483 @@
 {
-  "name": "vscode--gerrit",
-  "displayName": "Gerrit",
-  "description": "VSCode gerrit integration",
-  "version": "1.2.37",
-  "engines": {
-    "vscode": "^1.62.0",
-    "node": ">=14.16.0"
-  },
-  "license": "MIT",
-  "categories": [
-    "SCM Providers"
-  ],
-  "icon": "src/images/gerrit.png",
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/SanderRonde/VSCode-Gerrit"
-  },
-  "homepage": "https://github.com/SanderRonde/VSCode-Gerrit/blob/main/README.md",
-  "bugs": {
-    "url": "https://github.com/SanderRonde/VSCode-Gerrit/issues",
-    "email": "awsdfgvhbjn@gmail.com"
-  },
-  "publisher": "SanderRonde",
-  "activationEvents": [
-    "onStartupFinished"
-  ],
-  "extensionKind": [
-    "workspace"
-  ],
-  "main": "./out/extension.js",
-  "contributes": {
-    "commands": [
-      {
-        "command": "gerrit.changeGitRepo",
-        "title": "Change git repo"
-      },
-      {
-        "command": "gerrit.ackCommentThread",
-        "title": "Ack",
-        "icon": "$(record)"
-      },
-      {
-        "command": "gerrit.cancelComment",
-        "title": "Cancel"
-      },
-      {
-        "command": "gerrit.checkConnection",
-        "title": "Check Connection"
-      },
-      {
-        "command": "gerrit.checkoutBranch",
-        "title": "Checkout Change",
-        "icon": "$(arrow-down)"
-      },
-      {
-        "command": "gerrit.clearSearchResults",
-        "title": "Clear search results",
-        "icon": "$(clear-all)"
-      },
-      {
-        "command": "gerrit.collapseAllComments",
-        "title": "Collapse All Comments",
-        "icon": "$(collapse-all)"
-      },
-      {
-        "command": "gerrit.configureChangeList",
-        "title": "Configure filters",
-        "icon": "$(gear)"
-      },
-      {
-        "command": "gerrit.copyCommentLink",
-        "title": "Copy weblink to this comment",
-        "icon": "$(link)"
-      },
-      {
-        "command": "gerrit.createCommentResolved",
-        "title": "Save (resolved)",
-        "enablement": "!commentIsEmpty"
-      },
-      {
-        "command": "gerrit.createCommentUnresolved",
-        "title": "Save (unresolved)",
-        "enablement": "!commentIsEmpty"
-      },
-      {
-        "command": "gerrit.deleteComment",
-        "title": "Delete comment",
-        "icon": "$(trash)"
-      },
-      {
-        "command": "gerrit.doneCommentThread",
-        "title": "Done",
-        "icon": "$(check)"
-      },
-      {
-        "command": "gerrit.editComment",
-        "title": "Edit comment",
-        "icon": "$(edit)"
-      },
-      {
-        "command": "gerrit.enterCredentials",
-        "title": "Enter credentials"
-      },
-      {
-        "command": "gerrit.fetchMore",
-        "title": "Fetch More"
-      },
-      {
-        "command": "gerrit.focusChange",
-        "title": "Focus Change In Change List Panel"
-      },
-      {
-        "command": "gerrit.listenForStreamEvents",
-        "title": "Start listening for Gerrit stream events"
-      },
-      {
-        "command": "gerrit.nextUnresolvedComment",
-        "title": "Next Unresolved Comment",
-        "icon": {
-          "dark": "src/images/icons/comment-down-dark.svg",
-          "light": "src/images/icons/comment-down-light.svg"
-        }
-      },
-      {
-        "command": "gerrit.openChangeOnline",
-        "title": "Open online",
-        "icon": "$(globe)"
-      },
-      {
-        "command": "gerrit.openChangeSelector",
-        "title": "Open Change Selector"
-      },
-      {
-        "command": "gerrit.checkoutChange",
-        "title": "Checkout change by ID or number"
-      },
-      {
-        "command": "gerrit.openCommentOnline",
-        "title": "Open comment on Gerrit",
-        "icon": "$(link-external)"
-      },
-      {
-        "command": "gerrit.openCurrentOnline",
-        "title": "Open Current Change Online"
-      },
-      {
-        "command": "gerrit.openInReview",
-        "title": "Open in Review panel",
-        "icon": "$(open-preview)"
-      },
-      {
-        "command": "gerrit.openModified",
-        "title": "Open Modified File"
-      },
-      {
-        "command": "gerrit.openOnline",
-        "title": "Open file on Gerrit"
-      },
-      {
-        "command": "gerrit.openOriginal",
-        "title": "Open Original File"
-      },
-      {
-        "command": "gerrit.openPatchsetSelector",
-        "title": "Open Patchset Selector"
-      },
-      {
-        "command": "gerrit.previousUnresolvedComment",
-        "title": "Previous Unresolved Comment",
-        "icon": {
-          "dark": "src/images/icons/comment-up-dark.svg",
-          "light": "src/images/icons/comment-up-light.svg"
-        }
-      },
-      {
-        "command": "gerrit.pushForReview",
-        "title": "Push for Review",
-        "icon": "$(git-commit)"
-      },
-      {
-        "command": "gerrit.rebase",
-        "title": "Checkout & Rebase"
-      },
-      {
-        "command": "gerrit.rebaseCurrent",
-        "title": "Rebase change"
-      },
-      {
-        "command": "gerrit.recursiveRebase",
-        "title": "Checkout & Rebase recursively"
-      },
-      {
-        "command": "gerrit.recursiveRebaseCurrent",
-        "title": "Checkout & Rebase recursively"
-      },
-      {
-        "command": "gerrit.refreshChanges",
-        "title": "Refresh changes",
-        "icon": "$(refresh)"
-      },
-      {
-        "command": "gerrit.resetPatchsetSelection",
-        "title": "Reset Patchset Selection"
-      },
-      {
-        "command": "gerrit.search",
-        "title": "Search",
-        "icon": "$(search)"
-      },
-      {
-        "command": "gerrit.selectActiveView",
-        "title": "Select Active View",
-        "icon": "$(menu)"
-      },
-      {
-        "command": "gerrit.toggleResolvedOff",
-        "title": "Unresolve thread"
-      },
-      {
-        "command": "gerrit.toggleResolvedOn",
-        "title": "Resolve thread"
-      },
-      {
-        "command": "gerrit.quickCheckout",
-        "title": "Quick Checkout",
-        "icon": "$(history)"
-      },
-      {
-        "command": "gerrit.applyQuickCheckout",
-        "title": "Apply Quick Checkout (don't drop)",
-        "icon": "$(arrow-down)"
-      },
-      {
-        "command": "gerrit.dropQuickCheckouts",
-        "title": "Drop Quick Checkout stashes"
-      },
-      {
-        "command": "gerrit.dropQuickCheckout",
-        "title": "Drop Quick Checkout Stash",
-        "icon": "$(trash)"
-      },
-      {
-        "command": "gerrit.popQuickCheckout",
-        "title": "Pop Quick Checkout stash (apply and drop)"
-      },
-      {
-        "command": "gerrit.openFileOnGitiles",
-        "title": "Open file on Gitiles"
-      },
-      {
-        "command": "gerrit.openLineOnGitiles",
-        "title": "Open line on Gitiles"
-      },
-      {
-        "command": "gerrit.openLineOnGitilesPermalink",
-        "title": "Open line on Gitiles (permalink)"
-      },
-      {
-        "command": "cmd.gerrit.changeGitRepo",
-        "title": "Gerrit: Change git repo"
-      },
-      {
-        "command": "cmd.gerrit.checkConnection",
-        "title": "Gerrit: Check Connection"
-      },
-      {
-        "command": "cmd.gerrit.clearSearchResults",
-        "title": "Gerrit: Clear search results",
-        "icon": "$(clear-all)"
-      },
-      {
-        "command": "cmd.gerrit.collapseAllComments",
-        "title": "Gerrit: Collapse All Comments",
-        "icon": "$(collapse-all)"
-      },
-      {
-        "command": "cmd.gerrit.configureChangeList",
-        "title": "Gerrit: Configure filters",
-        "icon": "$(gear)"
-      },
-      {
-        "command": "cmd.gerrit.enterCredentials",
-        "title": "Gerrit: Enter credentials"
-      },
-      {
-        "command": "cmd.gerrit.listenForStreamEvents",
-        "title": "Gerrit: Start listening for Gerrit stream events"
-      },
-      {
-        "command": "cmd.gerrit.nextUnresolvedComment",
-        "title": "Gerrit: Next Unresolved Comment",
-        "icon": {
-          "dark": "src/images/icons/comment-down-dark.svg",
-          "light": "src/images/icons/comment-down-light.svg"
-        }
-      },
-      {
-        "command": "cmd.gerrit.openChangeSelector",
-        "title": "Gerrit: Open Change Selector"
-      },
-      {
-        "command": "cmd.gerrit.checkoutChange",
-        "title": "Gerrit: Checkout change by ID or number"
-      },
-      {
-        "command": "cmd.gerrit.openCurrentOnline",
-        "title": "Gerrit: Open Current Change Online"
-      },
-      {
-        "command": "cmd.gerrit.previousUnresolvedComment",
-        "title": "Gerrit: Previous Unresolved Comment",
-        "icon": {
-          "dark": "src/images/icons/comment-up-dark.svg",
-          "light": "src/images/icons/comment-up-light.svg"
-        }
-      },
-      {
-        "command": "cmd.gerrit.pushForReview",
-        "title": "Gerrit: Push for Review",
-        "icon": "$(git-commit)"
-      },
-      {
-        "command": "cmd.gerrit.refreshChanges",
-        "title": "Gerrit: Refresh changes",
-        "icon": "$(refresh)"
-      },
-      {
-        "command": "cmd.gerrit.resetPatchsetSelection",
-        "title": "Gerrit: Reset Patchset Selection"
-      },
-      {
-        "command": "cmd.gerrit.search",
-        "title": "Gerrit: Search",
-        "icon": "$(search)"
-      },
-      {
-        "command": "cmd.gerrit.selectActiveView",
-        "title": "Gerrit: Select Active View",
-        "icon": "$(menu)"
-      },
-      {
-        "command": "cmd.gerrit.dropQuickCheckouts",
-        "title": "Gerrit: Drop Quick Checkout stashes"
-      },
-      {
-        "command": "cmd.gerrit.openFileOnGitiles",
-        "title": "Gerrit: Open file on Gitiles"
-      },
-      {
-        "command": "cmd.gerrit.openLineOnGitiles",
-        "title": "Gerrit: Open line on Gitiles"
-      },
-      {
-        "command": "cmd.gerrit.openLineOnGitilesPermalink",
-        "title": "Gerrit: Open line on Gitiles (permalink)"
-      }
-    ],
-    "keybindings": [
-      {
-        "command": "gerrit.focusChange",
-        "when": "true"
-      },
-      {
-        "command": "gerrit.nextUnresolvedComment",
-        "when": "editorTextFocus"
-      },
-      {
-        "command": "gerrit.openChangeSelector",
-        "when": "true"
-      },
-      {
-        "command": "gerrit.previousUnresolvedComment",
-        "when": "editorTextFocus"
-      }
-    ],
-    "menus": {
-      "commandPalette": [
-        {
-          "command": "gerrit.changeGitRepo",
-          "when": "false"
-        },
-        {
-          "command": "gerrit.ackCommentThread",
-          "when": "false"
-        },
-        {
-          "command": "gerrit.cancelComment",
-          "when": "false"
-        },
-        {
-          "command": "gerrit.checkConnection",
-          "when": "false"
-        },
-        {
-          "command": "gerrit.checkoutBranch",
-          "when": "false"
-        },
-        {
-          "command": "gerrit.clearSearchResults",
-          "when": "false"
-        },
-        {
-          "command": "gerrit.collapseAllComments",
-          "when": "false"
-        },
-        {
-          "command": "gerrit.configureChangeList",
-          "when": "false"
-        },
-        {
-          "command": "gerrit.copyCommentLink",
-          "when": "false"
-        },
-        {
-          "command": "gerrit.createCommentResolved",
-          "when": "false"
-        },
-        {
-          "command": "gerrit.createCommentUnresolved",
-          "when": "false"
-        },
-        {
-          "command": "gerrit.deleteComment",
-          "when": "false"
-        },
-        {
-          "command": "gerrit.doneCommentThread",
-          "when": "false"
-        },
-        {
-          "command": "gerrit.editComment",
-          "when": "false"
-        },
-        {
-          "command": "gerrit.enterCredentials",
-          "when": "false"
-        },
-        {
-          "command": "gerrit.fetchMore",
-          "when": "false"
-        },
-        {
-          "command": "gerrit.focusChange",
-          "when": "false"
-        },
-        {
-          "command": "gerrit.listenForStreamEvents",
-          "when": "false"
-        },
-        {
-          "command": "gerrit.nextUnresolvedComment",
-          "when": "false"
-        },
-        {
-          "command": "gerrit.openChangeOnline",
-          "when": "false"
-        },
-        {
-          "command": "gerrit.openChangeSelector",
-          "when": "false"
-        },
-        {
-          "command": "gerrit.checkoutChange",
-          "when": "false"
-        },
-        {
-          "command": "gerrit.openCommentOnline",
-          "when": "false"
-        },
-        {
-          "command": "gerrit.openCurrentOnline",
-          "when": "false"
-        },
-        {
-          "command": "gerrit.openInReview",
-          "when": "false"
-        },
-        {
-          "command": "gerrit.openModified",
-          "when": "false"
-        },
-        {
-          "command": "gerrit.openOnline",
-          "when": "false"
-        },
-        {
-          "command": "gerrit.openOriginal",
-          "when": "false"
-        },
-        {
-          "command": "gerrit.openPatchsetSelector",
-          "when": "false"
-        },
-        {
-          "command": "gerrit.previousUnresolvedComment",
-          "when": "false"
-        },
-        {
-          "command": "gerrit.pushForReview",
-          "when": "false"
-        },
-        {
-          "command": "gerrit.rebase",
-          "when": "false"
-        },
-        {
-          "command": "gerrit.rebaseCurrent",
-          "when": "false"
-        },
-        {
-          "command": "gerrit.recursiveRebase",
-          "when": "false"
-        },
-        {
-          "command": "gerrit.recursiveRebaseCurrent",
-          "when": "false"
-        },
-        {
-          "command": "gerrit.refreshChanges",
-          "when": "false"
-        },
-        {
-          "command": "gerrit.resetPatchsetSelection",
-          "when": "false"
-        },
-        {
-          "command": "gerrit.search",
-          "when": "false"
-        },
-        {
-          "command": "gerrit.selectActiveView",
-          "when": "false"
-        },
-        {
-          "command": "gerrit.toggleResolvedOff",
-          "when": "false"
-        },
-        {
-          "command": "gerrit.toggleResolvedOn",
-          "when": "false"
-        },
-        {
-          "command": "gerrit.quickCheckout",
-          "when": "false"
-        },
-        {
-          "command": "gerrit.applyQuickCheckout",
-          "when": "false"
-        },
-        {
-          "command": "gerrit.dropQuickCheckouts",
-          "when": "false"
-        },
-        {
-          "command": "gerrit.dropQuickCheckout",
-          "when": "false"
-        },
-        {
-          "command": "gerrit.popQuickCheckout",
-          "when": "false"
-        },
-        {
-          "command": "gerrit.openFileOnGitiles",
-          "when": "false"
-        },
-        {
-          "command": "gerrit.openLineOnGitiles",
-          "when": "false"
-        },
-        {
-          "command": "gerrit.openLineOnGitilesPermalink",
-          "when": "false"
-        },
-        {
-          "command": "cmd.gerrit.changeGitRepo",
-          "when": "true"
-        },
-        {
-          "command": "cmd.gerrit.checkConnection",
-          "when": "true"
-        },
-        {
-          "command": "cmd.gerrit.clearSearchResults",
-          "when": "true"
-        },
-        {
-          "command": "cmd.gerrit.collapseAllComments",
-          "when": "true"
-        },
-        {
-          "command": "cmd.gerrit.configureChangeList",
-          "when": "true"
-        },
-        {
-          "command": "cmd.gerrit.enterCredentials",
-          "when": "true"
-        },
-        {
-          "command": "cmd.gerrit.listenForStreamEvents",
-          "when": "true"
-        },
-        {
-          "command": "cmd.gerrit.nextUnresolvedComment",
-          "when": "true"
-        },
-        {
-          "command": "cmd.gerrit.openChangeSelector",
-          "when": "true"
-        },
-        {
-          "command": "cmd.gerrit.checkoutChange",
-          "when": "true"
-        },
-        {
-          "command": "cmd.gerrit.openCurrentOnline",
-          "when": "true"
-        },
-        {
-          "command": "cmd.gerrit.previousUnresolvedComment",
-          "when": "true"
-        },
-        {
-          "command": "cmd.gerrit.pushForReview",
-          "when": "true"
-        },
-        {
-          "command": "cmd.gerrit.refreshChanges",
-          "when": "true"
-        },
-        {
-          "command": "cmd.gerrit.resetPatchsetSelection",
-          "when": "true"
-        },
-        {
-          "command": "cmd.gerrit.search",
-          "when": "true"
-        },
-        {
-          "command": "cmd.gerrit.selectActiveView",
-          "when": "true"
-        },
-        {
-          "command": "cmd.gerrit.dropQuickCheckouts",
-          "when": "true"
-        },
-        {
-          "command": "cmd.gerrit.openFileOnGitiles",
-          "when": "true"
-        },
-        {
-          "command": "cmd.gerrit.openLineOnGitiles",
-          "when": "true"
-        },
-        {
-          "command": "cmd.gerrit.openLineOnGitilesPermalink",
-          "when": "true"
-        }
-      ],
-      "comments/comment/context": [
-        {
-          "command": "gerrit.createCommentUnresolved",
-          "when": "commentController == gerrit",
-          "group": "newCommentButtons@1"
-        },
-        {
-          "command": "gerrit.createCommentResolved",
-          "when": "commentController == gerrit",
-          "group": "newCommentButtons@2"
-        },
-        {
-          "command": "gerrit.cancelComment",
-          "when": "commentController == gerrit",
-          "group": "newCommentButtons@3"
-        }
-      ],
-      "comments/commentThread/context": [
-        {
-          "command": "gerrit.createCommentUnresolved",
-          "when": "commentController == gerrit",
-          "group": "newCommentButtons@1"
-        },
-        {
-          "command": "gerrit.createCommentResolved",
-          "when": "commentController == gerrit",
-          "group": "newCommentButtons@2"
-        },
-        {
-          "command": "gerrit.cancelComment",
-          "when": "commentController == gerrit",
-          "group": "newCommentButtons@3"
-        },
-        {
-          "command": "gerrit.toggleResolvedOn",
-          "when": "commentController == gerrit && commentIsEmpty && commentThread =~ /yesLastCommentDraft/ && commentThread =~ /noResolved/",
-          "group": "newCommentButtons@4"
-        },
-        {
-          "command": "gerrit.toggleResolvedOff",
-          "when": "commentController == gerrit && commentIsEmpty && commentThread =~ /yesLastCommentDraft/ && commentThread =~ /yesResolved/",
-          "group": "newCommentButtons@5"
-        }
-      ],
-      "comments/commentThread/title": [
-        {
-          "command": "gerrit.previousUnresolvedComment",
-          "when": "commentController == gerrit",
-          "group": "collapse@1"
-        },
-        {
-          "command": "gerrit.nextUnresolvedComment",
-          "when": "commentController == gerrit",
-          "group": "collapse@2"
-        },
-        {
-          "command": "gerrit.copyCommentLink",
-          "when": "commentController == gerrit && gerrit:hasCommentFeature",
-          "group": "collapse@3"
-        },
-        {
-          "command": "gerrit.openCommentOnline",
-          "when": "commentController == gerrit && gerrit:hasCommentFeature",
-          "group": "collapse@4"
-        },
-        {
-          "command": "gerrit.collapseAllComments",
-          "when": "commentController == gerrit",
-          "group": "collapse@5"
-        }
-      ],
-      "comments/comment/title": [
-        {
-          "command": "gerrit.editComment",
-          "when": "commentController == gerrit && comment =~ /editable/",
-          "group": "inline@1"
-        },
-        {
-          "command": "gerrit.doneCommentThread",
-          "when": "commentController == gerrit && comment =~ /quickActionable/",
-          "group": "inline@2"
-        },
-        {
-          "command": "gerrit.ackCommentThread",
-          "when": "commentController == gerrit && comment =~ /quickActionable/",
-          "group": "inline@3"
-        },
-        {
-          "command": "gerrit.deleteComment",
-          "when": "commentController == gerrit && comment =~ /deletable/",
-          "group": "inline@4"
-        }
-      ],
-      "view/item/context": [
-        {
-          "command": "gerrit.openChangeOnline",
-          "when": "view == gerrit:changeExplorer && viewItem =~ /gerritchange/",
-          "group": "inline@1"
-        },
-        {
-          "command": "gerrit.quickCheckout",
-          "when": "view == gerrit:changeExplorer && viewItem =~ /gerritchange/",
-          "group": "inline@2"
-        },
-        {
-          "command": "gerrit.checkoutBranch",
-          "when": "view == gerrit:changeExplorer && viewItem =~ /gerritchange/",
-          "group": "inline@3"
-        },
-        {
-          "command": "gerrit.dropQuickCheckout",
-          "when": "view == gerrit:quickCheckout && viewItem =~ /quickCheckout/",
-          "group": "inline@4"
-        },
-        {
-          "command": "gerrit.applyQuickCheckout",
-          "when": "view == gerrit:quickCheckout && viewItem =~ /quickCheckout/",
-          "group": "inline@5"
-        },
-        {
-          "command": "gerrit.openOnline",
-          "when": "view == gerrit:changeExplorer && viewItem =~ /filechange/",
-          "group": "openFile@1"
-        },
-        {
-          "command": "gerrit.openModified",
-          "when": "view == gerrit:changeExplorer && viewItem =~ /filechange/ && viewItem =~ /modified/",
-          "group": "openFile@2"
-        },
-        {
-          "command": "gerrit.openOriginal",
-          "when": "view == gerrit:changeExplorer && viewItem =~ /filechange/ && viewItem =~ /modified/",
-          "group": "openFile@3"
-        },
-        {
-          "command": "gerrit.openInReview",
-          "when": "view == gerrit:changeExplorer && viewItem =~ /gerritchange/",
-          "group": "change@1"
-        },
-        {
-          "command": "gerrit.openPatchsetSelector",
-          "when": "view == gerrit:changeExplorer && viewItem =~ /gerritchange/",
-          "group": "change@2"
-        },
-        {
-          "command": "gerrit.resetPatchsetSelection",
-          "when": "view == gerrit:changeExplorer && viewItem =~ /gerritchange/ && viewItem =~ /customPatchset/",
-          "group": "change@3"
-        },
-        {
-          "command": "gerrit.checkoutBranch",
-          "when": "view == gerrit:changeExplorer && viewItem =~ /gerritchange/",
-          "group": "achange@1"
-        },
-        {
-          "command": "gerrit.quickCheckout",
-          "when": "view == gerrit:changeExplorer && viewItem =~ /gerritchange/",
-          "group": "achange@2"
-        },
-        {
-          "command": "gerrit.openChangeOnline",
-          "when": "view == gerrit:changeExplorer && viewItem =~ /gerritchange/",
-          "group": "achange@3"
-        },
-        {
-          "command": "gerrit.rebase",
-          "when": "view == gerrit:changeExplorer && viewItem =~ /gerritchange/ && viewItem =~ /noCurrent/",
-          "group": "achange@4"
-        },
-        {
-          "command": "gerrit.rebaseCurrent",
-          "when": "view == gerrit:changeExplorer && viewItem =~ /gerritchange/ && viewItem =~ /yesCurrent/",
-          "group": "achange@5"
-        },
-        {
-          "command": "gerrit.recursiveRebase",
-          "when": "view == gerrit:changeExplorer && viewItem =~ /gerritchange/ && viewItem =~ /noCurrent/",
-          "group": "achange@6"
-        },
-        {
-          "command": "gerrit.recursiveRebaseCurrent",
-          "when": "view == gerrit:changeExplorer && viewItem =~ /gerritchange/ && viewItem =~ /yesCurrent/",
-          "group": "achange@7"
-        },
-        {
-          "command": "gerrit.applyQuickCheckout",
-          "when": "view == gerrit:quickCheckout && viewItem =~ /quickCheckout/",
-          "group": "quickCheckout@1"
-        },
-        {
-          "command": "gerrit.popQuickCheckout",
-          "when": "view == gerrit:quickCheckout && viewItem =~ /quickCheckout/",
-          "group": "quickCheckout@2"
-        },
-        {
-          "command": "gerrit.dropQuickCheckout",
-          "when": "view == gerrit:quickCheckout && viewItem =~ /quickCheckout/",
-          "group": "quickCheckout@3"
-        }
-      ],
-      "view/title": [
-        {
-          "command": "gerrit.clearSearchResults",
-          "when": "(view == gerrit:searchResults || view == gerrit:changeExplorer) && (gerrit:searchQuery || gerrit:searchChangeNumber)",
-          "group": "navigation@1"
-        },
-        {
-          "command": "gerrit.search",
-          "when": "view == gerrit:searchResults || view == gerrit:changeExplorer",
-          "group": "navigation@2"
-        },
-        {
-          "command": "gerrit.refreshChanges",
-          "when": "gerrit:connected && view == gerrit:changeExplorer",
-          "group": "navigation@3"
-        },
-        {
-          "command": "gerrit.selectActiveView",
-          "when": "view == gerrit:changeExplorer",
-          "group": "navigation@4"
-        },
-        {
-          "command": "gerrit.configureChangeList",
-          "when": "view == gerrit:changeExplorer",
-          "group": "navigation@5"
-        }
-      ],
-      "editor/title": [
-        {
-          "command": "gerrit.previousUnresolvedComment",
-          "when": "resource =~ /_ctx_gerritDiff/ || resource =~ /_ctx_hasUnresolved/ || resource =~ /_ctx_patchsetLevel/",
-          "group": "navigation@1"
-        },
-        {
-          "command": "gerrit.nextUnresolvedComment",
-          "when": "resource =~ /_ctx_gerritDiff/ || resource =~ /_ctx_hasUnresolved/ || resource =~ /_ctx_patchsetLevel/",
-          "group": "navigation@2"
-        }
-      ],
-      "scm/title": [
-        {
-          "command": "gerrit.pushForReview",
-          "when": "scmProvider =~ /git/ && gerrit:isUsingGerrit",
-          "group": "navigation@1"
-        },
-        {
-          "submenu": "git.gerrit",
-          "when": "scmProvider =~ /git/ && gerrit:isUsingGerrit",
-          "group": "2_main@8"
-        }
-      ],
-      "git.gerrit": [
-        {
-          "command": "gerrit.pushForReview",
-          "group": "git_gerrit@1"
-        },
-        {
-          "command": "gerrit.rebaseCurrent",
-          "group": "git_gerrit@2"
-        },
-        {
-          "command": "gerrit.recursiveRebaseCurrent",
-          "group": "git_gerrit@3"
-        }
-      ],
-      "editor/lineNumber/context": [
-        {
-          "command": "gerrit.openLineOnGitiles",
-          "group": "gerrit@1"
-        },
-        {
-          "command": "gerrit.openLineOnGitilesPermalink",
-          "group": "gerrit@2"
-        }
-      ]
-    },
-    "submenus": [
-      {
-        "id": "git.gerrit",
-        "label": "Gerrit"
-      }
-    ],
-    "viewsContainers": {
-      "activitybar": [
-        {
-          "id": "gerrit",
-          "title": "Gerrit",
-          "icon": "src/images/gerrit.svg"
-        }
-      ]
-    },
-    "views": {
-      "gerrit": [
-        {
-          "id": "gerrit:changeExplorer",
-          "name": "Changes",
-          "type": "tree",
-          "visibility": "visible",
-          "when": "gerrit:isUsingGerrit"
-        },
-        {
-          "id": "gerrit:searchResults",
-          "name": "Search Results",
-          "type": "tree",
-          "visibility": "visible",
-          "when": "gerrit:searchQuery || gerrit:searchChangeNumber"
-        },
-        {
-          "id": "gerrit:review",
-          "name": "Review",
-          "type": "webview",
-          "visibility": "visible",
-          "when": "gerrit:isUsingGerrit"
-        },
-        {
-          "id": "gerrit:quickCheckout",
-          "name": "Quick Checkout",
-          "type": "tree",
-          "visibility": "collapsed",
-          "when": "gerrit:isUsingGerrit"
-        }
-      ]
-    },
-    "viewsWelcome": [
-      {
-        "view": "gerrit:quickCheckout",
-        "contents": "No quick checkout stashes found, create one by right-clicking a change and selecting \"Quick-Checkout\""
-      }
-    ],
-    "configuration": {
-      "type": "object",
-      "title": "Gerrit",
-      "properties": {
-        "gerrit.streamEvents": {
-          "type": "boolean",
-          "title": "Enable listening for events by SSH'ing to Gerrit",
-          "description": "Enable listening for events by SSH'ing to Gerrit. See https://gerrit-review.googlesource.com/Documentation/cmd-stream-events.html for more info",
-          "default": false
-        },
-        "gerrit.messages.postReviewNotification": {
-          "type": "boolean",
-          "title": "Show notification after running `git review`",
-          "description": "Show notification after running `git review` that allows you to either open the change online or in the review panel",
-          "default": true
-        },
-        "gerrit.quickCheckout.dropAllStashes": {
-          "type": "boolean",
-          "title": "Drop all git stashes after dropping quick checkouts",
-          "description": "Drop all git stashes after dropping quick checkouts as well"
-        },
-        "gerrit.quickCheckout.showInStatusBar": {
-          "type": "boolean",
-          "title": "Show quick checkouts in statusbar",
-          "description": "Whether quick checkout stashes should be shown in the statusbar for quick access"
-        },
-        "gerrit.auth.username": {
-          "type": "string",
-          "title": "Gerrit username",
-          "description": "Gerrit login username"
-        },
-        "gerrit.auth.password": {
-          "type": "string",
-          "title": "Gerrit password",
-          "description": "Gerrit password (see https://{your_gerit_host}/settings/#HTTPCredentials)"
-        },
-        "gerrit.auth.cookie": {
-          "type": "string",
-          "title": "Gerrit cookie",
-          "description": "Gerrit authentication cookie"
-        },
-        "gerrit.extraCookies": {
-          "type": "object",
-          "title": "Extra Gerrit cookies",
-          "description": "Other cookies besides the authentication cookie to send on every request"
-        },
-        "gerrit.auth.url": {
-          "type": "string",
-          "title": "URL of the gerrit server to use",
-          "description": "URL of the gerrit server to use (inferred from `.gitreview` if not provided). Uses HTTPS if no scheme is provided"
-        },
-        "gerrit.selectedView": {
-          "type": "string",
-          "title": "Active changes view",
-          "description": "Active changes view, one of the titles in \"gerrit.changesViews\"",
-          "default": "Dashboard"
-        },
-        "gerrit.expandComments": {
-          "type": "string",
-          "enum": [
-            "always",
-            "unresolved",
-            "never"
-          ],
-          "default": "unresolved",
-          "description": "When inline comments should be expanded"
-        },
-        "gerrit.gitRepo": {
-          "type": "string",
-          "description": "Git repository to use (only needed for multi-git-repo setups)"
-        },
-        "gerrit.changeTitleTemplate": {
-          "type": "object",
-          "description": "Templates for showing the titles of changes in the CHANGES view. Use ${number}, ${subject/title}, ${owner}, ${repo}, ${branch}, ${status} as templates.",
-          "properties": {
-            "title": {
-              "type": "string",
-              "description": "Title of change, shown first in white text",
-              "examples": [
-                "${number}: ${subject} (${owner})",
-                "${number}: ${subject} (${owner}/${repo}/${branch})",
-                "${number}: ${subject} (${owner}/${repo}/${branch}/${status})"
-              ],
-              "default": "#${number}: ${subject}"
-            },
-            "subtitle": {
-              "type": "string",
-              "description": "Subtitle of change, shown behind title in grey text",
-              "examples": [
-                "by ${owner}",
-                "($owner)",
-                "${owner}/${repo}/${branch}",
-                "${owner}/${repo}/${branch}/${status}"
-              ],
-              "default": "by ${owner}"
-            }
-          },
-          "default": {
-            "title": "#${number}: ${subject}",
-            "subtitle": "by ${owner}"
-          }
-        },
-        "gerrit.forceEnable": {
-          "type": "boolean",
-          "default": false,
-          "description": "Force enable gerrit extension even for unsupported versions"
-        },
-        "gerrit.filterByProject": {
-          "type": "boolean",
-          "default": true,
-          "description": "Filter all changes by the current project"
-        },
-        "gerrit.changesViews": {
-          "type": "array",
-          "title": "Changes views",
-          "description": "A set of changes views. You can choose the currently selected view in the CHANGES view",
-          "minItems": 1,
-          "items": {
-            "type": "object",
-            "title": "View",
-            "description": "A single changes view similar to your Gerrit dashboard",
-            "required": [
-              "title",
-              "panels"
-            ],
-            "properties": {
-              "title": {
-                "type": "string",
-                "description": "Name of this view"
-              },
-              "panels": {
-                "type": "array",
-                "title": "Panels",
-                "description": "Panels in a changes view",
-                "items": {
-                  "type": "object",
-                  "title": "Pane",
-                  "description": "One pane in the changes view. These can be collapsed or expanded",
-                  "required": [
-                    "title",
-                    "filters"
-                  ],
-                  "properties": {
-                    "title": {
-                      "type": "string",
-                      "title": "Title of the pane"
-                    },
-                    "refreshInterval": {
-                      "type": "number",
-                      "title": "Refresh interval (in seconds)",
-                      "description": "Interval at which the entire pane is refreshed. Use 0 for no auto-refreshing",
-                      "default": 300
-                    },
-                    "defaultCollapsed": {
-                      "type": "boolean",
-                      "title": "Whether this pane should be collapsed by default",
-                      "default": false
-                    },
-                    "initialFetchCount": {
-                      "type": "number",
-                      "title": "Fetch count",
-                      "description": "How many entries to fetch initially",
-                      "default": 25
-                    },
-                    "extraEntriesFetchCount": {
-                      "type": "number",
-                      "title": "Extra entries to fetch",
-                      "description": "Extra entries to fetch on clicking \"fetch more\"",
-                      "default": 25
-                    },
-                    "filters": {
-                      "type": "array",
-                      "title": "Filters",
-                      "description": "Filters to apply to the search, see Gerrit docs: https://gerrit-review.googlesource.com/Documentation/user-search.html",
-                      "minItems": 1,
-                      "items": {
-                        "type": "string",
-                        "title": "Filter",
-                        "description": "Gerrit filter to use. See Gerrit docs: https://gerrit-review.googlesource.com/Documentation/user-search.html"
-                      },
-                      "default": [
-                        "is:open",
-                        "owner:self"
-                      ]
-                    }
-                  },
-                  "examples": [
-                    {
-                      "title": "Your Turn",
-                      "refreshInterval": 300,
-                      "defaultCollapsed": false,
-                      "initialFetchCount": 25,
-                      "extraEntriesFetchCount": 25,
-                      "filters": [
-                        "attention:self"
-                      ]
-                    },
-                    {
-                      "title": "Work In Progress",
-                      "refreshInterval": 300,
-                      "defaultCollapsed": false,
-                      "initialFetchCount": 25,
-                      "extraEntriesFetchCount": 25,
-                      "filters": [
-                        "is:open",
-                        "owner:self",
-                        "is:wip"
-                      ]
-                    },
-                    {
-                      "title": "Outgoing Reviews",
-                      "refreshInterval": 300,
-                      "defaultCollapsed": false,
-                      "initialFetchCount": 25,
-                      "extraEntriesFetchCount": 25,
-                      "filters": [
-                        "is:open",
-                        "owner:self",
-                        "-is:wip"
-                      ]
-                    },
-                    {
-                      "title": "Incoming Reviews",
-                      "refreshInterval": 300,
-                      "defaultCollapsed": false,
-                      "initialFetchCount": 25,
-                      "extraEntriesFetchCount": 25,
-                      "filters": [
-                        "is:open",
-                        "-owner:self",
-                        "-is:wip",
-                        "reviewer:self"
-                      ]
-                    },
-                    {
-                      "title": "CCed on",
-                      "refreshInterval": 300,
-                      "defaultCollapsed": false,
-                      "initialFetchCount": 25,
-                      "extraEntriesFetchCount": 25,
-                      "filters": [
-                        "is:open",
-                        "cc:self"
-                      ]
-                    },
-                    {
-                      "title": "Recently Closed",
-                      "refreshInterval": 1500,
-                      "defaultCollapsed": true,
-                      "initialFetchCount": 10,
-                      "extraEntriesFetchCount": 25,
-                      "filters": [
-                        "is:closed",
-                        "-is:wip OR owner:self",
-                        "owner:self OR reviewer:self OR cc:self"
-                      ]
-                    }
-                  ]
-                }
-              }
-            }
-          },
-          "default": [
-            {
-              "title": "Dashboard",
-              "panels": [
-                {
-                  "title": "Your Turn",
-                  "refreshInterval": 300,
-                  "defaultCollapsed": false,
-                  "initialFetchCount": 25,
-                  "extraEntriesFetchCount": 25,
-                  "filters": [
-                    "attention:self"
-                  ]
-                },
-                {
-                  "title": "Work In Progress",
-                  "refreshInterval": 300,
-                  "defaultCollapsed": false,
-                  "initialFetchCount": 25,
-                  "extraEntriesFetchCount": 25,
-                  "filters": [
-                    "is:open",
-                    "owner:self",
-                    "is:wip"
-                  ]
-                },
-                {
-                  "title": "Outgoing Reviews",
-                  "refreshInterval": 300,
-                  "defaultCollapsed": false,
-                  "initialFetchCount": 25,
-                  "extraEntriesFetchCount": 25,
-                  "filters": [
-                    "is:open",
-                    "owner:self",
-                    "-is:wip"
-                  ]
-                },
-                {
-                  "title": "Incoming Reviews",
-                  "refreshInterval": 300,
-                  "defaultCollapsed": false,
-                  "initialFetchCount": 25,
-                  "extraEntriesFetchCount": 25,
-                  "filters": [
-                    "is:open",
-                    "-owner:self",
-                    "-is:wip",
-                    "reviewer:self"
-                  ]
-                },
-                {
-                  "title": "CCed on",
-                  "refreshInterval": 300,
-                  "defaultCollapsed": false,
-                  "initialFetchCount": 25,
-                  "extraEntriesFetchCount": 25,
-                  "filters": [
-                    "is:open",
-                    "cc:self"
-                  ]
-                },
-                {
-                  "title": "Recently Closed",
-                  "refreshInterval": 1500,
-                  "defaultCollapsed": true,
-                  "initialFetchCount": 10,
-                  "extraEntriesFetchCount": 25,
-                  "filters": [
-                    "is:closed",
-                    "-is:wip OR owner:self",
-                    "owner:self OR reviewer:self OR cc:self"
-                  ]
-                }
-              ]
-            },
-            {
-              "title": "Starred",
-              "panels": [
-                {
-                  "title": "Starred",
-                  "refreshInterval": 500,
-                  "defaultCollapsed": false,
-                  "initialFetchCount": 25,
-                  "extraEntriesFetchCount": 25,
-                  "filters": [
-                    "is:starred"
-                  ]
-                }
-              ]
-            },
-            {
-              "title": "Watched",
-              "panels": [
-                {
-                  "title": "Watched",
-                  "refreshInterval": 500,
-                  "defaultCollapsed": false,
-                  "initialFetchCount": 25,
-                  "extraEntriesFetchCount": 25,
-                  "filters": [
-                    "is:watched",
-                    "is:open"
-                  ]
-                }
-              ]
-            },
-            {
-              "title": "Draft",
-              "panels": [
-                {
-                  "title": "Draft",
-                  "refreshInterval": 500,
-                  "defaultCollapsed": false,
-                  "initialFetchCount": 25,
-                  "extraEntriesFetchCount": 25,
-                  "filters": [
-                    "has:draft"
-                  ]
-                }
-              ]
-            },
-            {
-              "title": "My Changes",
-              "panels": [
-                {
-                  "title": "My Changes",
-                  "refreshInterval": 500,
-                  "defaultCollapsed": false,
-                  "initialFetchCount": 25,
-                  "extraEntriesFetchCount": 25,
-                  "filters": [
-                    "is:open",
-                    "owner:self"
-                  ]
-                }
-              ]
-            }
-          ]
-        },
-        "gerrit.allowInvalidSSLCerts": {
-          "type": "boolean",
-          "title": "Allow requests to failed/invalid SSL certs",
-          "description": "Note: before you use this, ask your server maintainer to fix their certs. This option can can be dangerous.",
-          "default": false
-        },
-        "gerrit.customAuthUrlPrefix": {
-          "type": "string",
-          "title": "Add a custom prefix to use for authenticated links",
-          "description": "Changes the default authentication prefix from \"a/\" to a custom string. This should only be necessary if using a non-standard gerrit instance.",
-          "default": "a/"
-        }
-      }
-    }
-  },
-  "watch": {
-    "generate-package": {
-      "patterns": [
-        "src/commands"
-      ],
-      "extensions": "ts"
-    }
-  },
-  "scripts": {
-    "prepack": "bun generate-package && bun prettier --check src/ && bun lint && bun compile && bun run build",
-    "vscode:prepublish": "bun run prepack",
-    "compile": "tsc --noEmit -p ./src && tsc --noEmit -p src/views/activityBar/review/html/src/tsconfig.json",
-    "compile:debug": "tsc -p ./src && tsc -p src/views/activityBar/review/html/src/tsconfig.json",
-    "watch": "npm-run-all -p watch:compile watch:build",
-    "watch:compile": "tsc -p ./src -w",
-    "watch:build": "bun build:debug:review:js --watch",
-    "build:review:js": "esbuild --bundle --outfile=out/review/index.js src/views/activityBar/review/html/src/index.tsx --minify",
-    "build:debug:review:js": "esbuild --bundle --outfile=out/review/index.js src/views/activityBar/review/html/src/index.tsx",
-    "build:review:codicons:css": "bun run copy node_modules/@vscode/codicons/dist/codicon.css out/review/codicon.css",
-    "build:review:codicons:ttf": "bun run copy node_modules/@vscode/codicons/dist/codicon.ttf out/review/codicon.ttf",
-    "build:review:css": "bun run copy src/views/activityBar/review/css/index.css out/review/index.css",
-    "build:main": "esbuild --minify --bundle --outfile=out/extension.js src/extension.ts --platform=node --external:vscode",
-    "build:debug:main": "esbuild --bundle --outfile=out/extension.js src/extension.ts --platform=node --external:vscode --define:process.env.DEV_OVERRIDE=true",
-    "build": "rimraf ./out && bun run build:main && bun run build:review:js && bun run build:review:css && bun run build:review:codicons:css && bun run build:review:codicons:ttf",
-    "build:debug": "rimraf ./out && bun run build:debug:main && bun run build:debug:review:js && bun run build:review:css && bun run build:review:codicons:css && bun run build:review:codicons:ttf",
-    "pretest": "bun run compile && bun run lint",
-    "lint": "eslint src --ext ts",
-    "format-staged": "(git diff --ignore-submodules --quiet && bun format) || pretty-quick src/",
-    "format": "prettier --write src/",
-    "copy": "ts-node -T scripts/copy.ts",
-    "package": "bun run prepack && bun vsce package",
-    "package-dev": "bun prepush && bun run build:debug && bun vsce package",
-    "generate-package": "generate-package-json generate --name Gerrit --input src/commands/defs.ts -w -p package.json --handler src/commands/commands.ts --validate --prefix Gerrit && prettier --write package.json",
-    "prepush": "bun generate-package && bun format-staged && bun lint --fix && bun compile"
-  },
-  "devDependencies": {
-    "@emotion/react": "^11.7.0",
-    "@emotion/styled": "^11.6.0",
-    "@mui/material": "^5.2.3",
-    "@types/fs-extra": "^9.0.13",
-    "@types/glob": "^7.1.4",
-    "@types/mocha": "^9.0.0",
-    "@types/node": "14.x",
-    "@types/react": "^17.0.37",
-    "@types/react-dom": "^17.0.11",
-    "@types/vscode": "^1.62.0",
-    "@typescript-eslint/eslint-plugin": "^5.1.0",
-    "@typescript-eslint/parser": "^5.4.0",
-    "@vscode/codicons": "^0.0.26",
-    "@vscode/test-electron": "^1.6.2",
-    "@vscode/webview-ui-toolkit": "^0.8.4",
-    "esbuild": "^0.14.2",
-    "eslint": "^8.3.0",
-    "eslint-config-prettier": "^8.3.0",
-    "eslint-plugin-node": "^11.1.0",
-    "eslint-plugin-prettier": "^4.0.0",
-    "eslint-plugin-react": "^7.27.1",
-    "eslint-plugin-react-hooks": "^4.3.0",
-    "eslint-plugin-unused-imports": "^2.0.0",
-    "fs-extra": "^10.0.0",
-    "glob": "^7.1.7",
-    "gts": "^3.1.0",
-    "mocha": "^9.1.3",
-    "npm-run-all": "^4.1.5",
-    "prettier": "^3.3.2",
-    "prettier-plugin-sort-imports": "^1.0.1",
-    "pretty-quick": "^3.1.2",
-    "react": "^17.0.2",
-    "react-dom": "^17.0.2",
-    "react-select-search": "^3.0.9",
-    "rimraf": "^3.0.2",
-    "ts-node": "^10.4.0",
-    "typescript": "^4.5.2",
-    "vsce": "^2.6.0",
-    "vscode-generate-package-json": "1.2.2"
-  },
-  "dependencies": {
-    "gitdiff-parser": "^0.2.2",
-    "got": "^11.8.5"
-  }
+	"name": "vscode--gerrit",
+	"displayName": "Gerrit",
+	"description": "VSCode gerrit integration",
+	"version": "1.2.37",
+	"engines": {
+		"vscode": "^1.62.0",
+		"node": ">=14.16.0"
+	},
+	"license": "MIT",
+	"categories": [
+		"SCM Providers"
+	],
+	"icon": "src/images/gerrit.png",
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/SanderRonde/VSCode-Gerrit"
+	},
+	"homepage": "https://github.com/SanderRonde/VSCode-Gerrit/blob/main/README.md",
+	"bugs": {
+		"url": "https://github.com/SanderRonde/VSCode-Gerrit/issues",
+		"email": "awsdfgvhbjn@gmail.com"
+	},
+	"publisher": "SanderRonde",
+	"activationEvents": [
+		"onStartupFinished"
+	],
+	"extensionKind": [
+		"workspace"
+	],
+	"main": "./out/extension.js",
+	"contributes": {
+		"commands": [
+			{
+				"command": "gerrit.changeGitRepo",
+				"title": "Change git repo"
+			},
+			{
+				"command": "gerrit.ackCommentThread",
+				"title": "Ack",
+				"icon": "$(record)"
+			},
+			{
+				"command": "gerrit.cancelComment",
+				"title": "Cancel"
+			},
+			{
+				"command": "gerrit.checkConnection",
+				"title": "Check Connection"
+			},
+			{
+				"command": "gerrit.checkoutBranch",
+				"title": "Checkout Change",
+				"icon": "$(arrow-down)"
+			},
+			{
+				"command": "gerrit.clearSearchResults",
+				"title": "Clear search results",
+				"icon": "$(clear-all)"
+			},
+			{
+				"command": "gerrit.collapseAllComments",
+				"title": "Collapse All Comments",
+				"icon": "$(collapse-all)"
+			},
+			{
+				"command": "gerrit.configureChangeList",
+				"title": "Configure filters",
+				"icon": "$(gear)"
+			},
+			{
+				"command": "gerrit.copyCommentLink",
+				"title": "Copy weblink to this comment",
+				"icon": "$(link)"
+			},
+			{
+				"command": "gerrit.createCommentResolved",
+				"title": "Save (resolved)",
+				"enablement": "!commentIsEmpty"
+			},
+			{
+				"command": "gerrit.createCommentUnresolved",
+				"title": "Save (unresolved)",
+				"enablement": "!commentIsEmpty"
+			},
+			{
+				"command": "gerrit.deleteComment",
+				"title": "Delete comment",
+				"icon": "$(trash)"
+			},
+			{
+				"command": "gerrit.doneCommentThread",
+				"title": "Done",
+				"icon": "$(check)"
+			},
+			{
+				"command": "gerrit.editComment",
+				"title": "Edit comment",
+				"icon": "$(edit)"
+			},
+			{
+				"command": "gerrit.enterCredentials",
+				"title": "Enter credentials"
+			},
+			{
+				"command": "gerrit.fetchMore",
+				"title": "Fetch More"
+			},
+			{
+				"command": "gerrit.focusChange",
+				"title": "Focus Change In Change List Panel"
+			},
+			{
+				"command": "gerrit.listenForStreamEvents",
+				"title": "Start listening for Gerrit stream events"
+			},
+			{
+				"command": "gerrit.nextUnresolvedComment",
+				"title": "Next Unresolved Comment",
+				"icon": {
+					"dark": "src/images/icons/comment-down-dark.svg",
+					"light": "src/images/icons/comment-down-light.svg"
+				}
+			},
+			{
+				"command": "gerrit.openChangeOnline",
+				"title": "Open online",
+				"icon": "$(globe)"
+			},
+			{
+				"command": "gerrit.openChangeSelector",
+				"title": "Open Change Selector"
+			},
+			{
+				"command": "gerrit.checkoutChange",
+				"title": "Checkout change by ID or number"
+			},
+			{
+				"command": "gerrit.openCommentOnline",
+				"title": "Open comment on Gerrit",
+				"icon": "$(link-external)"
+			},
+			{
+				"command": "gerrit.openCurrentOnline",
+				"title": "Open Current Change Online"
+			},
+			{
+				"command": "gerrit.openInReview",
+				"title": "Open in Review panel",
+				"icon": "$(open-preview)"
+			},
+			{
+				"command": "gerrit.openModified",
+				"title": "Open Modified File"
+			},
+			{
+				"command": "gerrit.openOnline",
+				"title": "Open file on Gerrit"
+			},
+			{
+				"command": "gerrit.openOriginal",
+				"title": "Open Original File"
+			},
+			{
+				"command": "gerrit.openPatchsetSelector",
+				"title": "Open Patchset Selector"
+			},
+			{
+				"command": "gerrit.previousUnresolvedComment",
+				"title": "Previous Unresolved Comment",
+				"icon": {
+					"dark": "src/images/icons/comment-up-dark.svg",
+					"light": "src/images/icons/comment-up-light.svg"
+				}
+			},
+			{
+				"command": "gerrit.pushForReview",
+				"title": "Push for Review",
+				"icon": "$(git-commit)"
+			},
+			{
+				"command": "gerrit.rebase",
+				"title": "Checkout & Rebase"
+			},
+			{
+				"command": "gerrit.rebaseCurrent",
+				"title": "Rebase change"
+			},
+			{
+				"command": "gerrit.recursiveRebase",
+				"title": "Checkout & Rebase recursively"
+			},
+			{
+				"command": "gerrit.recursiveRebaseCurrent",
+				"title": "Checkout & Rebase recursively"
+			},
+			{
+				"command": "gerrit.refreshChanges",
+				"title": "Refresh changes",
+				"icon": "$(refresh)"
+			},
+			{
+				"command": "gerrit.resetPatchsetSelection",
+				"title": "Reset Patchset Selection"
+			},
+			{
+				"command": "gerrit.search",
+				"title": "Search",
+				"icon": "$(search)"
+			},
+			{
+				"command": "gerrit.selectActiveView",
+				"title": "Select Active View",
+				"icon": "$(menu)"
+			},
+			{
+				"command": "gerrit.toggleResolvedOff",
+				"title": "Unresolve thread"
+			},
+			{
+				"command": "gerrit.toggleResolvedOn",
+				"title": "Resolve thread"
+			},
+			{
+				"command": "gerrit.quickCheckout",
+				"title": "Quick Checkout",
+				"icon": "$(history)"
+			},
+			{
+				"command": "gerrit.applyQuickCheckout",
+				"title": "Apply Quick Checkout (don't drop)",
+				"icon": "$(arrow-down)"
+			},
+			{
+				"command": "gerrit.dropQuickCheckouts",
+				"title": "Drop Quick Checkout stashes"
+			},
+			{
+				"command": "gerrit.dropQuickCheckout",
+				"title": "Drop Quick Checkout Stash",
+				"icon": "$(trash)"
+			},
+			{
+				"command": "gerrit.popQuickCheckout",
+				"title": "Pop Quick Checkout stash (apply and drop)"
+			},
+			{
+				"command": "gerrit.openFileOnGitiles",
+				"title": "Open file on Gitiles"
+			},
+			{
+				"command": "gerrit.openLineOnGitiles",
+				"title": "Open line on Gitiles"
+			},
+			{
+				"command": "gerrit.openLineOnGitilesPermalink",
+				"title": "Open line on Gitiles (permalink)"
+			},
+			{
+				"command": "cmd.gerrit.changeGitRepo",
+				"title": "Gerrit: Change git repo"
+			},
+			{
+				"command": "cmd.gerrit.checkConnection",
+				"title": "Gerrit: Check Connection"
+			},
+			{
+				"command": "cmd.gerrit.clearSearchResults",
+				"title": "Gerrit: Clear search results",
+				"icon": "$(clear-all)"
+			},
+			{
+				"command": "cmd.gerrit.collapseAllComments",
+				"title": "Gerrit: Collapse All Comments",
+				"icon": "$(collapse-all)"
+			},
+			{
+				"command": "cmd.gerrit.configureChangeList",
+				"title": "Gerrit: Configure filters",
+				"icon": "$(gear)"
+			},
+			{
+				"command": "cmd.gerrit.enterCredentials",
+				"title": "Gerrit: Enter credentials"
+			},
+			{
+				"command": "cmd.gerrit.listenForStreamEvents",
+				"title": "Gerrit: Start listening for Gerrit stream events"
+			},
+			{
+				"command": "cmd.gerrit.nextUnresolvedComment",
+				"title": "Gerrit: Next Unresolved Comment",
+				"icon": {
+					"dark": "src/images/icons/comment-down-dark.svg",
+					"light": "src/images/icons/comment-down-light.svg"
+				}
+			},
+			{
+				"command": "cmd.gerrit.openChangeSelector",
+				"title": "Gerrit: Open Change Selector"
+			},
+			{
+				"command": "cmd.gerrit.checkoutChange",
+				"title": "Gerrit: Checkout change by ID or number"
+			},
+			{
+				"command": "cmd.gerrit.openCurrentOnline",
+				"title": "Gerrit: Open Current Change Online"
+			},
+			{
+				"command": "cmd.gerrit.previousUnresolvedComment",
+				"title": "Gerrit: Previous Unresolved Comment",
+				"icon": {
+					"dark": "src/images/icons/comment-up-dark.svg",
+					"light": "src/images/icons/comment-up-light.svg"
+				}
+			},
+			{
+				"command": "cmd.gerrit.pushForReview",
+				"title": "Gerrit: Push for Review",
+				"icon": "$(git-commit)"
+			},
+			{
+				"command": "cmd.gerrit.refreshChanges",
+				"title": "Gerrit: Refresh changes",
+				"icon": "$(refresh)"
+			},
+			{
+				"command": "cmd.gerrit.resetPatchsetSelection",
+				"title": "Gerrit: Reset Patchset Selection"
+			},
+			{
+				"command": "cmd.gerrit.search",
+				"title": "Gerrit: Search",
+				"icon": "$(search)"
+			},
+			{
+				"command": "cmd.gerrit.selectActiveView",
+				"title": "Gerrit: Select Active View",
+				"icon": "$(menu)"
+			},
+			{
+				"command": "cmd.gerrit.dropQuickCheckouts",
+				"title": "Gerrit: Drop Quick Checkout stashes"
+			},
+			{
+				"command": "cmd.gerrit.openFileOnGitiles",
+				"title": "Gerrit: Open file on Gitiles"
+			},
+			{
+				"command": "cmd.gerrit.openLineOnGitiles",
+				"title": "Gerrit: Open line on Gitiles"
+			},
+			{
+				"command": "cmd.gerrit.openLineOnGitilesPermalink",
+				"title": "Gerrit: Open line on Gitiles (permalink)"
+			}
+		],
+		"keybindings": [
+			{
+				"command": "gerrit.focusChange",
+				"when": "true"
+			},
+			{
+				"command": "gerrit.nextUnresolvedComment",
+				"when": "editorTextFocus"
+			},
+			{
+				"command": "gerrit.openChangeSelector",
+				"when": "true"
+			},
+			{
+				"command": "gerrit.previousUnresolvedComment",
+				"when": "editorTextFocus"
+			}
+		],
+		"menus": {
+			"commandPalette": [
+				{
+					"command": "gerrit.changeGitRepo",
+					"when": "false"
+				},
+				{
+					"command": "gerrit.ackCommentThread",
+					"when": "false"
+				},
+				{
+					"command": "gerrit.cancelComment",
+					"when": "false"
+				},
+				{
+					"command": "gerrit.checkConnection",
+					"when": "false"
+				},
+				{
+					"command": "gerrit.checkoutBranch",
+					"when": "false"
+				},
+				{
+					"command": "gerrit.clearSearchResults",
+					"when": "false"
+				},
+				{
+					"command": "gerrit.collapseAllComments",
+					"when": "false"
+				},
+				{
+					"command": "gerrit.configureChangeList",
+					"when": "false"
+				},
+				{
+					"command": "gerrit.copyCommentLink",
+					"when": "false"
+				},
+				{
+					"command": "gerrit.createCommentResolved",
+					"when": "false"
+				},
+				{
+					"command": "gerrit.createCommentUnresolved",
+					"when": "false"
+				},
+				{
+					"command": "gerrit.deleteComment",
+					"when": "false"
+				},
+				{
+					"command": "gerrit.doneCommentThread",
+					"when": "false"
+				},
+				{
+					"command": "gerrit.editComment",
+					"when": "false"
+				},
+				{
+					"command": "gerrit.enterCredentials",
+					"when": "false"
+				},
+				{
+					"command": "gerrit.fetchMore",
+					"when": "false"
+				},
+				{
+					"command": "gerrit.focusChange",
+					"when": "false"
+				},
+				{
+					"command": "gerrit.listenForStreamEvents",
+					"when": "false"
+				},
+				{
+					"command": "gerrit.nextUnresolvedComment",
+					"when": "false"
+				},
+				{
+					"command": "gerrit.openChangeOnline",
+					"when": "false"
+				},
+				{
+					"command": "gerrit.openChangeSelector",
+					"when": "false"
+				},
+				{
+					"command": "gerrit.checkoutChange",
+					"when": "false"
+				},
+				{
+					"command": "gerrit.openCommentOnline",
+					"when": "false"
+				},
+				{
+					"command": "gerrit.openCurrentOnline",
+					"when": "false"
+				},
+				{
+					"command": "gerrit.openInReview",
+					"when": "false"
+				},
+				{
+					"command": "gerrit.openModified",
+					"when": "false"
+				},
+				{
+					"command": "gerrit.openOnline",
+					"when": "false"
+				},
+				{
+					"command": "gerrit.openOriginal",
+					"when": "false"
+				},
+				{
+					"command": "gerrit.openPatchsetSelector",
+					"when": "false"
+				},
+				{
+					"command": "gerrit.previousUnresolvedComment",
+					"when": "false"
+				},
+				{
+					"command": "gerrit.pushForReview",
+					"when": "false"
+				},
+				{
+					"command": "gerrit.rebase",
+					"when": "false"
+				},
+				{
+					"command": "gerrit.rebaseCurrent",
+					"when": "false"
+				},
+				{
+					"command": "gerrit.recursiveRebase",
+					"when": "false"
+				},
+				{
+					"command": "gerrit.recursiveRebaseCurrent",
+					"when": "false"
+				},
+				{
+					"command": "gerrit.refreshChanges",
+					"when": "false"
+				},
+				{
+					"command": "gerrit.resetPatchsetSelection",
+					"when": "false"
+				},
+				{
+					"command": "gerrit.search",
+					"when": "false"
+				},
+				{
+					"command": "gerrit.selectActiveView",
+					"when": "false"
+				},
+				{
+					"command": "gerrit.toggleResolvedOff",
+					"when": "false"
+				},
+				{
+					"command": "gerrit.toggleResolvedOn",
+					"when": "false"
+				},
+				{
+					"command": "gerrit.quickCheckout",
+					"when": "false"
+				},
+				{
+					"command": "gerrit.applyQuickCheckout",
+					"when": "false"
+				},
+				{
+					"command": "gerrit.dropQuickCheckouts",
+					"when": "false"
+				},
+				{
+					"command": "gerrit.dropQuickCheckout",
+					"when": "false"
+				},
+				{
+					"command": "gerrit.popQuickCheckout",
+					"when": "false"
+				},
+				{
+					"command": "gerrit.openFileOnGitiles",
+					"when": "false"
+				},
+				{
+					"command": "gerrit.openLineOnGitiles",
+					"when": "false"
+				},
+				{
+					"command": "gerrit.openLineOnGitilesPermalink",
+					"when": "false"
+				},
+				{
+					"command": "cmd.gerrit.changeGitRepo",
+					"when": "true"
+				},
+				{
+					"command": "cmd.gerrit.checkConnection",
+					"when": "true"
+				},
+				{
+					"command": "cmd.gerrit.clearSearchResults",
+					"when": "true"
+				},
+				{
+					"command": "cmd.gerrit.collapseAllComments",
+					"when": "true"
+				},
+				{
+					"command": "cmd.gerrit.configureChangeList",
+					"when": "true"
+				},
+				{
+					"command": "cmd.gerrit.enterCredentials",
+					"when": "true"
+				},
+				{
+					"command": "cmd.gerrit.listenForStreamEvents",
+					"when": "true"
+				},
+				{
+					"command": "cmd.gerrit.nextUnresolvedComment",
+					"when": "true"
+				},
+				{
+					"command": "cmd.gerrit.openChangeSelector",
+					"when": "true"
+				},
+				{
+					"command": "cmd.gerrit.checkoutChange",
+					"when": "true"
+				},
+				{
+					"command": "cmd.gerrit.openCurrentOnline",
+					"when": "true"
+				},
+				{
+					"command": "cmd.gerrit.previousUnresolvedComment",
+					"when": "true"
+				},
+				{
+					"command": "cmd.gerrit.pushForReview",
+					"when": "true"
+				},
+				{
+					"command": "cmd.gerrit.refreshChanges",
+					"when": "true"
+				},
+				{
+					"command": "cmd.gerrit.resetPatchsetSelection",
+					"when": "true"
+				},
+				{
+					"command": "cmd.gerrit.search",
+					"when": "true"
+				},
+				{
+					"command": "cmd.gerrit.selectActiveView",
+					"when": "true"
+				},
+				{
+					"command": "cmd.gerrit.dropQuickCheckouts",
+					"when": "true"
+				},
+				{
+					"command": "cmd.gerrit.openFileOnGitiles",
+					"when": "true"
+				},
+				{
+					"command": "cmd.gerrit.openLineOnGitiles",
+					"when": "true"
+				},
+				{
+					"command": "cmd.gerrit.openLineOnGitilesPermalink",
+					"when": "true"
+				}
+			],
+			"comments/comment/context": [
+				{
+					"command": "gerrit.createCommentUnresolved",
+					"when": "commentController == gerrit",
+					"group": "newCommentButtons@1"
+				},
+				{
+					"command": "gerrit.createCommentResolved",
+					"when": "commentController == gerrit",
+					"group": "newCommentButtons@2"
+				},
+				{
+					"command": "gerrit.cancelComment",
+					"when": "commentController == gerrit",
+					"group": "newCommentButtons@3"
+				}
+			],
+			"comments/commentThread/context": [
+				{
+					"command": "gerrit.createCommentUnresolved",
+					"when": "commentController == gerrit",
+					"group": "newCommentButtons@1"
+				},
+				{
+					"command": "gerrit.createCommentResolved",
+					"when": "commentController == gerrit",
+					"group": "newCommentButtons@2"
+				},
+				{
+					"command": "gerrit.cancelComment",
+					"when": "commentController == gerrit",
+					"group": "newCommentButtons@3"
+				},
+				{
+					"command": "gerrit.toggleResolvedOn",
+					"when": "commentController == gerrit && commentIsEmpty && commentThread =~ /yesLastCommentDraft/ && commentThread =~ /noResolved/",
+					"group": "newCommentButtons@4"
+				},
+				{
+					"command": "gerrit.toggleResolvedOff",
+					"when": "commentController == gerrit && commentIsEmpty && commentThread =~ /yesLastCommentDraft/ && commentThread =~ /yesResolved/",
+					"group": "newCommentButtons@5"
+				}
+			],
+			"comments/commentThread/title": [
+				{
+					"command": "gerrit.previousUnresolvedComment",
+					"when": "commentController == gerrit",
+					"group": "collapse@1"
+				},
+				{
+					"command": "gerrit.nextUnresolvedComment",
+					"when": "commentController == gerrit",
+					"group": "collapse@2"
+				},
+				{
+					"command": "gerrit.copyCommentLink",
+					"when": "commentController == gerrit && gerrit:hasCommentFeature",
+					"group": "collapse@3"
+				},
+				{
+					"command": "gerrit.openCommentOnline",
+					"when": "commentController == gerrit && gerrit:hasCommentFeature",
+					"group": "collapse@4"
+				},
+				{
+					"command": "gerrit.collapseAllComments",
+					"when": "commentController == gerrit",
+					"group": "collapse@5"
+				}
+			],
+			"comments/comment/title": [
+				{
+					"command": "gerrit.editComment",
+					"when": "commentController == gerrit && comment =~ /editable/",
+					"group": "inline@1"
+				},
+				{
+					"command": "gerrit.doneCommentThread",
+					"when": "commentController == gerrit && comment =~ /quickActionable/",
+					"group": "inline@2"
+				},
+				{
+					"command": "gerrit.ackCommentThread",
+					"when": "commentController == gerrit && comment =~ /quickActionable/",
+					"group": "inline@3"
+				},
+				{
+					"command": "gerrit.deleteComment",
+					"when": "commentController == gerrit && comment =~ /deletable/",
+					"group": "inline@4"
+				}
+			],
+			"view/item/context": [
+				{
+					"command": "gerrit.openChangeOnline",
+					"when": "view == gerrit:changeExplorer && viewItem =~ /gerritchange/",
+					"group": "inline@1"
+				},
+				{
+					"command": "gerrit.quickCheckout",
+					"when": "view == gerrit:changeExplorer && viewItem =~ /gerritchange/",
+					"group": "inline@2"
+				},
+				{
+					"command": "gerrit.checkoutBranch",
+					"when": "view == gerrit:changeExplorer && viewItem =~ /gerritchange/",
+					"group": "inline@3"
+				},
+				{
+					"command": "gerrit.dropQuickCheckout",
+					"when": "view == gerrit:quickCheckout && viewItem =~ /quickCheckout/",
+					"group": "inline@4"
+				},
+				{
+					"command": "gerrit.applyQuickCheckout",
+					"when": "view == gerrit:quickCheckout && viewItem =~ /quickCheckout/",
+					"group": "inline@5"
+				},
+				{
+					"command": "gerrit.openOnline",
+					"when": "view == gerrit:changeExplorer && viewItem =~ /filechange/",
+					"group": "openFile@1"
+				},
+				{
+					"command": "gerrit.openModified",
+					"when": "view == gerrit:changeExplorer && viewItem =~ /filechange/ && viewItem =~ /modified/",
+					"group": "openFile@2"
+				},
+				{
+					"command": "gerrit.openOriginal",
+					"when": "view == gerrit:changeExplorer && viewItem =~ /filechange/ && viewItem =~ /modified/",
+					"group": "openFile@3"
+				},
+				{
+					"command": "gerrit.openInReview",
+					"when": "view == gerrit:changeExplorer && viewItem =~ /gerritchange/",
+					"group": "change@1"
+				},
+				{
+					"command": "gerrit.openPatchsetSelector",
+					"when": "view == gerrit:changeExplorer && viewItem =~ /gerritchange/",
+					"group": "change@2"
+				},
+				{
+					"command": "gerrit.resetPatchsetSelection",
+					"when": "view == gerrit:changeExplorer && viewItem =~ /gerritchange/ && viewItem =~ /customPatchset/",
+					"group": "change@3"
+				},
+				{
+					"command": "gerrit.checkoutBranch",
+					"when": "view == gerrit:changeExplorer && viewItem =~ /gerritchange/",
+					"group": "achange@1"
+				},
+				{
+					"command": "gerrit.quickCheckout",
+					"when": "view == gerrit:changeExplorer && viewItem =~ /gerritchange/",
+					"group": "achange@2"
+				},
+				{
+					"command": "gerrit.openChangeOnline",
+					"when": "view == gerrit:changeExplorer && viewItem =~ /gerritchange/",
+					"group": "achange@3"
+				},
+				{
+					"command": "gerrit.rebase",
+					"when": "view == gerrit:changeExplorer && viewItem =~ /gerritchange/ && viewItem =~ /noCurrent/",
+					"group": "achange@4"
+				},
+				{
+					"command": "gerrit.rebaseCurrent",
+					"when": "view == gerrit:changeExplorer && viewItem =~ /gerritchange/ && viewItem =~ /yesCurrent/",
+					"group": "achange@5"
+				},
+				{
+					"command": "gerrit.recursiveRebase",
+					"when": "view == gerrit:changeExplorer && viewItem =~ /gerritchange/ && viewItem =~ /noCurrent/",
+					"group": "achange@6"
+				},
+				{
+					"command": "gerrit.recursiveRebaseCurrent",
+					"when": "view == gerrit:changeExplorer && viewItem =~ /gerritchange/ && viewItem =~ /yesCurrent/",
+					"group": "achange@7"
+				},
+				{
+					"command": "gerrit.applyQuickCheckout",
+					"when": "view == gerrit:quickCheckout && viewItem =~ /quickCheckout/",
+					"group": "quickCheckout@1"
+				},
+				{
+					"command": "gerrit.popQuickCheckout",
+					"when": "view == gerrit:quickCheckout && viewItem =~ /quickCheckout/",
+					"group": "quickCheckout@2"
+				},
+				{
+					"command": "gerrit.dropQuickCheckout",
+					"when": "view == gerrit:quickCheckout && viewItem =~ /quickCheckout/",
+					"group": "quickCheckout@3"
+				}
+			],
+			"view/title": [
+				{
+					"command": "gerrit.clearSearchResults",
+					"when": "(view == gerrit:searchResults || view == gerrit:changeExplorer) && (gerrit:searchQuery || gerrit:searchChangeNumber)",
+					"group": "navigation@1"
+				},
+				{
+					"command": "gerrit.search",
+					"when": "view == gerrit:searchResults || view == gerrit:changeExplorer",
+					"group": "navigation@2"
+				},
+				{
+					"command": "gerrit.refreshChanges",
+					"when": "gerrit:connected && view == gerrit:changeExplorer",
+					"group": "navigation@3"
+				},
+				{
+					"command": "gerrit.selectActiveView",
+					"when": "view == gerrit:changeExplorer",
+					"group": "navigation@4"
+				},
+				{
+					"command": "gerrit.configureChangeList",
+					"when": "view == gerrit:changeExplorer",
+					"group": "navigation@5"
+				}
+			],
+			"editor/title": [
+				{
+					"command": "gerrit.previousUnresolvedComment",
+					"when": "resource =~ /_ctx_gerritDiff/ || resource =~ /_ctx_hasUnresolved/ || resource =~ /_ctx_patchsetLevel/",
+					"group": "navigation@1"
+				},
+				{
+					"command": "gerrit.nextUnresolvedComment",
+					"when": "resource =~ /_ctx_gerritDiff/ || resource =~ /_ctx_hasUnresolved/ || resource =~ /_ctx_patchsetLevel/",
+					"group": "navigation@2"
+				}
+			],
+			"scm/title": [
+				{
+					"command": "gerrit.pushForReview",
+					"when": "scmProvider =~ /git/ && gerrit:isUsingGerrit",
+					"group": "navigation@1"
+				},
+				{
+					"submenu": "git.gerrit",
+					"when": "scmProvider =~ /git/ && gerrit:isUsingGerrit",
+					"group": "2_main@8"
+				}
+			],
+			"git.gerrit": [
+				{
+					"command": "gerrit.pushForReview",
+					"group": "git_gerrit@1"
+				},
+				{
+					"command": "gerrit.rebaseCurrent",
+					"group": "git_gerrit@2"
+				},
+				{
+					"command": "gerrit.recursiveRebaseCurrent",
+					"group": "git_gerrit@3"
+				}
+			],
+			"editor/lineNumber/context": [
+				{
+					"command": "gerrit.openLineOnGitiles",
+					"group": "gerrit@1"
+				},
+				{
+					"command": "gerrit.openLineOnGitilesPermalink",
+					"group": "gerrit@2"
+				}
+			]
+		},
+		"submenus": [
+			{
+				"id": "git.gerrit",
+				"label": "Gerrit"
+			}
+		],
+		"viewsContainers": {
+			"activitybar": [
+				{
+					"id": "gerrit",
+					"title": "Gerrit",
+					"icon": "src/images/gerrit.svg"
+				}
+			]
+		},
+		"views": {
+			"gerrit": [
+				{
+					"id": "gerrit:changeExplorer",
+					"name": "Changes",
+					"type": "tree",
+					"visibility": "visible",
+					"when": "gerrit:isUsingGerrit"
+				},
+				{
+					"id": "gerrit:searchResults",
+					"name": "Search Results",
+					"type": "tree",
+					"visibility": "visible",
+					"when": "gerrit:searchQuery || gerrit:searchChangeNumber"
+				},
+				{
+					"id": "gerrit:review",
+					"name": "Review",
+					"type": "webview",
+					"visibility": "visible",
+					"when": "gerrit:isUsingGerrit"
+				},
+				{
+					"id": "gerrit:quickCheckout",
+					"name": "Quick Checkout",
+					"type": "tree",
+					"visibility": "collapsed",
+					"when": "gerrit:isUsingGerrit"
+				}
+			]
+		},
+		"viewsWelcome": [
+			{
+				"view": "gerrit:quickCheckout",
+				"contents": "No quick checkout stashes found, create one by right-clicking a change and selecting \"Quick-Checkout\""
+			}
+		],
+		"configuration": {
+			"type": "object",
+			"title": "Gerrit",
+			"properties": {
+				"gerrit.streamEvents": {
+					"type": "boolean",
+					"title": "Enable listening for events by SSH'ing to Gerrit",
+					"description": "Enable listening for events by SSH'ing to Gerrit. See https://gerrit-review.googlesource.com/Documentation/cmd-stream-events.html for more info",
+					"default": false
+				},
+				"gerrit.messages.postReviewNotification": {
+					"type": "boolean",
+					"title": "Show notification after running `git review`",
+					"description": "Show notification after running `git review` that allows you to either open the change online or in the review panel",
+					"default": true
+				},
+				"gerrit.quickCheckout.dropAllStashes": {
+					"type": "boolean",
+					"title": "Drop all git stashes after dropping quick checkouts",
+					"description": "Drop all git stashes after dropping quick checkouts as well"
+				},
+				"gerrit.quickCheckout.showInStatusBar": {
+					"type": "boolean",
+					"title": "Show quick checkouts in statusbar",
+					"description": "Whether quick checkout stashes should be shown in the statusbar for quick access"
+				},
+				"gerrit.auth.username": {
+					"type": "string",
+					"title": "Gerrit username",
+					"description": "Gerrit login username"
+				},
+				"gerrit.auth.password": {
+					"type": "string",
+					"title": "Gerrit password",
+					"description": "Gerrit password (see https://{your_gerit_host}/settings/#HTTPCredentials)"
+				},
+				"gerrit.auth.cookie": {
+					"type": "string",
+					"title": "Gerrit cookie",
+					"description": "Gerrit authentication cookie"
+				},
+				"gerrit.extraCookies": {
+					"type": "object",
+					"title": "Extra Gerrit cookies",
+					"description": "Other cookies besides the authentication cookie to send on every request"
+				},
+				"gerrit.auth.url": {
+					"type": "string",
+					"title": "URL of the gerrit server to use",
+					"description": "URL of the gerrit server to use (inferred from `.gitreview` if not provided). Uses HTTPS if no scheme is provided"
+				},
+				"gerrit.selectedView": {
+					"type": "string",
+					"title": "Active changes view",
+					"description": "Active changes view, one of the titles in \"gerrit.changesViews\"",
+					"default": "Dashboard"
+				},
+				"gerrit.expandComments": {
+					"type": "string",
+					"enum": [
+						"always",
+						"unresolved",
+						"never"
+					],
+					"default": "unresolved",
+					"description": "When inline comments should be expanded"
+				},
+				"gerrit.gitRepo": {
+					"type": "string",
+					"description": "Git repository to use (only needed for multi-git-repo setups)"
+				},
+				"gerrit.changeTitleTemplate": {
+					"type": "object",
+					"description": "Templates for showing the titles of changes in the CHANGES view. Use ${number}, ${subject/title}, ${owner}, ${repo}, ${branch}, ${status} as templates.",
+					"properties": {
+						"title": {
+							"type": "string",
+							"description": "Title of change, shown first in white text",
+							"examples": [
+								"${number}: ${subject} (${owner})",
+								"${number}: ${subject} (${owner}/${repo}/${branch})",
+								"${number}: ${subject} (${owner}/${repo}/${branch}/${status})"
+							],
+							"default": "#${number}: ${subject}"
+						},
+						"subtitle": {
+							"type": "string",
+							"description": "Subtitle of change, shown behind title in grey text",
+							"examples": [
+								"by ${owner}",
+								"($owner)",
+								"${owner}/${repo}/${branch}",
+								"${owner}/${repo}/${branch}/${status}"
+							],
+							"default": "by ${owner}"
+						}
+					},
+					"default": {
+						"title": "#${number}: ${subject}",
+						"subtitle": "by ${owner}"
+					}
+				},
+				"gerrit.forceEnable": {
+					"type": "boolean",
+					"default": false,
+					"description": "Force enable gerrit extension even for unsupported versions"
+				},
+				"gerrit.filterByProject": {
+					"type": "boolean",
+					"default": true,
+					"description": "Filter all changes by the current project"
+				},
+				"gerrit.changesViews": {
+					"type": "array",
+					"title": "Changes views",
+					"description": "A set of changes views. You can choose the currently selected view in the CHANGES view",
+					"minItems": 1,
+					"items": {
+						"type": "object",
+						"title": "View",
+						"description": "A single changes view similar to your Gerrit dashboard",
+						"required": [
+							"title",
+							"panels"
+						],
+						"properties": {
+							"title": {
+								"type": "string",
+								"description": "Name of this view"
+							},
+							"panels": {
+								"type": "array",
+								"title": "Panels",
+								"description": "Panels in a changes view",
+								"items": {
+									"type": "object",
+									"title": "Pane",
+									"description": "One pane in the changes view. These can be collapsed or expanded",
+									"required": [
+										"title",
+										"filters"
+									],
+									"properties": {
+										"title": {
+											"type": "string",
+											"title": "Title of the pane"
+										},
+										"refreshInterval": {
+											"type": "number",
+											"title": "Refresh interval (in seconds)",
+											"description": "Interval at which the entire pane is refreshed. Use 0 for no auto-refreshing",
+											"default": 300
+										},
+										"defaultCollapsed": {
+											"type": "boolean",
+											"title": "Whether this pane should be collapsed by default",
+											"default": false
+										},
+										"initialFetchCount": {
+											"type": "number",
+											"title": "Fetch count",
+											"description": "How many entries to fetch initially",
+											"default": 25
+										},
+										"extraEntriesFetchCount": {
+											"type": "number",
+											"title": "Extra entries to fetch",
+											"description": "Extra entries to fetch on clicking \"fetch more\"",
+											"default": 25
+										},
+										"filters": {
+											"type": "array",
+											"title": "Filters",
+											"description": "Filters to apply to the search, see Gerrit docs: https://gerrit-review.googlesource.com/Documentation/user-search.html",
+											"minItems": 1,
+											"items": {
+												"type": "string",
+												"title": "Filter",
+												"description": "Gerrit filter to use. See Gerrit docs: https://gerrit-review.googlesource.com/Documentation/user-search.html"
+											},
+											"default": [
+												"is:open",
+												"owner:self"
+											]
+										}
+									},
+									"examples": [
+										{
+											"title": "Your Turn",
+											"refreshInterval": 300,
+											"defaultCollapsed": false,
+											"initialFetchCount": 25,
+											"extraEntriesFetchCount": 25,
+											"filters": [
+												"attention:self"
+											]
+										},
+										{
+											"title": "Work In Progress",
+											"refreshInterval": 300,
+											"defaultCollapsed": false,
+											"initialFetchCount": 25,
+											"extraEntriesFetchCount": 25,
+											"filters": [
+												"is:open",
+												"owner:self",
+												"is:wip"
+											]
+										},
+										{
+											"title": "Outgoing Reviews",
+											"refreshInterval": 300,
+											"defaultCollapsed": false,
+											"initialFetchCount": 25,
+											"extraEntriesFetchCount": 25,
+											"filters": [
+												"is:open",
+												"owner:self",
+												"-is:wip"
+											]
+										},
+										{
+											"title": "Incoming Reviews",
+											"refreshInterval": 300,
+											"defaultCollapsed": false,
+											"initialFetchCount": 25,
+											"extraEntriesFetchCount": 25,
+											"filters": [
+												"is:open",
+												"-owner:self",
+												"-is:wip",
+												"reviewer:self"
+											]
+										},
+										{
+											"title": "CCed on",
+											"refreshInterval": 300,
+											"defaultCollapsed": false,
+											"initialFetchCount": 25,
+											"extraEntriesFetchCount": 25,
+											"filters": [
+												"is:open",
+												"cc:self"
+											]
+										},
+										{
+											"title": "Recently Closed",
+											"refreshInterval": 1500,
+											"defaultCollapsed": true,
+											"initialFetchCount": 10,
+											"extraEntriesFetchCount": 25,
+											"filters": [
+												"is:closed",
+												"-is:wip OR owner:self",
+												"owner:self OR reviewer:self OR cc:self"
+											]
+										}
+									]
+								}
+							}
+						}
+					},
+					"default": [
+						{
+							"title": "Dashboard",
+							"panels": [
+								{
+									"title": "Your Turn",
+									"refreshInterval": 300,
+									"defaultCollapsed": false,
+									"initialFetchCount": 25,
+									"extraEntriesFetchCount": 25,
+									"filters": [
+										"attention:self"
+									]
+								},
+								{
+									"title": "Work In Progress",
+									"refreshInterval": 300,
+									"defaultCollapsed": false,
+									"initialFetchCount": 25,
+									"extraEntriesFetchCount": 25,
+									"filters": [
+										"is:open",
+										"owner:self",
+										"is:wip"
+									]
+								},
+								{
+									"title": "Outgoing Reviews",
+									"refreshInterval": 300,
+									"defaultCollapsed": false,
+									"initialFetchCount": 25,
+									"extraEntriesFetchCount": 25,
+									"filters": [
+										"is:open",
+										"owner:self",
+										"-is:wip"
+									]
+								},
+								{
+									"title": "Incoming Reviews",
+									"refreshInterval": 300,
+									"defaultCollapsed": false,
+									"initialFetchCount": 25,
+									"extraEntriesFetchCount": 25,
+									"filters": [
+										"is:open",
+										"-owner:self",
+										"-is:wip",
+										"reviewer:self"
+									]
+								},
+								{
+									"title": "CCed on",
+									"refreshInterval": 300,
+									"defaultCollapsed": false,
+									"initialFetchCount": 25,
+									"extraEntriesFetchCount": 25,
+									"filters": [
+										"is:open",
+										"cc:self"
+									]
+								},
+								{
+									"title": "Recently Closed",
+									"refreshInterval": 1500,
+									"defaultCollapsed": true,
+									"initialFetchCount": 10,
+									"extraEntriesFetchCount": 25,
+									"filters": [
+										"is:closed",
+										"-is:wip OR owner:self",
+										"owner:self OR reviewer:self OR cc:self"
+									]
+								}
+							]
+						},
+						{
+							"title": "Starred",
+							"panels": [
+								{
+									"title": "Starred",
+									"refreshInterval": 500,
+									"defaultCollapsed": false,
+									"initialFetchCount": 25,
+									"extraEntriesFetchCount": 25,
+									"filters": [
+										"is:starred"
+									]
+								}
+							]
+						},
+						{
+							"title": "Watched",
+							"panels": [
+								{
+									"title": "Watched",
+									"refreshInterval": 500,
+									"defaultCollapsed": false,
+									"initialFetchCount": 25,
+									"extraEntriesFetchCount": 25,
+									"filters": [
+										"is:watched",
+										"is:open"
+									]
+								}
+							]
+						},
+						{
+							"title": "Draft",
+							"panels": [
+								{
+									"title": "Draft",
+									"refreshInterval": 500,
+									"defaultCollapsed": false,
+									"initialFetchCount": 25,
+									"extraEntriesFetchCount": 25,
+									"filters": [
+										"has:draft"
+									]
+								}
+							]
+						},
+						{
+							"title": "My Changes",
+							"panels": [
+								{
+									"title": "My Changes",
+									"refreshInterval": 500,
+									"defaultCollapsed": false,
+									"initialFetchCount": 25,
+									"extraEntriesFetchCount": 25,
+									"filters": [
+										"is:open",
+										"owner:self"
+									]
+								}
+							]
+						}
+					]
+				},
+				"gerrit.allowInvalidSSLCerts": {
+					"type": "boolean",
+					"title": "Allow requests to failed/invalid SSL certs",
+					"description": "Note: before you use this, ask your server maintainer to fix their certs. This option can can be dangerous.",
+					"default": false
+				},
+				"gerrit.customAuthUrlPrefix": {
+					"type": "string",
+					"title": "Add a custom prefix to use for authenticated links",
+					"description": "Changes the default authentication prefix from \"a/\" to a custom string. This should only be necessary if using a non-standard gerrit instance.",
+					"default": "a/"
+				}
+			}
+		}
+	},
+	"watch": {
+		"generate-package": {
+			"patterns": [
+				"src/commands"
+			],
+			"extensions": "ts"
+		}
+	},
+	"scripts": {
+		"prepack": "bun generate-package && bun prettier --check src/ && bun lint && bun compile && bun run build",
+		"vscode:prepublish": "bun run prepack",
+		"compile": "tsc --noEmit -p ./src && tsc --noEmit -p src/views/activityBar/review/html/src/tsconfig.json",
+		"compile:debug": "tsc -p ./src && tsc -p src/views/activityBar/review/html/src/tsconfig.json",
+		"watch": "npm-run-all -p watch:compile watch:build",
+		"watch:compile": "tsc -p ./src -w",
+		"watch:build": "bun build:debug:review:js --watch",
+		"build:review:js": "esbuild --bundle --outfile=out/review/index.js src/views/activityBar/review/html/src/index.tsx --minify",
+		"build:debug:review:js": "esbuild --bundle --outfile=out/review/index.js src/views/activityBar/review/html/src/index.tsx",
+		"build:review:codicons:css": "bun run copy node_modules/@vscode/codicons/dist/codicon.css out/review/codicon.css",
+		"build:review:codicons:ttf": "bun run copy node_modules/@vscode/codicons/dist/codicon.ttf out/review/codicon.ttf",
+		"build:review:css": "bun run copy src/views/activityBar/review/css/index.css out/review/index.css",
+		"build:main": "esbuild --minify --bundle --outfile=out/extension.js src/extension.ts --platform=node --external:vscode",
+		"build:debug:main": "esbuild --bundle --outfile=out/extension.js src/extension.ts --platform=node --external:vscode --define:process.env.DEV_OVERRIDE=true",
+		"build": "rimraf ./out && bun run build:main && bun run build:review:js && bun run build:review:css && bun run build:review:codicons:css && bun run build:review:codicons:ttf",
+		"build:debug": "rimraf ./out && bun run build:debug:main && bun run build:debug:review:js && bun run build:review:css && bun run build:review:codicons:css && bun run build:review:codicons:ttf",
+		"pretest": "bun run compile && bun run lint",
+		"lint": "eslint src --ext ts",
+		"format-staged": "(git diff --ignore-submodules --quiet && bun format) || pretty-quick src/",
+		"format": "prettier --write src/",
+		"copy": "ts-node -T scripts/copy.ts",
+		"package": "bun run prepack && bun vsce package",
+		"package-dev": "bun prepush && bun run build:debug && bun vsce package",
+		"generate-package": "generate-package-json generate --name Gerrit --input src/commands/defs.ts -w -p package.json --handler src/commands/commands.ts --validate --prefix Gerrit && prettier --write package.json",
+		"prepush": "bun generate-package && bun format-staged && bun lint --fix && bun compile"
+	},
+	"devDependencies": {
+		"@emotion/react": "^11.7.0",
+		"@emotion/styled": "^11.6.0",
+		"@mui/material": "^5.2.3",
+		"@types/fs-extra": "^9.0.13",
+		"@types/glob": "^7.1.4",
+		"@types/mocha": "^9.0.0",
+		"@types/node": "14.x",
+		"@types/react": "^17.0.37",
+		"@types/react-dom": "^17.0.11",
+		"@types/vscode": "^1.62.0",
+		"@typescript-eslint/eslint-plugin": "^5.1.0",
+		"@typescript-eslint/parser": "^5.4.0",
+		"@vscode/codicons": "^0.0.26",
+		"@vscode/test-electron": "^1.6.2",
+		"@vscode/webview-ui-toolkit": "^0.8.4",
+		"esbuild": "^0.14.2",
+		"eslint": "^8.3.0",
+		"eslint-plugin-node": "^11.1.0",
+		"eslint-plugin-react": "^7.27.1",
+		"eslint-plugin-react-hooks": "^4.3.0",
+		"eslint-plugin-unused-imports": "^2.0.0",
+		"fs-extra": "^10.0.0",
+		"glob": "^7.1.7",
+		"mocha": "^9.1.3",
+		"npm-run-all": "^4.1.5",
+		"prettier": "^3.3.2",
+		"prettier-plugin-sort-imports": "^1.0.1",
+		"pretty-quick": "^4.0.0",
+		"react": "^17.0.2",
+		"react-dom": "^17.0.2",
+		"react-select-search": "^3.0.9",
+		"rimraf": "^3.0.2",
+		"ts-node": "^10.4.0",
+		"typescript": "^4.5.2",
+		"vsce": "^2.6.0",
+		"vscode-generate-package-json": "1.2.2"
+	},
+	"dependencies": {
+		"gitdiff-parser": "^0.2.2",
+		"got": "^11.8.5"
+	}
 }

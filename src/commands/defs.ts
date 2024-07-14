@@ -373,10 +373,6 @@ export const views: {
 					contextProp('gerrit:hasCommentFeature')
 				),
 			},
-			{
-				command: GerritExtensionCommands.COLLAPSE_ALL_COMMENTS,
-				when: IS_GERRTIT_COMMENT_CONTROLLER,
-			},
 		],
 	},
 	'comments/comment/title': {

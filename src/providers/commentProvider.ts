@@ -200,7 +200,7 @@ export class DocumentCommentManager {
 							(c) =>
 								c.side ??
 								GerritCommentSide.RIGHT === fileMeta.side
-						);
+					  );
 			let threads = DocumentCommentManager.getThreadRanges(
 				DocumentCommentManager.buildThreadsFromComments(
 					thisSideComments
@@ -292,10 +292,6 @@ export class DocumentCommentManager {
 
 	public getLineThreadCount(lineNumber: number): number {
 		return this._threadLineCount.get(lineNumber) ?? 0;
-	}
-
-	public collapseAll(): void {
-		this._threadMap.values().forEach((thread) => thread.collapse());
 	}
 
 	public dispose(): void {
@@ -707,18 +703,6 @@ export class CommentManager {
 		return this._commentManagersByChangeID.get(changeID) || [];
 	}
 
-	public static collapseAll(): void {
-		const editor = window.activeTextEditor;
-		if (!editor) {
-			return;
-		}
-
-		const manager = this.getFileManagerForUri(editor.document.uri);
-		if (manager) {
-			manager.collapseAll();
-		}
-	}
-
 	public static dispose(): void {
 		this._commentController.dispose();
 		this._disposables.forEach((d) => void d.dispose());
@@ -822,10 +806,6 @@ export async function setCommentResolved(
 		return;
 	}
 	await gthread.setResolved(isResolved);
-}
-
-export function collapseAllComments(): void {
-	CommentManager.collapseAll();
 }
 
 export async function editComment(comment: GerritCommentBase): Promise<void> {

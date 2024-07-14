@@ -259,10 +259,6 @@ export class GerritCommentThread extends OnceDisposable {
 		);
 	}
 
-	public collapse(): void {
-		this._thread.collapsibleState = CommentThreadCollapsibleState.Collapsed;
-	}
-
 	public expand(): void {
 		this._thread.collapsibleState = CommentThreadCollapsibleState.Expanded;
 	}

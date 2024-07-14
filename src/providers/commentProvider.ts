@@ -60,6 +60,12 @@ export class DocumentCommentManager {
 	private _createdThreads = new Set<CommentThread>();
 	private _threadLineCount: Map<number, number> = new Map();
 	private _commentLoader: Promise<void> | null = null;
+	public diffData?: {
+		diff: gitDiffParser.File;
+		file: GerritFile;
+		oldDiffParsed: gitDiffParser.File;
+		newHash: string;
+	};
 
 	public constructor(
 		public readonly document: Uri,
@@ -68,12 +74,6 @@ export class DocumentCommentManager {
 		public readonly metadata: {
 			changeID: string;
 			revision: PatchsetDescription;
-		},
-		public readonly diffData?: {
-			diff: gitDiffParser.File;
-			file: GerritFile;
-			oldDiffParsed: gitDiffParser.File;
-			newHash: string;
 		}
 	) {}
 
@@ -365,26 +365,28 @@ export class CommentManager {
 		DocumentCommentManager[]
 	> = new Map();
 
-	private static _createManager(
+	private static _getOrCreateManager(
 		document: TextDocument,
 		filePath: string,
 		metaData: {
 			changeID: string;
 			revision: PatchsetDescription;
-		},
-		diffData?: {
-			diff: gitDiffParser.File;
-			file: GerritFile;
-			oldDiffParsed: gitDiffParser.File;
-			newHash: string;
 		}
-	): DocumentCommentManager {
+	): { hadManager: boolean; manager: DocumentCommentManager } {
+		if (this._commentManagersByURI.has(document.uri.toString())) {
+			return {
+				hadManager: true,
+				manager: this._commentManagersByURI.get(
+					document.uri.toString()
+				)!,
+			};
+		}
+
 		const manager = new DocumentCommentManager(
 			document.uri,
 			this._commentController,
 			filePath,
-			metaData,
-			diffData
+			metaData
 		);
 		this._commentManagersByURI.set(document.uri.toString(), manager);
 		if (!this._commentManagersByChangeID.has(metaData.changeID)) {
@@ -392,7 +394,10 @@ export class CommentManager {
 		}
 		this._commentManagersByChangeID.get(metaData.changeID)!.push(manager);
 
-		return manager;
+		return {
+			hadManager: false,
+			manager,
+		};
 	}
 
 	private static async _getFileRanges(
@@ -481,7 +486,7 @@ export class CommentManager {
 				? this.mapOldPositionToNew(
 						modifiedDiffParsed[0],
 						hunk.newStart + hunk.newLines - 1
-					)
+				  )
 				: hunk.newStart + hunk.newLines - 1;
 			if (start > 0 && end > 0) {
 				ranges.push(new Range(start - 1, 0, end - 1, 0));
@@ -631,102 +636,59 @@ export class CommentManager {
 		this._commentController.commentingRangeProvider = {
 			provideCommentingRanges: async (document) => {
 				const meta = FileMetaWithSideAndBase.tryFrom(document.uri);
-				const hasManager = CommentManager._commentManagersByURI.has(
-					document.uri.toString()
-				);
 				if (meta) {
 					const lineCount = document.lineCount;
-					if (!hasManager) {
-						void (async () => {
-							const manager = CommentManager._createManager(
-								document,
-								meta.filePath,
-								{
-									changeID: meta.changeID,
-									revision: meta.commit,
-								}
-							);
-							await manager.loadComments();
-						})();
+					const { hadManager, manager } =
+						CommentManager._getOrCreateManager(
+							document,
+							meta.filePath,
+							{
+								changeID: meta.changeID,
+								revision: meta.commit,
+							}
+						);
+
+					if (!hadManager) {
+						void manager.loadComments();
 					}
 					return [new Range(0, 0, lineCount - 1, 0)];
 				} else {
-					const manager = CommentManager._commentManagersByURI.get(
-						document.uri.toString()
+					const file = await CommentManager.getFileFromOpenDocument(
+						gerritRepo,
+						document
 					);
-					const result = await (async () => {
-						if (manager?.diffData) {
-							const result = await CommentManager._getFileRanges(
-								gerritRepo,
-								manager.diffData.file,
-								document,
-								{
-									oldDiffParsed:
-										manager.diffData.oldDiffParsed,
-									newHash: manager.diffData.newHash,
-								}
-							);
-							if (!result) {
-								return null;
+					if (!file) {
+						return [];
+					}
+					const { hadManager, manager } =
+						CommentManager._getOrCreateManager(
+							document,
+							file.filePath,
+							{
+								changeID: file.changeID,
+								revision: file.currentRevision,
 							}
-
-							return {
-								...result,
-								file: manager.diffData.file,
-							};
-						}
-
-						const file =
-							await CommentManager.getFileFromOpenDocument(
-								gerritRepo,
-								document
-							);
-						if (!file) {
-							return null;
-						}
-						const result = await CommentManager._getFileRanges(
-							gerritRepo,
-							file,
-							document
 						);
-						if (!result) {
-							return null;
-						}
 
-						return {
-							...result,
-							file,
-						};
-					})();
+					const result = await CommentManager._getFileRanges(
+						gerritRepo,
+						file,
+						document
+					);
 
 					if (!result) {
 						return null;
 					}
 
-					const { diff, file, ranges, newHash, oldDiffParsed } =
-						result;
-
-					if (!hasManager) {
-						void (async () => {
-							const manager = CommentManager._createManager(
-								document,
-								file.filePath,
-								{
-									changeID: file.changeID,
-									revision: file.currentRevision,
-								},
-								{
-									diff,
-									oldDiffParsed: oldDiffParsed,
-									file: file,
-									newHash: newHash,
-								}
-							);
-							await manager.loadComments();
-						})();
+					if (!hadManager) {
+						manager.diffData = {
+							...result,
+							file,
+						};
+						void manager.loadComments();
 					}
 
-					return ranges;
+					return result.ranges;
 				}
 			},
 		};
@@ -779,7 +741,7 @@ async function createComment(
 		? DocumentCommentManager.applyDiffToCommentRange(
 				thread.thread.range,
 				manager.diffData.diff
-			)
+		  )
 		: thread.thread.range;
 
 	const meta = FileMetaWithSideAndBase.tryFrom(thread.thread.uri);

@@ -10,7 +10,6 @@ export enum GerritExtensionCommands {
 	EDIT_COMMENT = 'gerrit.editComment',
 	RESOLVE_COMMENT = 'gerrit.toggleResolvedOn',
 	UNRESOLVE_COMMENT = 'gerrit.toggleResolvedOff',
-	COLLAPSE_ALL_COMMENTS = 'gerrit.collapseAllComments',
 	FILE_OPEN_ONLINE = 'gerrit.openOnline',
 	FILE_OPEN_MODIFIED = 'gerrit.openModified',
 	FILE_OPEN_ORIGINAL = 'gerrit.openOriginal',

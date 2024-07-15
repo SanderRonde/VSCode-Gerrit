@@ -1,6 +1,5 @@
 import {
 	cancelComment,
-	collapseAllComments,
 	saveComment,
 	deleteComment,
 	editComment,
@@ -127,11 +126,6 @@ export function registerCommands(
 			GerritExtensionCommands.UNRESOLVE_COMMENT,
 			(reply: NewlyCreatedGerritCommentReply) =>
 				setCommentResolved(reply, false)
-		)
-	);
-	context.subscriptions.push(
-		registerCommand(GerritExtensionCommands.COLLAPSE_ALL_COMMENTS, () =>
-			collapseAllComments()
 		)
 	);
 	context.subscriptions.push(

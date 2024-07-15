@@ -721,11 +721,6 @@
 					"command": "gerrit.openCommentOnline",
 					"when": "commentController == gerrit && gerrit:hasCommentFeature",
 					"group": "collapse@4"
-				},
-				{
-					"command": "gerrit.collapseAllComments",
-					"when": "commentController == gerrit",
-					"group": "collapse@5"
 				}
 			],
 			"comments/comment/title": [

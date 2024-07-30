@@ -4,7 +4,7 @@
 	"description": "VSCode gerrit integration",
 	"version": "1.2.41",
 	"engines": {
-		"vscode": "^1.62.0",
+		"vscode": "^1.74.0",
 		"node": ">=14.16.0"
 	},
 	"license": "MIT",
@@ -1425,7 +1425,7 @@
 		"@types/node": "14.x",
 		"@types/react": "^17.0.37",
 		"@types/react-dom": "^17.0.11",
-		"@types/vscode": "^1.91.0",
+		"@types/vscode": "1.74",
 		"@typescript-eslint/eslint-plugin": "^5.1.0",
 		"@typescript-eslint/parser": "^5.4.0",
 		"@vscode/codicons": "^0.0.26",

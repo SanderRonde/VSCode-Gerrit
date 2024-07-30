@@ -13,24 +13,32 @@ import {
 	ReviewWebviewMessage,
 	SubmitMessage,
 } from './review/messaging';
+import {
+	GerritRepo,
+	getRepoFromUri,
+	onChangeCurrentRepo,
+} from '../../lib/gerrit/gerritRepo';
+import {
+	ChangeIDWithRepo,
+	GerritChange,
+} from '../../lib/gerrit/gerritAPI/gerritChange';
 import { GerritChangeDetail } from '../../lib/gerrit/gerritAPI/gerritChangeDetail';
 import { storageGet, StorageScope, storageSet } from '../../lib/vscode/storage';
 import { ChangeState, ReviewPerson, ReviewWebviewState } from './review/state';
-import { GerritChange } from '../../lib/gerrit/gerritAPI/gerritChange';
 import { GerritChangeStatus } from '../../lib/gerrit/gerritAPI/types';
 import { GerritGroup } from '../../lib/gerrit/gerritAPI/gerritGroup';
 import { GerritUser } from '../../lib/gerrit/gerritAPI/gerritUser';
 import { CommentManager } from '../../providers/commentProvider';
 import { TypedWebview, TypedWebviewView } from './review/types';
 import { GerritAPIWith } from '../../lib/gerrit/gerritAPI/api';
-import { Repository } from '../../types/vscode-extension-git';
-import { getCurrentChangeID } from '../../lib/git/commit';
+import { getAPIForRepo } from '../../lib/gerrit/gerritAPI';
+import { getCurrentChange } from '../../lib/git/commit';
 import { onChangeLastCommit } from '../../lib/git/git';
-import { getAPI } from '../../lib/gerrit/gerritAPI';
 import { mappedMax } from '../../lib/util/util';
+import { Data } from '../../lib/util/data';
 import { getHTML } from './review/html';
 
-class ReviewWebviewProvider implements WebviewViewProvider, Disposable {
+export class ReviewWebviewProvider implements WebviewViewProvider, Disposable {
 	private readonly _ready: EventEmitter<void> = new EventEmitter<void>();
 	private readonly _onReady = new Promise<void>((resolve) => {
 		const disposable = this._ready.event(() => {
@@ -43,16 +51,21 @@ class ReviewWebviewProvider implements WebviewViewProvider, Disposable {
 	private readonly _disposables: Disposable[] = [];
 	private _lastState: ReviewWebviewState | null = null;
 
-	private constructor(
-		private readonly _gerritRepo: Repository,
+	public constructor(
+		private readonly _gerritReposD: Data<GerritRepo[]>,
 		private readonly _context: ExtensionContext
-	) {}
+	) {
+		this._context.subscriptions.push(
+			onChangeCurrentRepo(this._gerritReposD, async () => {
+				await this.updateAllStates();
+			})
+		);
 
-	public static async create(
-		gerritRepo: Repository,
-		context: ExtensionContext
-	): Promise<ReviewWebviewProvider> {
-		return await new this(gerritRepo, context).init();
+		this._context.subscriptions.push(
+			onChangeLastCommit(this._gerritReposD, async () => {
+				await this.updateAllStates();
+			})
+		);
 	}
 
 	private async _getChangeMessage(
@@ -140,28 +153,33 @@ class ReviewWebviewProvider implements WebviewViewProvider, Disposable {
 	}
 
 	private async _getChangeState(
-		changeID: string,
+		changeDescriptor: ChangeIDWithRepo,
 		initialState?: Partial<ChangeState> | undefined
 	): Promise<ChangeState | undefined> {
-		const api = await getAPI(true);
+		const api = await getAPIForRepo(
+			this._gerritReposD,
+			changeDescriptor.gerritRepo
+		);
 		if (!api) {
 			return undefined;
 		}
 
-		const changeSubscription = await GerritChange.getChange(changeID, [
-			GerritAPIWith.DETAILED_ACCOUNTS,
-			GerritAPIWith.ALL_REVISIONS,
-		]);
-		const draftCommentSubscription = api.getDraftComments(changeID);
-		const [change, detail, reviewers, cc, draftComments, self, mergeable] =
+		const changeSubscription = await GerritChange.getChange(
+			this._gerritReposD,
+			changeDescriptor,
+			[GerritAPIWith.DETAILED_ACCOUNTS, GerritAPIWith.ALL_REVISIONS]
+		);
+		const draftCommentSubscription = api.getDraftComments(
+			changeDescriptor.changeID
+		);
+		const [change, detail, reviewers, cc, draftComments, self] =
 			await Promise.all([
 				changeSubscription.getValue(),
-				api.getChangeDetail(changeID),
-				api.suggestReviewers(changeID),
-				api.suggestCC(changeID),
+				api.getChangeDetail(changeDescriptor.changeID),
+				api.suggestReviewers(changeDescriptor.changeID),
+				api.suggestCC(changeDescriptor.changeID),
 				draftCommentSubscription.getValue(),
 				api.getSelf(),
-				api.getChangeMergable(changeID),
 			]);
 
 		[changeSubscription, draftCommentSubscription].map((s) =>
@@ -183,11 +201,22 @@ class ReviewWebviewProvider implements WebviewViewProvider, Disposable {
 			return undefined;
 		}
 
+		let mergeable = false;
+		if (change.status === GerritChangeStatus.NEW) {
+			mergeable =
+				(await api.getChangeMergable(changeDescriptor.changeID))
+					?.mergeable ?? false;
+		}
+
 		const draftCommentCount = [...draftComments.values()].reduce(
 			(p, c) => p + c.length,
 			0
 		);
-		const isOwner = await GerritUser.isSelf(change.owner._account_id);
+		const isOwner = await GerritUser.isSelf(
+			this._gerritReposD,
+			change.gerritRepo,
+			change.owner._account_id
+		);
 		return {
 			number: change.number,
 			changeID: change.changeID,
@@ -223,25 +252,55 @@ class ReviewWebviewProvider implements WebviewViewProvider, Disposable {
 			isNew: change.status === GerritChangeStatus.NEW,
 			fetchedAt:
 				change.fetchedAt.timestamp() + detail.fetchedAt.timestamp(),
-			mergeable: mergeable?.mergeable ?? false,
+			mergeable: mergeable,
+		};
+	}
+
+	private async _getOverriddenChange(): Promise<
+		ChangeIDWithRepo | null | undefined
+	> {
+		const overriddenChangeID = await storageGet(
+			'reviewChangeIDOverride',
+			StorageScope.WORKSPACE
+		);
+
+		if (!overriddenChangeID) {
+			return overriddenChangeID;
+		}
+
+		if (typeof overriddenChangeID === 'string') {
+			// Legacy format
+			return null;
+		}
+
+		const repo = getRepoFromUri(
+			this._gerritReposD.get(),
+			overriddenChangeID.repoURI
+		);
+		if (!repo) {
+			return null;
+		}
+
+		return {
+			changeID: overriddenChangeID.changeID,
+			gerritRepo: repo,
 		};
 	}
 
 	private async _getState(
 		initialState?: ReviewWebviewState
 	): Promise<ReviewWebviewState> {
-		const currentChangeID = await getCurrentChangeID(this._gerritRepo);
-
-		const overriddenChangeID = await storageGet(
-			'reviewChangeIDOverride',
-			StorageScope.WORKSPACE
+		const currentChangeID = await getCurrentChange(
+			this._gerritReposD.get(),
+			'silent'
 		);
 
+		const overriddenChange = await this._getOverriddenChange();
 		const retval = {
 			...initialState,
-			overriddenChange: overriddenChangeID
+			overriddenChange: overriddenChange
 				? await this._getChangeState(
-						overriddenChangeID,
+						overriddenChange,
 						initialState?.overriddenChange
 					)
 				: undefined,
@@ -259,7 +318,16 @@ class ReviewWebviewProvider implements WebviewViewProvider, Disposable {
 	private async _handleGetPeopleMessage(
 		msg: GetPeopleMessage
 	): Promise<void> {
-		const api = await getAPI();
+		const currentChange =
+			(await this._getOverriddenChange()) ??
+			(await getCurrentChange(this._gerritReposD.get(), 'silent'));
+		if (!currentChange) {
+			return;
+		}
+		const api = await getAPIForRepo(
+			this._gerritReposD,
+			currentChange.gerritRepo
+		);
 		if (!api) {
 			return;
 		}
@@ -282,9 +350,21 @@ class ReviewWebviewProvider implements WebviewViewProvider, Disposable {
 	private async _handleCommentUpdateMessage(
 		msg: CommentUpdateMessage
 	): Promise<void> {
-		const change = await GerritChange.getChangeOnce(msg.body.changeID, [
-			GerritAPIWith.ALL_REVISIONS,
-		]);
+		const currentChange =
+			(await this._getOverriddenChange()) ??
+			(await getCurrentChange(this._gerritReposD.get(), 'silent'));
+		if (!currentChange) {
+			return;
+		}
+
+		const change = await GerritChange.getChangeOnce(
+			this._gerritReposD,
+			{
+				changeID: msg.body.changeID,
+				gerritRepo: currentChange.gerritRepo,
+			},
+			[GerritAPIWith.ALL_REVISIONS]
+		);
 		if (!change) {
 			return;
 		}
@@ -315,7 +395,17 @@ class ReviewWebviewProvider implements WebviewViewProvider, Disposable {
 		msg: PublishMessage,
 		srcView: TypedWebview<ReviewWebviewMessage>
 	): Promise<void> {
-		const api = await getAPI();
+		const currentChange =
+			(await this._getOverriddenChange()) ??
+			(await getCurrentChange(this._gerritReposD.get(), 'silent'));
+		if (!currentChange) {
+			return;
+		}
+
+		const api = await getAPIForRepo(
+			this._gerritReposD,
+			currentChange.gerritRepo
+		);
 		if (!api) {
 			await srcView.postMessage({
 				type: 'publishFailed',
@@ -323,7 +413,10 @@ class ReviewWebviewProvider implements WebviewViewProvider, Disposable {
 			return;
 		}
 
-		const subscription = await GerritChange.getChange(msg.body.changeID);
+		const subscription = await GerritChange.getChange(this._gerritReposD, {
+			changeID: msg.body.changeID,
+			gerritRepo: currentChange.gerritRepo,
+		});
 		const change = await subscription.getValue();
 		if (!change) {
 			await srcView.postMessage({
@@ -372,7 +465,17 @@ class ReviewWebviewProvider implements WebviewViewProvider, Disposable {
 		msg: SubmitMessage,
 		srcView: TypedWebview<ReviewWebviewMessage>
 	): Promise<void> {
-		const api = await getAPI();
+		const currentChange =
+			(await this._getOverriddenChange()) ??
+			(await getCurrentChange(this._gerritReposD.get(), 'silent'));
+		if (!currentChange) {
+			return;
+		}
+
+		const api = await getAPIForRepo(
+			this._gerritReposD,
+			currentChange.gerritRepo
+		);
 		if (!api) {
 			await srcView.postMessage({
 				type: 'publishFailed',
@@ -455,19 +558,6 @@ class ReviewWebviewProvider implements WebviewViewProvider, Disposable {
 		await Promise.all([...this._views.values()].map((v) => v.show()));
 	}
 
-	public async init(): Promise<this> {
-		this._context.subscriptions.push(
-			await onChangeLastCommit(
-				this._gerritRepo,
-				async () => {
-					await this.updateAllStates();
-				},
-				true
-			)
-		);
-		return this;
-	}
-
 	public async resolveWebviewView(
 		webviewView: TypedWebviewView<ReviewWebviewMessage>,
 		context: WebviewViewResolveContext<ReviewWebviewState>,
@@ -521,22 +611,4 @@ class ReviewWebviewProvider implements WebviewViewProvider, Disposable {
 	public dispose(): void {
 		this._disposables.forEach((d) => void d.dispose());
 	}
-}
-
-let reviewWebviewProvider: ReviewWebviewProvider | null = null;
-export async function getOrCreateReviewWebviewProvider(
-	gerritRepo: Repository,
-	context: ExtensionContext
-): Promise<ReviewWebviewProvider> {
-	if (reviewWebviewProvider) {
-		return reviewWebviewProvider;
-	}
-	return (reviewWebviewProvider = await ReviewWebviewProvider.create(
-		gerritRepo,
-		context
-	));
-}
-
-export function getReviewWebviewProvider(): ReviewWebviewProvider | null {
-	return reviewWebviewProvider;
 }

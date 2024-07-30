@@ -2,6 +2,10 @@ import {
 	DefaultChangeFilter,
 	GerritChangeFilter,
 } from '../../../lib/gerrit/gerritAPI/filters';
+import {
+	GerritRemoteWithConfig,
+	GerritRepo,
+} from '../../../lib/gerrit/gerritRepo';
 import { CanFetchMoreTreeProvider } from '../shared/canFetchMoreTreeProvider';
 import { GerritChange } from '../../../lib/gerrit/gerritAPI/gerritChange';
 import { TreeItemWithChildren, TreeViewItem } from '../shared/treeTypes';
@@ -9,12 +13,13 @@ import { Subscribable } from '../../../lib/subscriptions/subscriptions';
 import { Disposable, TreeItem, TreeItemCollapsibleState } from 'vscode';
 import { ChangeTreeView, PatchsetDescription } from './changeTreeView';
 import { GerritAPIWith } from '../../../lib/gerrit/gerritAPI/api';
-import { Repository } from '../../../types/vscode-extension-git';
+import { getAPIForRemote } from '../../../lib/gerrit/gerritAPI';
 import { optionalArrayEntry } from '../../../lib/util/util';
 import { ChangesPanel } from '../../../lib/vscode/config';
 import { FetchMoreTreeItem } from './fetchMoreTreeItem';
 import { RootTreeViewProvider } from './rootTreeView';
 import { Refreshable } from '../shared/refreshable';
+import { Data } from '../../../lib/util/data';
 import { log } from '../../../lib/util/log';
 
 export enum DashboardGroupContainerGroup {
@@ -44,7 +49,8 @@ export class ViewPanel
 	> = new Map();
 
 	public constructor(
-		protected readonly _gerritRepo: Repository,
+		public readonly gerritReposD: Data<GerritRepo[]>,
+		public readonly gerritRemote: GerritRemoteWithConfig,
 		public readonly parent: RootTreeViewProvider,
 		private readonly _panel: ChangesPanel
 	) {
@@ -98,7 +104,12 @@ export class ViewPanel
 		offset: number,
 		count: number
 	): Promise<Subscribable<GerritChange[]> | null> {
-		const subscription = await GerritChange.getChanges(
+		const api = await getAPIForRemote(this.gerritReposD, this.gerritRemote);
+		if (!api) {
+			return null;
+		}
+
+		const subscription = api.getChanges(
 			[
 				this._getFilters() as (
 					| DefaultChangeFilter

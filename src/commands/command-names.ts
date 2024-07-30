@@ -44,7 +44,6 @@ export enum GerritExtensionCommands {
 	QUICK_CHECKOUT_POP = 'gerrit.popQuickCheckout',
 	DROP_QUICK_CHECKOUT = 'gerrit.dropQuickCheckout',
 	DROP_QUICK_CHECKOUTS = 'gerrit.dropQuickCheckouts',
-	CHANGE_GIT_REPO = 'gerrit.changeGitRepo',
 	OPEN_LINE_ON_GITILES = 'gerrit.openLineOnGitiles',
 	OPEN_LINE_ON_GITILES_PERMALINK = 'gerrit.openLineOnGitilesPermalink',
 	OPEN_FILE_ON_GITILES = 'gerrit.openFileOnGitiles',

@@ -1,6 +1,8 @@
 import { runWith, uniqueSimple, Wither } from '../../util/util';
 import { GerritChange } from './gerritChange';
-import { getAPI } from '../gerritAPI';
+import { getAPIForRepo } from '../gerritAPI';
+import { GerritRepo } from '../gerritRepo';
+import { Data } from '../../util/data';
 import { GerritAPIWith } from './api';
 
 let disableRecursionFlag = false;
@@ -11,6 +13,8 @@ const disableRecursionWither: Wither = {
 
 export abstract class DynamicallyFetchable {
 	public abstract get changeID(): string;
+	public abstract get gerritRepo(): GerritRepo;
+	public abstract get gerritReposD(): Data<GerritRepo[]>;
 
 	protected _fieldFallbackGetter<K extends keyof this>(
 		fieldName: K,
@@ -27,15 +31,14 @@ export abstract class DynamicallyFetchable {
 				return null;
 			}
 
-			const api = await getAPI();
+			const api = await getAPIForRepo(this.gerritReposD, this.gerritRepo);
 			if (!api) {
 				return null;
 			}
 
-			const res = await GerritChange.getChangeOnce(
-				this.changeID,
-				uniqueSimple(flags)
-			);
+			const res = await api
+				.getChange(this.changeID, null, uniqueSimple(flags))
+				.getValue();
 			if (!res) {
 				return null;
 			}

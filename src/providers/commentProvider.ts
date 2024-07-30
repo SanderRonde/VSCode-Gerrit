@@ -31,13 +31,19 @@ import { DateSortDirection, DateTime } from '../lib/util/dateTime';
 import { GerritFile } from '../lib/gerrit/gerritAPI/gerritFile';
 import { getCurrentChangeIDCached } from '../lib/git/commit';
 import { GerritAPIWith } from '../lib/gerrit/gerritAPI/api';
+import { getAPIForRepo } from '../lib/gerrit/gerritAPI';
 import { CacheContainer } from '../lib/util/cache';
-import { getAPI } from '../lib/gerrit/gerritAPI';
 import { uniqueComplex } from '../lib/util/util';
 import * as gitDiffParser from 'gitdiff-parser';
 import path = require('path');
+import {
+	GerritRepo,
+	getCurrentGerritRepoForUri,
+	getRepoFromUri,
+} from '../lib/gerrit/gerritRepo';
 import { PatchsetDescription } from '../views/activityBar/changes/changeTreeView';
-import { Repository } from '../types/vscode-extension-git';
+import { CommentDecorationProvider } from './commentDecorationProvider';
+import { Data } from '../lib/util/data';
 
 export interface GerritCommentReply {
 	text: string;
@@ -68,6 +74,7 @@ export class DocumentCommentManager {
 	};
 
 	public constructor(
+		private readonly _gerritReposD: Data<GerritRepo[]>,
 		public readonly document: Uri,
 		private readonly _commentController: CommentController,
 		public readonly filePath: string,
@@ -171,11 +178,14 @@ export class DocumentCommentManager {
 			const isPatchSetLevel =
 				fileMeta && fileMeta.filePath === PATCHSET_LEVEL_KEY;
 			const currentChangeID = await getCurrentChangeIDCached();
-			const changeID = fileMeta?.changeID || currentChangeID;
+			const changeID =
+				fileMeta?.toChangeIDWithRepo(this._gerritReposD.get()) ||
+				currentChangeID;
 			if (!changeID) {
 				return;
 			}
 			const commentSubscription = await GerritChange.getAllComments(
+				this._gerritReposD,
 				changeID,
 				{
 					allowFail: changeID === currentChangeID,
@@ -188,9 +198,9 @@ export class DocumentCommentManager {
 			commentSubscription.subscribe(
 				new WeakRef(() => this.refreshComments())
 			);
-			(await GerritChange.getChange(changeID)).subscribe(
-				new WeakRef(() => this.refreshComments())
-			);
+			(
+				await GerritChange.getChange(this._gerritReposD, changeID)
+			).subscribe(new WeakRef(() => this.refreshComments()));
 
 			this.dispose();
 			const thisSideComments =
@@ -200,7 +210,7 @@ export class DocumentCommentManager {
 							(c) =>
 								c.side ??
 								GerritCommentSide.RIGHT === fileMeta.side
-					  );
+						);
 			let threads = DocumentCommentManager.getThreadRanges(
 				DocumentCommentManager.buildThreadsFromComments(
 					thisSideComments
@@ -362,6 +372,7 @@ export class CommentManager {
 	> = new Map();
 
 	private static _getOrCreateManager(
+		gerritReposD: Data<GerritRepo[]>,
 		document: TextDocument,
 		filePath: string,
 		metaData: {
@@ -379,6 +390,7 @@ export class CommentManager {
 		}
 
 		const manager = new DocumentCommentManager(
+			gerritReposD,
 			document.uri,
 			this._commentController,
 			filePath,
@@ -397,7 +409,7 @@ export class CommentManager {
 	}
 
 	private static async _getFileRanges(
-		gerritRepo: Repository,
+		gerritRepo: GerritRepo,
 		file: GerritFile,
 		document: TextDocument,
 		prevData?: {
@@ -421,10 +433,10 @@ export class CommentManager {
 					return null;
 				}
 
-				const modifiedHash = await gerritRepo.hashObject(
+				const modifiedHash = await gerritRepo.repository.hashObject(
 					document.getText()
 				);
-				const modifiedDiff = await gerritRepo.diffBlobs(
+				const modifiedDiff = await gerritRepo.repository.diffBlobs(
 					prevData.newHash,
 					modifiedHash
 				);
@@ -452,8 +464,8 @@ export class CommentManager {
 			const { modifiedHash, newHash, oldHash } = hashes;
 
 			const [oldDiff, modifiedDiff] = await Promise.all([
-				gerritRepo.diffBlobs(oldHash, newHash),
-				gerritRepo.diffBlobs(newHash, modifiedHash),
+				gerritRepo.repository.diffBlobs(oldHash, newHash),
+				gerritRepo.repository.diffBlobs(newHash, modifiedHash),
 			]);
 
 			const parser =
@@ -482,7 +494,7 @@ export class CommentManager {
 				? this.mapOldPositionToNew(
 						modifiedDiffParsed[0],
 						hunk.newStart + hunk.newLines - 1
-				  )
+					)
 				: hunk.newStart + hunk.newLines - 1;
 			if (start > 0 && end > 0) {
 				ranges.push(new Range(start - 1, 0, end - 1, 0));
@@ -498,7 +510,7 @@ export class CommentManager {
 	}
 
 	public static async getFileHashObjects(
-		gerritRepo: Repository,
+		gerritRepo: GerritRepo,
 		file: GerritFile,
 		document: TextDocument
 	): Promise<{
@@ -511,17 +523,23 @@ export class CommentManager {
 			null
 		);
 		const [oldHash, newHash, modifiedHash] = await Promise.all([
-			gerritRepo.hashObject(
+			gerritRepo.repository.hashObject(
 				(oldContent &&
-					(await FileProvider.provideMetaContent(oldContent.meta))) ||
+					(await FileProvider.provideMetaContent(
+						new Data([gerritRepo]),
+						oldContent.meta
+					))) ||
 					''
 			),
-			gerritRepo.hashObject(
+			gerritRepo.repository.hashObject(
 				(newContent &&
-					(await FileProvider.provideMetaContent(newContent.meta))) ||
+					(await FileProvider.provideMetaContent(
+						new Data([gerritRepo]),
+						newContent.meta
+					))) ||
 					''
 			),
-			gerritRepo.hashObject(document.getText()),
+			gerritRepo.repository.hashObject(document.getText()),
 		]);
 
 		return {
@@ -532,15 +550,17 @@ export class CommentManager {
 	}
 
 	public static async getFileFromOpenDocument(
-		gerritRepo: Repository,
+		gerritReposD: Data<GerritRepo[]>,
+		gerritRepo: GerritRepo,
 		document: TextDocument
 	): Promise<GerritFile | null> {
 		// No meta, might be a regular checked-out file. We look for the current change
 		// and find out if the current file was changed in that change.
-		const change = await GerritChange.getCurrentChangeOnce(gerritRepo, [
-			GerritAPIWith.CURRENT_REVISION,
-			GerritAPIWith.CURRENT_FILES,
-		]);
+		const change = await GerritChange.getCurrentChangeOnce(
+			gerritReposD,
+			gerritRepo,
+			[GerritAPIWith.CURRENT_REVISION, GerritAPIWith.CURRENT_FILES]
+		);
 		if (!change || change.status !== GerritChangeStatus.NEW) {
 			return null;
 		}
@@ -553,7 +573,7 @@ export class CommentManager {
 			return null;
 		}
 
-		const gitURI = gerritRepo.rootUri.fsPath;
+		const gitURI = gerritRepo.rootPath;
 		const relativePath = path
 			.relative(gitURI, document.uri.fsPath)
 			.replace(/\\/g, '/');
@@ -602,7 +622,9 @@ export class CommentManager {
 		return line + delta;
 	}
 
-	public static init(gerritRepo: Repository): typeof CommentManager {
+	public static init(
+		gerritReposD: Data<GerritRepo[]>
+	): typeof CommentManager {
 		this._disposables.add(
 			workspace.onDidCloseTextDocument((doc) => {
 				const key = doc.uri.toString();
@@ -636,6 +658,7 @@ export class CommentManager {
 					const lineCount = document.lineCount;
 					const { hadManager, manager } =
 						CommentManager._getOrCreateManager(
+							gerritReposD,
 							document,
 							meta.filePath,
 							{
@@ -649,7 +672,16 @@ export class CommentManager {
 					}
 					return [new Range(0, 0, lineCount - 1, 0)];
 				} else {
+					const gerritRepo = getCurrentGerritRepoForUri(
+						gerritReposD.get(),
+						document.uri,
+						'silent'
+					);
+					if (!gerritRepo) {
+						return [];
+					}
 					const file = await CommentManager.getFileFromOpenDocument(
+						gerritReposD,
 						gerritRepo,
 						document
 					);
@@ -658,6 +690,7 @@ export class CommentManager {
 					}
 					const { hadManager, manager } =
 						CommentManager._getOrCreateManager(
+							gerritReposD,
 							document,
 							file.filePath,
 							{
@@ -715,6 +748,8 @@ export class CommentManager {
 }
 
 async function createComment(
+	gerritReposD: Data<GerritRepo[]>,
+	gerritRepo: GerritRepo,
 	thread: GerritCommentThread,
 	text: string,
 	isResolved: boolean,
@@ -725,7 +760,7 @@ async function createComment(
 		? DocumentCommentManager.applyDiffToCommentRange(
 				thread.thread.range,
 				manager.diffData.diff
-		  )
+			)
 		: thread.thread.range;
 
 	const meta = FileMetaWithSideAndBase.tryFrom(thread.thread.uri);
@@ -734,7 +769,7 @@ async function createComment(
 		return null;
 	}
 
-	const newComment = await GerritComment.create({
+	const newComment = await GerritComment.create(gerritReposD, gerritRepo, {
 		changeID: (meta?.changeID ?? manager?.metadata.changeID)!,
 		content: text,
 		filePath: (meta?.filePath ?? manager?.filePath)!,
@@ -755,16 +790,23 @@ async function createComment(
 
 async function updateComment(
 	comment: GerritCommentBase,
+	commentDecorationProvider: CommentDecorationProvider,
 	isResolved: boolean
 ): Promise<void> {
 	if (comment.isDraft) {
-		await (comment as GerritDraftComment).saveDraftMessage(isResolved);
+		await (comment as GerritDraftComment).saveDraftMessage(
+			commentDecorationProvider,
+			isResolved
+		);
 		comment.mode = CommentMode.Preview;
 		comment.thread?.expand();
 	}
 }
 
 export async function saveComment(
+	gerritReposD: Data<GerritRepo[]>,
+	gerritRepo: GerritRepo,
+	commentDecorationProvider: CommentDecorationProvider,
 	reply: NewlyCreatedGerritCommentReply | GerritCommentBase,
 	isResolved: boolean
 ): Promise<void> {
@@ -773,13 +815,19 @@ export async function saveComment(
 	}
 
 	if ('id' in reply) {
-		await updateComment(reply, isResolved);
+		await updateComment(reply, commentDecorationProvider, isResolved);
 	} else {
 		const thread = GerritCommentThread.from(reply.thread);
 		if (!thread) {
 			return;
 		}
-		await createComment(thread, reply.text, isResolved);
+		await createComment(
+			gerritReposD,
+			gerritRepo,
+			thread,
+			reply.text,
+			isResolved
+		);
 	}
 }
 
@@ -798,6 +846,7 @@ export async function cancelComment(
 }
 
 export async function setCommentResolved(
+	commentDecorationProvider: CommentDecorationProvider,
 	reply: NewlyCreatedGerritCommentReply,
 	isResolved: boolean
 ): Promise<void> {
@@ -805,7 +854,7 @@ export async function setCommentResolved(
 	if (!gthread) {
 		return;
 	}
-	await gthread.setResolved(isResolved);
+	await gthread.setResolved(commentDecorationProvider, isResolved);
 }
 
 export async function editComment(comment: GerritCommentBase): Promise<void> {
@@ -814,36 +863,69 @@ export async function editComment(comment: GerritCommentBase): Promise<void> {
 	});
 }
 
-export async function deleteComment(comment: GerritCommentBase): Promise<void> {
+export async function deleteComment(
+	comment: GerritCommentBase,
+	commentDecorationProvider: CommentDecorationProvider
+): Promise<void> {
 	if (!comment.isDraft) {
 		return;
 	}
-	await (comment as GerritDraftComment).delete();
+	await (comment as GerritDraftComment).delete(commentDecorationProvider);
 }
 
 export async function doneComment(comment: GerritCommentBase): Promise<void> {
 	if (!comment.thread) {
 		return;
 	}
-	await createComment(comment.thread, 'Done', true, comment);
+	await createComment(
+		comment.gerritReposD,
+		comment.gerritRepo,
+		comment.thread,
+		'Done',
+		true,
+		comment
+	);
 }
 
 export async function ackComment(comment: GerritCommentBase): Promise<void> {
 	if (!comment.thread) {
 		return;
 	}
-	await createComment(comment.thread, 'Ack', true, comment);
+	await createComment(
+		comment.gerritReposD,
+		comment.gerritRepo,
+		comment.thread,
+		'Ack',
+		true,
+		comment
+	);
 }
 
-async function getThreadWebLink(thread: CommentThread): Promise<string | null> {
+async function getThreadWebLink(
+	gerritReposD: Data<GerritRepo[]>,
+	thread: CommentThread
+): Promise<string | null> {
 	const gerritThread = GerritCommentThread.from(thread);
 	if (!gerritThread?.lastComment) {
 		void window.showErrorMessage('Failed to find comment');
 		return null;
 	}
 	const comment = gerritThread.lastComment;
-	const api = await getAPI();
-	const change = await GerritChange.getChangeOnce(comment.changeID);
+	const gerritRepo = getRepoFromUri(
+		gerritReposD.get(),
+		thread.uri.toString()
+	);
+	if (!gerritRepo) {
+		void window.showErrorMessage(
+			'Failed to find current gerrit repository'
+		);
+		return null;
+	}
+	const api = await getAPIForRepo(gerritReposD, gerritRepo);
+	const change = await GerritChange.getChangeOnce(gerritReposD, {
+		changeID: comment.changeID,
+		gerritRepo: gerritRepo,
+	});
 	if (!api || !change) {
 		void window.showErrorMessage('Failed to get comment web link');
 		return null;
@@ -855,8 +937,11 @@ async function getThreadWebLink(thread: CommentThread): Promise<string | null> {
 	);
 }
 
-export async function copyCommentLink(thread: CommentThread): Promise<void> {
-	const url = await getThreadWebLink(thread);
+export async function copyCommentLink(
+	gerritReposD: Data<GerritRepo[]>,
+	thread: CommentThread
+): Promise<void> {
+	const url = await getThreadWebLink(gerritReposD, thread);
 	if (!url) {
 		return;
 	}
@@ -864,8 +949,11 @@ export async function copyCommentLink(thread: CommentThread): Promise<void> {
 	void window.showInformationMessage('Copied comment link!');
 }
 
-export async function openCommentOnline(thread: CommentThread): Promise<void> {
-	const url = await getThreadWebLink(thread);
+export async function openCommentOnline(
+	gerritReposD: Data<GerritRepo[]>,
+	thread: CommentThread
+): Promise<void> {
+	const url = await getThreadWebLink(gerritReposD, thread);
 	if (!url) {
 		return;
 	}

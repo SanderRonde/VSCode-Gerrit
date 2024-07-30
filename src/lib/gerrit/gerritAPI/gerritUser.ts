@@ -1,5 +1,7 @@
 import { GerritDetailedUserResponse } from './types';
-import { getAPI } from '../gerritAPI';
+import { getAPIForRepo } from '../gerritAPI';
+import { GerritRepo } from '../gerritRepo';
+import { Data } from '../../util/data';
 
 export class GerritUser {
 	private static _self: GerritUser | null = null;
@@ -11,7 +13,10 @@ export class GerritUser {
 	public username: string | undefined;
 	public hasMore: boolean;
 
-	public constructor(response: GerritDetailedUserResponse) {
+	public constructor(
+		response: GerritDetailedUserResponse,
+		private readonly _gerritReposD: Data<GerritRepo[]>
+	) {
 		this.accountID = response._account_id;
 		this.name = response.name;
 		this.displayName = response.display_name;
@@ -21,19 +26,26 @@ export class GerritUser {
 		this.hasMore = response._more_accounts ?? false;
 	}
 
-	public static async getSelf(): Promise<GerritUser | null> {
+	public static async getSelf(
+		gerritReposD: Data<GerritRepo[]>,
+		gerritRepo: GerritRepo
+	): Promise<GerritUser | null> {
 		if (this._self) {
 			return this._self;
 		}
-		const api = await getAPI();
+		const api = await getAPIForRepo(gerritReposD, gerritRepo);
 		if (!api) {
 			return null;
 		}
 		return (this._self = await api.getSelf());
 	}
 
-	public static async isSelf(accountID: number): Promise<boolean> {
-		const self = await GerritUser.getSelf();
+	public static async isSelf(
+		gerritReposD: Data<GerritRepo[]>,
+		gerritRepo: GerritRepo,
+		accountID: number
+	): Promise<boolean> {
+		const self = await GerritUser.getSelf(gerritReposD, gerritRepo);
 		if (!self) {
 			return false;
 		}
@@ -58,8 +70,8 @@ export class GerritUser {
 		return this.getName(true).slice(0, 2);
 	}
 
-	public async isSelf(): Promise<boolean> {
-		const self = await GerritUser.getSelf();
+	public async isSelf(gerritRepo: GerritRepo): Promise<boolean> {
+		const self = await GerritUser.getSelf(this._gerritReposD, gerritRepo);
 		if (!self) {
 			return false;
 		}

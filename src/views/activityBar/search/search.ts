@@ -1,10 +1,18 @@
+import { GerritRepo, pickGerritRepo } from '../../../lib/gerrit/gerritRepo';
 import { Disposable, QuickPickItem, ThemeIcon, window } from 'vscode';
+import { getAPIForRepo } from '../../../lib/gerrit/gerritAPI';
 import { setContextProp } from '../../../lib/vscode/context';
 import { SearchResultsTreeProvider } from '../searchResults';
-import { getAPI } from '../../../lib/gerrit/gerritAPI';
 import { wait } from '../../../lib/util/util';
+import { Data } from '../../../lib/util/data';
 
-type ValueOrFunction<T> = T | ((currentQuery: string) => T | Promise<T>);
+type ValueOrFunction<T> =
+	| T
+	| ((
+			gerritReposD: Data<GerritRepo[]>,
+			gerritRepo: GerritRepo,
+			currentQuery: string
+	  ) => T | Promise<T>);
 
 /**
  * Maps the start of a filter to its values (if any)
@@ -19,6 +27,8 @@ interface SearchFilterMap {
 }
 
 const userFetcher = async (
+	gerritReposD: Data<GerritRepo[]>,
+	gerritRepo: GerritRepo,
 	currentQuery: string
 ): Promise<
 	{
@@ -32,7 +42,7 @@ const userFetcher = async (
 		return [];
 	}
 
-	const api = await getAPI();
+	const api = await getAPIForRepo(gerritReposD, gerritRepo);
 	if (!api) {
 		return [
 			{
@@ -56,13 +66,16 @@ const userFetcher = async (
 	];
 };
 
-const groupFetcher = async (): Promise<
+const groupFetcher = async (
+	gerritReposD: Data<GerritRepo[]>,
+	gerritRepo: GerritRepo
+): Promise<
 	{
 		description: string;
 		label: string;
 	}[]
 > => {
-	const api = await getAPI();
+	const api = await getAPIForRepo(gerritReposD, gerritRepo);
 	if (!api) {
 		return [];
 	}
@@ -75,13 +88,16 @@ const groupFetcher = async (): Promise<
 	];
 };
 
-const projectfetcher = async (): Promise<
+const projectfetcher = async (
+	gerritReposD: Data<GerritRepo[]>,
+	gerritRepo: GerritRepo
+): Promise<
 	{
 		description: string;
 		label: string;
 	}[]
 > => {
-	const api = await getAPI();
+	const api = await getAPIForRepo(gerritReposD, gerritRepo);
 	if (!api) {
 		return [];
 	}
@@ -98,7 +114,11 @@ const STARTS_WITH_NUMBER_REGEX = /^(\d+)/;
 const searchFilterMap: SearchFilterMap = {
 	age: {
 		description: 'Age of the change',
-		items: (currentQuery: string) => {
+		items: (
+			_gerritReposD: Data<GerritRepo[]>,
+			_gerritRepo: GerritRepo,
+			currentQuery: string
+		) => {
 			// If no query, offer some suggestions
 			if (!currentQuery) {
 				return [
@@ -678,6 +698,8 @@ class QuickPickFullEntry implements QuickPickItem {
 }
 
 async function getSearchSuggestion(
+	gerritReposD: Data<GerritRepo[]>,
+	gerritRepo: GerritRepo,
 	currentValue: string
 ): Promise<QuickPickFullEntry[]> {
 	const currentWord = currentValue.split(/\s+/).pop();
@@ -716,7 +738,9 @@ async function getSearchSuggestion(
 				})
 		);
 	} else {
-		return (await match.items(searchFilterValue || '')).map(
+		return (
+			await match.items(gerritReposD, gerritRepo, searchFilterValue || '')
+		).map(
 			(m) =>
 				new QuickPickFullEntry({
 					...m,
@@ -741,7 +765,7 @@ async function performFiltering(
 	return values.filter((v) => v.fullEntry.includes(filteredWord));
 }
 
-export function search(): void {
+export async function search(gerritReposD: Data<GerritRepo[]>): Promise<void> {
 	const quickPick = window.createQuickPick();
 	const searchButton = {
 		tooltip: 'Search current query',
@@ -759,16 +783,25 @@ export function search(): void {
 		})
 	);
 
+	const gerritRepo = await pickGerritRepo(gerritReposD.get());
+	if (!gerritRepo) {
+		return;
+	}
 	const onSubmit = async (): Promise<void> => {
 		const value = quickPick.value;
 		quickPick.hide();
 		await setContextProp('gerrit:searchQuery', value);
+		SearchResultsTreeProvider.setCurrent({
+			type: 'query',
+			query: value,
+			repo: gerritRepo,
+		});
 		if (value.length === 0) {
 			await window.showInformationMessage('Empty query, not searching');
 		} else {
 			SearchResultsTreeProvider.clear();
-			SearchResultsTreeProvider.refesh();
-			SearchResultsTreeProvider.focus();
+			await SearchResultsTreeProvider.refesh();
+			await SearchResultsTreeProvider.focus();
 		}
 	};
 
@@ -834,7 +867,7 @@ export function search(): void {
 			}
 
 			const query = performFiltering(
-				getSearchSuggestion(quickPick.value),
+				getSearchSuggestion(gerritReposD, gerritRepo, quickPick.value),
 				quickPick.value
 			);
 			lastFetchPromise = query;
@@ -867,6 +900,7 @@ export function search(): void {
 }
 
 export async function clearSearchResults(): Promise<void> {
+	SearchResultsTreeProvider.clear();
 	await setContextProp('gerrit:searchQuery', null);
 	await setContextProp('gerrit:searchChangeNumber', null);
 }

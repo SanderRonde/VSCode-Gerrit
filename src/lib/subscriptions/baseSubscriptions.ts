@@ -44,6 +44,24 @@ export abstract class APISubSubscriptionManagerBase<V, C = string> {
 		APISubscriptionManagerEntry<C, V>
 	> = new IterableWeakMap();
 
+	protected static readonly _instances = new Map<
+		typeof APISubSubscriptionManagerBase,
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		APISubSubscriptionManagerBase<any, any>[]
+	>();
+
+	public constructor() {
+		APISubSubscriptionManagerBase._instances.set(
+			this.constructor as typeof APISubSubscriptionManagerBase,
+			[
+				...(APISubSubscriptionManagerBase._instances.get(
+					this.constructor as typeof APISubSubscriptionManagerBase
+				) ?? []),
+				this,
+			]
+		);
+	}
+
 	public static createMapper<M>(
 		originalSubscription: Omit<Subscribable<M>, 'mapSubscription'>
 	): Subscribable<M>['mapSubscription'] {
@@ -235,7 +253,9 @@ export abstract class APISubSubscriptionManagerBase<V, C = string> {
 				unsubscribe();
 			},
 			invalidate: async () => {
-				await this.invalidate(config);
+				await (this.constructor as typeof APISubSubscriptionManagerBase)
+					// eslint-disable-next-line @typescript-eslint/no-explicit-any
+					.invalidate(config as WithMatchAny<any>);
 			},
 			disposable: {
 				dispose: callDeref(weakUnsubscribe),
@@ -261,13 +281,16 @@ export abstract class APISubSubscriptionManagerBase<V, C = string> {
 		};
 	}
 
-	public async invalidate(config: WithMatchAny<C>): Promise<void> {
-		const matches = this._getMatches(config);
-		await Promise.all(
-			matches.map(async (match) => {
-				match.state = FETCH_STATE.NOT_FETCHED;
-				await this._performGetter(match.getter, match);
-			})
-		);
+	// eslint-disable-next-line @typescript-eslint/no-explicit-any
+	public static async invalidate(config: WithMatchAny<any>): Promise<void> {
+		for (const instance of this._instances.get(this) ?? []) {
+			const matches = instance._getMatches(config);
+			await Promise.all(
+				matches.map(async (match) => {
+					match.state = FETCH_STATE.NOT_FETCHED;
+					await instance._performGetter(match.getter, match);
+				})
+			);
+		}
 	}
 }

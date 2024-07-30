@@ -9,12 +9,13 @@ import {
 } from 'vscode';
 import { FileTreeView } from '../views/activityBar/changes/changeTreeView/fileTreeView';
 import { GerritChange } from '../lib/gerrit/gerritAPI/gerritChange';
-import { Repository } from '../types/vscode-extension-git';
+import { GerritRepo } from '../lib/gerrit/gerritRepo';
 import { gitCheckoutRemote } from '../lib/git/git';
 import { tryExecAsync } from '../lib/git/gitCLI';
+import { Data } from '../lib/util/data';
 
 export class URIHandler implements UriHandler {
-	public constructor(private readonly _gerritRepo: Repository) {}
+	public constructor(private readonly _gerritReposD: Data<GerritRepo[]>) {}
 
 	private async _handleChangeCheckout(query: {
 		checkout?: string;
@@ -23,6 +24,15 @@ export class URIHandler implements UriHandler {
 		file?: string;
 		line?: `${number}`;
 	}): Promise<void> {
+		const gerritRepos = this._gerritReposD.get();
+		if (gerritRepos.length !== 1) {
+			void window.showErrorMessage(
+				'Can only handle URIs for a single repository'
+			);
+			return undefined;
+		}
+		const gerritRepo = gerritRepos[0];
+
 		const { changeID, change } = await (async (): Promise<{
 			changeID: string | undefined;
 			changeNumber: number | undefined;
@@ -36,7 +46,14 @@ export class URIHandler implements UriHandler {
 				};
 			}
 
-			const change = await GerritChange.getChangeOnce(query.change, []);
+			const change = await GerritChange.getChangeOnce(
+				this._gerritReposD,
+				{
+					changeID: query.change,
+					gerritRepo,
+				},
+				[]
+			);
 			return {
 				changeNumber: change?.number,
 				changeID: change?.change_id,
@@ -48,7 +65,7 @@ export class URIHandler implements UriHandler {
 			// If set, checkout change, if not, stay on master and diff
 			if (
 				!(await gitCheckoutRemote(
-					this._gerritRepo,
+					gerritRepo,
 					changeID,
 					query.patchSet ? Number(query.patchSet) : undefined,
 					false
@@ -68,7 +85,11 @@ export class URIHandler implements UriHandler {
 				// Diff against this
 				const revision = await (async () => {
 					const change = await GerritChange.getChangeOnce(
-						changeID,
+						this._gerritReposD,
+						{
+							changeID,
+							gerritRepo,
+						},
 						[]
 					);
 					if (!query.patchSet) {
@@ -93,7 +114,8 @@ export class URIHandler implements UriHandler {
 					return;
 				}
 				const cmd = await FileTreeView.createDiffCommand(
-					this._gerritRepo,
+					this._gerritReposD,
+					gerritRepo,
 					file,
 					null
 				);
@@ -111,7 +133,7 @@ export class URIHandler implements UriHandler {
 			} else {
 				await commands.executeCommand(
 					'vscode.open',
-					Uri.joinPath(this._gerritRepo.rootUri, query.file)
+					Uri.joinPath(gerritRepo.rootUri, query.file)
 				);
 			}
 		}
@@ -153,7 +175,7 @@ export class URIHandler implements UriHandler {
 		const proc = await tryExecAsync(
 			`git merge-base --is-ancestor ${revision.revisionID} HEAD`,
 			{
-				cwd: this._gerritRepo.rootUri.fsPath,
+				cwd: change.gerritRepo.rootPath,
 			}
 		);
 		return proc.success;

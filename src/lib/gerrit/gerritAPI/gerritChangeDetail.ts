@@ -5,7 +5,9 @@ import {
 } from './types';
 import { DateTime } from '../../util/dateTime';
 import { GerritGroup } from './gerritGroup';
+import { GerritRepo } from '../gerritRepo';
 import { GerritUser } from './gerritUser';
+import { Data } from '../../util/data';
 
 export class GerritChangeDetail {
 	public id: string;
@@ -43,7 +45,10 @@ export class GerritChangeDetail {
 
 	public fetchedAt = new DateTime(new Date());
 
-	public constructor(response: GerritChangeDetailResponse) {
+	public constructor(
+		response: GerritChangeDetailResponse,
+		public readonly gerritReposD: Data<GerritRepo[]>
+	) {
 		this.id = response.id;
 		this.project = response.project;
 		this.branch = response.branch;
@@ -57,28 +62,32 @@ export class GerritChangeDetail {
 		this.deletions = response.deletions;
 		this.number = response._number;
 		this.isWip = !response.has_review_started;
-		this.owner = new GerritUser(response.owner);
+		this.owner = new GerritUser(response.owner, gerritReposD);
 		this.labels = response.labels;
 		this.permittedLabels = response.permitted_labels;
 		this.removableReviewers = response.removable_reviewers.map(
-			(u) => new GerritUser(u)
+			(u) => new GerritUser(u, gerritReposD)
 		);
 		this.reviewers = (response.reviewers.REVIEWER ?? []).map((r) =>
-			'_account_id' in r ? new GerritUser(r) : new GerritGroup(r.name, r)
+			'_account_id' in r
+				? new GerritUser(r, gerritReposD)
+				: new GerritGroup(r.name, r)
 		);
 		this.cc = (response.reviewers.CC ?? []).map((r) =>
-			'_account_id' in r ? new GerritUser(r) : new GerritGroup(r.name, r)
+			'_account_id' in r
+				? new GerritUser(r, gerritReposD)
+				: new GerritGroup(r.name, r)
 		);
 
 		this.reviewerUpdates = response.reviewer_updates.map((u) => ({
 			...u,
-			reviewer: new GerritUser(u.reviewer),
-			updatedBy: new GerritUser(u.updated_by),
+			reviewer: new GerritUser(u.reviewer, gerritReposD),
+			updatedBy: new GerritUser(u.updated_by, gerritReposD),
 			updated: new DateTime(u.updated),
 		}));
 		this.messages = response.messages.map((m) => ({
 			...m,
-			author: new GerritUser(m.author),
+			author: new GerritUser(m.author, gerritReposD),
 			date: new DateTime(m.date),
 			revisionNumber: m._revision_number,
 		}));

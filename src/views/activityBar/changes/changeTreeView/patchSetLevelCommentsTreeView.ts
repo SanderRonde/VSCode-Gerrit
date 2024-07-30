@@ -7,8 +7,10 @@ import { TextContent } from '../../../../lib/gerrit/gerritAPI/gerritFile';
 import { GerritAPIWith } from '../../../../lib/gerrit/gerritAPI/api';
 import { TreeItemWithoutChildren } from '../../shared/treeTypes';
 import { SearchResultsTreeProvider } from '../../searchResults';
+import { GerritRepo } from '../../../../lib/gerrit/gerritRepo';
 import { FileMeta } from '../../../../providers/fileProvider';
 import { PatchsetDescription } from '../changeTreeView';
+import { Data } from '../../../../lib/util/data';
 import { ViewPanel } from '../viewPanel';
 
 export const PATCHSET_LEVEL_KEY = '/PATCHSET_LEVEL';
@@ -16,13 +18,21 @@ export const PATCHSET_LEVEL_KEY = '/PATCHSET_LEVEL';
 export class PatchSetLevelCommentsTreeView implements TreeItemWithoutChildren {
 	public constructor(
 		public changeID: string,
+		private readonly _gerritRepoD: Data<GerritRepo[]>,
+		private readonly _gerritRepo: GerritRepo,
 		private readonly _changeNumber: number,
 		private readonly _parent: ViewPanel | SearchResultsTreeProvider
 	) {}
 
-	public static async isVisible(change: GerritChange): Promise<boolean> {
+	public static async isVisible(
+		gerritReposD: Data<GerritRepo[]>,
+		change: GerritChange
+	): Promise<boolean> {
 		const comments = await (
-			await GerritChange.getAllComments(change.id)
+			await GerritChange.getAllComments(gerritReposD, {
+				changeID: change.id,
+				gerritRepo: change.gerritRepo,
+			})
 		).getValue();
 		const patchsetComments = comments.get(PATCHSET_LEVEL_KEY);
 		return !!patchsetComments && patchsetComments.length > 0;
@@ -31,6 +41,7 @@ export class PatchSetLevelCommentsTreeView implements TreeItemWithoutChildren {
 	public static createCommand(
 		change: {
 			project: string;
+			gerritRepo: GerritRepo;
 			id: string;
 		},
 		revision: PatchsetDescription,
@@ -39,6 +50,7 @@ export class PatchSetLevelCommentsTreeView implements TreeItemWithoutChildren {
 		const fileContent = new Array(threads.length).fill('').join('\n');
 		const file = TextContent.from(
 			FileMeta.createFileMeta({
+				repoUri: change.gerritRepo.rootUri.toString(),
 				project: change.project,
 				changeID: change.id,
 				commit: revision,
@@ -72,11 +84,20 @@ export class PatchSetLevelCommentsTreeView implements TreeItemWithoutChildren {
 		// We create a file that has N number of lines, where N = number of comments.
 		// That way we can place one comment on every line
 		const commentSubscription = await GerritChange.getAllComments(
-			this.changeID
+			this._gerritRepoD,
+			{
+				changeID: this.changeID,
+				gerritRepo: this._gerritRepo,
+			}
 		);
-		const changeSubscription = await GerritChange.getChange(this.changeID, [
-			GerritAPIWith.CURRENT_REVISION,
-		]);
+		const changeSubscription = await GerritChange.getChange(
+			this._gerritRepoD,
+			{
+				changeID: this.changeID,
+				gerritRepo: this._gerritRepo,
+			},
+			[GerritAPIWith.CURRENT_REVISION]
+		);
 
 		[changeSubscription, commentSubscription].map((s) =>
 			s.subscribeOnce(new WeakRef(() => this._parent.reload()))
@@ -86,14 +107,15 @@ export class PatchSetLevelCommentsTreeView implements TreeItemWithoutChildren {
 			commentSubscription.getValue(),
 		]);
 		const revision = await change?.currentRevision();
-		if (!revision) {
+		if (!revision || !change) {
 			return null;
 		}
 
 		return PatchSetLevelCommentsTreeView.createCommand(
 			{
 				id: this.changeID,
-				project: change!.project,
+				project: change.project,
+				gerritRepo: change.gerritRepo,
 			},
 			revision,
 			DocumentCommentManager.buildThreadsFromComments(

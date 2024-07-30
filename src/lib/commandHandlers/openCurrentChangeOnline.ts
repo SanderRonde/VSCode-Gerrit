@@ -1,15 +1,19 @@
 import { GerritChange } from '../gerrit/gerritAPI/gerritChange';
-import { Repository } from '../../types/vscode-extension-git';
-import { getCurrentChangeID } from '../git/commit';
-import { getAPI } from '../gerrit/gerritAPI';
+import { getAPIForRepo } from '../gerrit/gerritAPI';
+import { GerritRepo } from '../gerrit/gerritRepo';
+import { getCurrentChange } from '../git/commit';
 import { env, Uri, window } from 'vscode';
+import { Data } from '../util/data';
 
 export async function openCurrentChangeOnline(
-	gerritRepo: Repository
+	gerritReposD: Data<GerritRepo[]>
 ): Promise<void> {
-	const changeID = await getCurrentChangeID(gerritRepo);
-	const api = await getAPI();
-	if (!changeID) {
+	const changeIDWithRepo = await getCurrentChange(gerritReposD.get(), 'warn');
+	if (!changeIDWithRepo) {
+		return;
+	}
+	const api = await getAPIForRepo(gerritReposD, changeIDWithRepo.gerritRepo);
+	if (!changeIDWithRepo) {
 		void window.showErrorMessage('Failed to find current change ID');
 		return;
 	}
@@ -18,7 +22,10 @@ export async function openCurrentChangeOnline(
 		return;
 	}
 
-	const change = await GerritChange.getChangeOnce(changeID);
+	const change = await GerritChange.getChangeOnce(
+		gerritReposD,
+		changeIDWithRepo
+	);
 	if (!change) {
 		void window.showErrorMessage('Failed to find current change');
 		return;

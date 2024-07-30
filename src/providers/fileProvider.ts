@@ -7,12 +7,16 @@ import {
 } from 'vscode';
 import { fileCache } from '../views/activityBar/changes/changeTreeView/file/fileCache';
 import { PatchsetDescription } from '../views/activityBar/changes/changeTreeView';
+import { ChangeIDWithRepo } from '../lib/gerrit/gerritAPI/gerritChange';
+import { GerritRepo, getRepoFromUri } from '../lib/gerrit/gerritRepo';
 import { GerritCommentSide } from '../lib/gerrit/gerritAPI/types';
-import { getAPI } from '../lib/gerrit/gerritAPI';
+import { getAPIForRepo } from '../lib/gerrit/gerritAPI';
+import { Data } from '../lib/util/data';
 
 export const GERRIT_FILE_SCHEME = 'gerrit-file';
 
 export interface FileMetaCreate {
+	repoUri: string;
 	project: string;
 	changeID: string;
 	commit: PatchsetDescription;
@@ -32,6 +36,7 @@ export class FileMeta implements FileMetaCreate {
 	public static PATCHSET_LEVEL = new FileMeta(
 		'',
 		'',
+		'',
 		{
 			id: '',
 			number: -1,
@@ -40,6 +45,7 @@ export class FileMeta implements FileMetaCreate {
 		[]
 	);
 	public static EMPTY = new FileMeta(
+		'',
 		'',
 		'',
 		{
@@ -51,6 +57,7 @@ export class FileMeta implements FileMetaCreate {
 	);
 
 	protected constructor(
+		public repoUri: string,
 		public project: string,
 		public changeID: string,
 		public commit: PatchsetDescription,
@@ -66,6 +73,7 @@ export class FileMeta implements FileMetaCreate {
 		if (
 			typeof meta.project !== 'string' ||
 			typeof meta.changeID !== 'string' ||
+			typeof meta.repoUri !== 'string' ||
 			!meta.commit ||
 			typeof meta.filePath !== 'string' ||
 			!Array.isArray(meta.context)
@@ -73,6 +81,7 @@ export class FileMeta implements FileMetaCreate {
 			throw new Error('Invalid file meta');
 		}
 		return new FileMeta(
+			meta.repoUri,
 			meta.project,
 			meta.changeID,
 			meta.commit,
@@ -94,6 +103,7 @@ export class FileMeta implements FileMetaCreate {
 
 	public static createFileMeta(options: FileMetaCreate): FileMeta {
 		return new this(
+			options.repoUri,
 			options.project,
 			options.changeID,
 			options.commit,
@@ -107,6 +117,7 @@ export class FileMeta implements FileMetaCreate {
 
 	protected toObj(): FileMetaCreate {
 		return {
+			repoUri: this.repoUri,
 			project: this.project,
 			changeID: this.changeID,
 			commit: this.commit,
@@ -127,6 +138,19 @@ export class FileMeta implements FileMetaCreate {
 		);
 	}
 
+	public toChangeIDWithRepo(
+		gerritRepos: GerritRepo[]
+	): ChangeIDWithRepo | null {
+		const repo = getRepoFromUri(gerritRepos, this.repoUri);
+		if (!repo) {
+			return null;
+		}
+		return {
+			gerritRepo: repo,
+			changeID: this.changeID,
+		};
+	}
+
 	public toString(): string {
 		return JSON.stringify(this.toObj());
 	}
@@ -145,6 +169,7 @@ export class FileMetaWithSideAndBase
 		baseRevision: PatchsetDescription | null
 	): FileMetaWithSideAndBase {
 		const meta = new FileMetaWithSideAndBase(
+			fileMeta.repoUri,
 			fileMeta.project,
 			fileMeta.changeID,
 			fileMeta.commit,
@@ -215,7 +240,10 @@ export class FileMetaWithSideAndBase
 }
 
 export class FileProvider implements TextDocumentContentProvider {
-	public constructor(public context: ExtensionContext) {
+	public constructor(
+		public context: ExtensionContext,
+		private readonly _gerritReposD: Data<GerritRepo[]>
+	) {
 		context.subscriptions.push(
 			workspace.onDidCloseTextDocument((doc) => {
 				if (doc.uri.scheme === GERRIT_FILE_SCHEME) {
@@ -233,6 +261,7 @@ export class FileProvider implements TextDocumentContentProvider {
 	}
 
 	public static async provideMetaContent(
+		gerritReposD: Data<GerritRepo[]>,
 		meta: FileMeta,
 		token?: CancellationToken
 	): Promise<string | null> {
@@ -244,7 +273,12 @@ export class FileProvider implements TextDocumentContentProvider {
 			return '';
 		}
 
-		const api = await getAPI();
+		const gerritRepo = getRepoFromUri(gerritReposD.get(), meta.repoUri);
+		if (!gerritRepo) {
+			return null;
+		}
+
+		const api = await getAPIForRepo(gerritReposD, gerritRepo);
 		if (!api) {
 			return null;
 		}
@@ -267,6 +301,10 @@ export class FileProvider implements TextDocumentContentProvider {
 			return '';
 		}
 
-		return await FileProvider.provideMetaContent(meta, token);
+		return await FileProvider.provideMetaContent(
+			this._gerritReposD,
+			meta,
+			token
+		);
 	}
 }

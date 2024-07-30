@@ -1,7 +1,6 @@
 import { GerritChange } from '../../../lib/gerrit/gerritAPI/gerritChange';
 import { Subscribable } from '../../../lib/subscriptions/subscriptions';
 import { SelfDisposable } from '../../../lib/util/selfDisposable';
-import { Repository } from '../../../types/vscode-extension-git';
 import { SearchResultsTreeProvider } from '../searchResults';
 import { ChangeTreeView } from '../changes/changeTreeView';
 import { Refreshable, Reloadable } from './refreshable';
@@ -25,8 +24,6 @@ export abstract class CanFetchMoreTreeProvider
 	> = new Map();
 	protected abstract get _initialLimit(): number;
 	protected abstract get _fetchMoreCount(): number;
-	// Needs to be a getter since prettier doesn't understand abstract properties
-	protected abstract get _gerritRepo(): Repository;
 
 	protected constructor(description: string) {
 		super(description);
@@ -69,7 +66,8 @@ export abstract class CanFetchMoreTreeProvider
 					this._changeToTreeView.set(
 						entry,
 						await ChangeTreeView.create(
-							this._gerritRepo,
+							entry.gerritReposD,
+							entry.gerritRepo,
 							entry.changeID,
 							parent
 						)
@@ -130,7 +128,7 @@ export abstract class CanFetchMoreTreeProvider
 		return this._getAllChangeTreeViews(parent);
 	}
 
-	protected _reset(): void {
+	public reset(): void {
 		this._cursor = 0;
 		this._limit = this._initialLimit;
 		uniqueSimple(

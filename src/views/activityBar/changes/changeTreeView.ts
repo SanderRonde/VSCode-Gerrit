@@ -25,12 +25,13 @@ import { getAPIForSubscription } from '../../../lib/gerrit/gerritAPI';
 import { getCurrentChangeIDCached } from '../../../lib/git/commit';
 import { GerritAPIWith } from '../../../lib/gerrit/gerritAPI/api';
 import { SelfDisposable } from '../../../lib/util/selfDisposable';
-import { Repository } from '../../../types/vscode-extension-git';
 import { FolderTreeView } from './changeTreeView/folderTreeView';
 import { FileTreeView } from './changeTreeView/fileTreeView';
 import { SearchResultsTreeProvider } from '../searchResults';
+import { GerritRepo } from '../../../lib/gerrit/gerritRepo';
 import { optionalArrayEntry } from '../../../lib/util/util';
-import { getReviewWebviewProvider } from '../review';
+import { ReviewWebviewProvider } from '../review';
+import { Data } from '../../../lib/util/data';
 import { ViewPanel } from './viewPanel';
 
 export type FileMap = Map<
@@ -60,7 +61,8 @@ export class ChangeTreeView
 	}
 
 	private constructor(
-		private readonly _gerritRepo: Repository,
+		public readonly gerritReposD: Data<GerritRepo[]>,
+		public readonly gerritRepo: GerritRepo,
 		public readonly changeID: string,
 		public readonly parent: ViewPanel | SearchResultsTreeProvider,
 		private readonly _subscription: Subscribable<GerritChange | null>,
@@ -71,11 +73,12 @@ export class ChangeTreeView
 	}
 
 	public static async create(
-		gerritRepo: Repository,
+		gerritReposD: Data<GerritRepo[]>,
+		gerritRepo: GerritRepo,
 		changeID: string,
 		parent: ViewPanel | SearchResultsTreeProvider
 	): Promise<ChangeTreeView> {
-		const api = await getAPIForSubscription();
+		const api = await getAPIForSubscription(gerritReposD, gerritRepo);
 		const subscription = api.getChange(changeID, null, [
 			GerritAPIWith.DETAILED_ACCOUNTS,
 		]);
@@ -90,6 +93,7 @@ export class ChangeTreeView
 			}
 		}
 		const instance = new this(
+			gerritReposD,
 			gerritRepo,
 			changeID,
 			parent,
@@ -102,23 +106,31 @@ export class ChangeTreeView
 		return instance;
 	}
 
-	public static async openInReview(changeID: string): Promise<void> {
+	public static async openInReview(
+		gerritRepo: GerritRepo,
+		reviewWebviewProvider: ReviewWebviewProvider,
+		changeID: string
+	): Promise<void> {
 		// Override
 		await storageSet(
 			'reviewChangeIDOverride',
-			changeID,
+			{
+				changeID,
+				repoURI: gerritRepo.rootUri.toString(),
+			},
 			StorageScope.WORKSPACE
 		);
 
 		// Cause rerender
-		await getReviewWebviewProvider()?.updateAllStates();
+		await reviewWebviewProvider.updateAllStates();
 
 		// Focus panel
-		await getReviewWebviewProvider()?.revealAllStates();
+		await reviewWebviewProvider.revealAllStates();
 	}
 
 	public static getFilesAndFolders(
-		gerritRepo: Repository,
+		gerritRepos: Data<GerritRepo[]>,
+		gerritRepo: GerritRepo,
 		change: GerritChange,
 		fileMap: FileMap,
 		patchsetStart: PatchsetDescription | null
@@ -131,6 +143,7 @@ export class ChangeTreeView
 			if (value.map.size) {
 				folderValues.push(
 					new FolderTreeView(
+						gerritRepos,
 						gerritRepo,
 						key,
 						change,
@@ -143,6 +156,7 @@ export class ChangeTreeView
 				...value.files.map(
 					(file) =>
 						new FileTreeView(
+							gerritRepos,
 							gerritRepo,
 							key,
 							change,
@@ -284,7 +298,12 @@ export class ChangeTreeView
 			values.push(TREE_ITEM_CHANGE_CUSTOM_PATCHSET_SELECTION);
 		}
 		const currentChangeID = await getCurrentChangeIDCached();
-		if (currentChangeID && currentChangeID === this.changeID) {
+		if (
+			currentChangeID &&
+			currentChangeID.changeID === this.changeID &&
+			currentChangeID.gerritRepo.rootUri.toString() ===
+				this.gerritRepo.rootUri.toString()
+		) {
 			values.push(TREE_ITEM_IS_CURRENT);
 		} else {
 			values.push(TREE_ITEM_IS_NOT_CURRENT);
@@ -363,8 +382,14 @@ export class ChangeTreeView
 		});
 	}
 
-	public async openInReview(): Promise<void> {
-		await ChangeTreeView.openInReview(this.changeID);
+	public async openInReview(
+		reviewWebviewProvider: ReviewWebviewProvider
+	): Promise<void> {
+		await ChangeTreeView.openInReview(
+			this.gerritRepo,
+			reviewWebviewProvider,
+			this.changeID
+		);
 	}
 
 	public async getItem(): Promise<TreeItem> {
@@ -406,16 +431,22 @@ export class ChangeTreeView
 
 		return [
 			...optionalArrayEntry(
-				await PatchSetLevelCommentsTreeView.isVisible(change),
+				await PatchSetLevelCommentsTreeView.isVisible(
+					this.gerritReposD,
+					change
+				),
 				() =>
 					new PatchSetLevelCommentsTreeView(
 						change.changeID,
+						this.gerritReposD,
+						change.gerritRepo,
 						change.number,
 						this.parent
 					)
 			),
 			...ChangeTreeView.getFilesAndFolders(
-				this._gerritRepo,
+				this.gerritReposD,
+				this.gerritRepo,
 				change,
 				collapsed,
 				this._patchSetBase

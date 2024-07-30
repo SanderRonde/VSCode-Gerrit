@@ -6,11 +6,11 @@ import {
 	Uri,
 	env,
 } from 'vscode';
-import { Repository } from '../../../types/vscode-extension-git';
+import { getAPIForRepo } from '../../../lib/gerrit/gerritAPI';
 import { getConfiguration } from '../../../lib/vscode/config';
+import { GerritRepo } from '../../../lib/gerrit/gerritRepo';
 import { EXTENSION_ID } from '../../../lib/util/constants';
 import { gitCheckoutRemote } from '../../../lib/git/git';
-import { getAPI } from '../../../lib/gerrit/gerritAPI';
 import { ChangeTreeView } from './changeTreeView';
 import { ChangesTreeProvider } from '../changes';
 
@@ -64,7 +64,7 @@ export function selectActiveView(): void {
 }
 
 export async function checkoutBranch(
-	gerritRepo: Repository,
+	gerritRepo: GerritRepo,
 	changeTreeView: ChangeTreeView
 ): Promise<void> {
 	await gitCheckoutRemote(
@@ -78,7 +78,10 @@ export async function checkoutBranch(
 export async function openChangeOnline(
 	changeTreeView: ChangeTreeView
 ): Promise<void> {
-	const api = await getAPI();
+	const api = await getAPIForRepo(
+		changeTreeView.gerritReposD,
+		changeTreeView.gerritRepo
+	);
 	if (!api) {
 		void window.showErrorMessage(
 			'Invalid API settings, failed to open change online'

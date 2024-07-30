@@ -16,22 +16,19 @@ import {
 	workspace,
 } from 'vscode';
 import { fileCache } from './views/activityBar/changes/changeTreeView/file/fileCache';
-import { getCommentDecorationProvider } from './providers/commentDecorationProvider';
+import { CommentDecorationProvider } from './providers/commentDecorationProvider';
 import { SearchResultsTreeProvider } from './views/activityBar/searchResults';
 import { CommentManager, DocumentManager } from './providers/commentProvider';
-import { getOrCreateReviewWebviewProvider } from './views/activityBar/review';
+import { getGerritRepos, setListenerForRepos } from './lib/gerrit/gerritRepo';
 import { getOrCreateChangesTreeProvider } from './views/activityBar/changes';
 import { FileProvider, GERRIT_FILE_SCHEME } from './providers/fileProvider';
-import { getConfiguration, initConfigListener } from './lib/vscode/config';
 import { setContextProp, setDefaultContexts } from './lib/vscode/context';
-import { createAutoRegisterCommand } from 'vscode-generate-package-json';
-import { getAPI, setAPIGitReviewFile } from './lib/gerrit/gerritAPI';
-import { GerritExtensionCommands } from './commands/command-names';
+import { checkConnection, getAPIForRepo } from './lib/gerrit/gerritAPI';
+import { ReviewWebviewProvider } from './views/activityBar/review';
 import { GERRIT_SEARCH_RESULTS_VIEW } from './lib/util/constants';
-import { getGerritRepo, pickGitRepo } from './lib/gerrit/gerrit';
 import { GerritUser } from './lib/gerrit/gerritAPI/gerritUser';
 import { updateUploaderState } from './lib/state/uploader';
-import { GerritCodicons, commands } from './commands/defs';
+import { getConfiguration } from './lib/vscode/config';
 import { registerCommands } from './commands/commands';
 import { setupChangeIDCache } from './lib/git/commit';
 import { createOutputChannel } from './lib/util/log';
@@ -39,6 +36,7 @@ import { URIHandler } from './providers/uriHandler';
 import { storageInit } from './lib/vscode/storage';
 import { VersionNumber } from './lib/util/version';
 import { setDevContext } from './lib/util/dev';
+import { Data } from './lib/util/data';
 
 export async function activate(context: ExtensionContext): Promise<void> {
 	// Set context so we know whether we're in dev mode or not
@@ -53,81 +51,114 @@ export async function activate(context: ExtensionContext): Promise<void> {
 	// Create logging output channel
 	createOutputChannel();
 
-	const registerCommand = createAutoRegisterCommand<GerritCodicons>(commands);
-	context.subscriptions.push(
-		registerCommand(GerritExtensionCommands.CHANGE_GIT_REPO, pickGitRepo)
-	);
-
 	// Check if we're even using gerrit
-	const gerritRepo = await getGerritRepo(context);
+	const gerritReposD = await getGerritRepos(context);
 
-	// Add config listener
-	initConfigListener();
+	gerritReposD.subscribe((gerritRepos) => {
+		// Set context to show/hide icon
+		void setContextProp('gerrit:isUsingGerrit', !!gerritRepos.length);
+	});
 
-	// Set context to show/hide icon
-	await setContextProp('gerrit:isUsingGerrit', !!gerritRepo);
-	if (!gerritRepo) {
-		return;
-	}
-
-	await setAPIGitReviewFile(gerritRepo);
+	// Wait for gerrit repos to be loaded (if any)
+	await gerritReposD.waitFor((gerritRepos) => gerritRepos.length > 0);
 
 	// Register commands
 	const statusBar = new CurrentChangeStatusBarManager();
 	context.subscriptions.push(statusBar);
-	registerCommands(statusBar, gerritRepo, context);
+	const reviewWebviewProvider = new ReviewWebviewProvider(
+		gerritReposD,
+		context
+	);
+	const commentDecorationProvider = new CommentDecorationProvider(
+		gerritReposD
+	);
+	registerCommands(
+		statusBar,
+		reviewWebviewProvider,
+		commentDecorationProvider,
+		gerritReposD,
+		context
+	);
 
-	const version = await (await getAPI(true))?.getGerritVersion();
-	if (version?.isSmallerThan(new VersionNumber(3, 4, 0))) {
-		// Pre-unsupported versions check if force-enable is enabled
-		if (!getConfiguration().get('gerrit.forceEnable')) {
-			// If not, ask user what to do
-			const FORCE_ENABLE_OPTION = 'Try anyway (might not work)';
-			const answer = await window.showErrorMessage(
-				`The gerrit extension does not support gerrit instances before version 3.4.0 (you have ${
-					version ? version.toString() : 'unknown'
-				})`,
-				FORCE_ENABLE_OPTION,
-				'Dismiss'
-			);
+	for (const gerritRepo of gerritReposD.get()) {
+		const version = await (
+			await getAPIForRepo(gerritReposD, gerritRepo, true)
+		)?.getGerritVersion();
+		if (version?.isSmallerThan(new VersionNumber(3, 4, 0))) {
+			// Pre-unsupported versions check if force-enable is enabled
+			if (!getConfiguration().get('gerrit.forceEnable')) {
+				// If not, ask user what to do
+				const FORCE_ENABLE_OPTION = 'Try anyway (might not work)';
+				const answer = await window.showErrorMessage(
+					`The gerrit extension does not support gerrit instances before version 3.4.0 (you have ${
+						version ? version.toString() : 'unknown'
+					})`,
+					FORCE_ENABLE_OPTION,
+					'Dismiss'
+				);
 
-			// If not force enable, disable extension
-			if (answer !== FORCE_ENABLE_OPTION) {
-				return;
+				// If not force enable, disable extension
+				if (answer !== FORCE_ENABLE_OPTION) {
+					return;
+				}
+
+				// If force enable, set forceEnable config option
+				await getConfiguration().update(
+					'gerrit.forceEnable',
+					true,
+					ConfigurationTarget.Global
+				);
 			}
-
-			// If force enable, set forceEnable config option
-			await getConfiguration().update(
-				'gerrit.forceEnable',
-				true,
-				ConfigurationTarget.Global
-			);
 		}
 	}
 
+	const hasCommentFeatureD = new Data(true);
+	context.subscriptions.push(
+		setListenerForRepos(gerritReposD, async (gerritRepo) => {
+			const version = await (
+				await getAPIForRepo(gerritReposD, gerritRepo, true)
+			)?.getGerritVersion();
+
+			hasCommentFeatureD.update(
+				(hasCommentFeature) =>
+					hasCommentFeature &&
+					!!version?.isGreaterThanOrEqual(new VersionNumber(3, 5, 0))
+			);
+			// Get version number and enable/disable features
+			await setContextProp(
+				'gerrit:hasCommentFeature',
+				hasCommentFeatureD.get()
+			);
+		})
+	);
+
 	// Register status bar entry
-	await showCurrentChangeStatusBarIcon(gerritRepo, statusBar, context);
+	showCurrentChangeStatusBarIcon(gerritReposD, statusBar, context);
 	await showQuickCheckoutStatusBarIcons(context);
 
 	// Test stream events
-	void (async () => {
-		if (
-			getConfiguration().get('gerrit.streamEvents') &&
-			(await testEnableStreamEvents(gerritRepo))
-		) {
-			context.subscriptions.push(
-				await startListeningForStreamEvents(gerritRepo)
-			);
+	setListenerForRepos(gerritReposD, async () => {
+		if (getConfiguration().get('gerrit.streamEvents')) {
+			const gerritRepos = gerritReposD.get();
+			if (gerritRepos.length > 1) {
+				void window.showInformationMessage(
+					'You have multiple gerrit repositories configured. Stream events are only supported for a single repository.'
+				);
+			} else if (await testEnableStreamEvents(gerritRepos[0])) {
+				context.subscriptions.push(
+					await startListeningForStreamEvents(gerritRepos[0])
+				);
+			}
 		}
-	})();
+	});
 
 	// Register tree views
-	context.subscriptions.push(getOrCreateChangesTreeProvider(gerritRepo));
+	context.subscriptions.push(getOrCreateChangesTreeProvider(gerritReposD));
 	context.subscriptions.push(getOrCreateQuickCheckoutTreeProvider());
 	context.subscriptions.push(
 		window.registerWebviewViewProvider(
 			'gerrit:review',
-			await getOrCreateReviewWebviewProvider(gerritRepo, context),
+			reviewWebviewProvider,
 			{
 				webviewOptions: {
 					retainContextWhenHidden: true,
@@ -138,7 +169,7 @@ export async function activate(context: ExtensionContext): Promise<void> {
 	context.subscriptions.push(
 		(() => {
 			const searchResultsTreeProvider = new SearchResultsTreeProvider(
-				gerritRepo
+				gerritReposD
 			);
 			const treeView = window.createTreeView(GERRIT_SEARCH_RESULTS_VIEW, {
 				treeDataProvider: searchResultsTreeProvider,
@@ -153,47 +184,47 @@ export async function activate(context: ExtensionContext): Promise<void> {
 	context.subscriptions.push(
 		workspace.registerTextDocumentContentProvider(
 			GERRIT_FILE_SCHEME,
-			new FileProvider(context)
+			new FileProvider(context, gerritReposD)
 		)
 	);
 
 	// Create comment controller
-	context.subscriptions.push(CommentManager.init(gerritRepo));
+	context.subscriptions.push(CommentManager.init(gerritReposD));
 
 	// Create document manager
 	context.subscriptions.push(DocumentManager.init());
 
 	// Register comment decoration provider (comment bubbles)
 	context.subscriptions.push(
-		window.registerFileDecorationProvider(getCommentDecorationProvider())
+		window.registerFileDecorationProvider(commentDecorationProvider)
 	);
 
 	// Register filetype decoration provider
 	context.subscriptions.push(
 		window.registerFileDecorationProvider(
-			new FileModificationStatusProvider()
+			new FileModificationStatusProvider(gerritReposD)
 		)
 	);
 
 	context.subscriptions.push(
-		window.registerUriHandler(new URIHandler(gerritRepo))
+		window.registerUriHandler(new URIHandler(gerritReposD))
 	);
 
 	// Add disposables
-	context.subscriptions.push(await setupChangeIDCache(gerritRepo));
-	context.subscriptions.push(await updateUploaderState(gerritRepo));
+	context.subscriptions.push(setupChangeIDCache(gerritReposD));
+	context.subscriptions.push(updateUploaderState(gerritReposD));
 	context.subscriptions.push(fileCache);
 
 	// Warm up cache for self
-	void GerritUser.getSelf();
+	context.subscriptions.push(
+		setListenerForRepos(
+			gerritReposD,
+			(gerritRepo) => void GerritUser.getSelf(gerritReposD, gerritRepo)
+		)
+	);
 
-	// Get version number and enable/disable features
-	if (version) {
-		await setContextProp(
-			'gerrit:hasCommentFeature',
-			version.isGreaterThanOrEqual(new VersionNumber(3, 5, 0))
-		);
-	}
+	// Test connections
+	gerritReposD.subscribe(() => void checkConnection(gerritReposD));
 }
 
 export function deactivate(): void {}

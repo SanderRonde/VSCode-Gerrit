@@ -240,3 +240,16 @@ export function generateRandomString(length: number = 25): string {
 	}
 	return result;
 }
+
+export function derefProxy<T extends object>(proxy: T): T {
+	const result = {} as T;
+	for (const key in proxy) {
+		const value = proxy[key];
+		if (typeof value === 'object' && value) {
+			result[key] = derefProxy(value);
+		} else {
+			result[key] = value;
+		}
+	}
+	return result;
+}

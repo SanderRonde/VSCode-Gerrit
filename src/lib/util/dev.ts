@@ -7,7 +7,8 @@ export function setDevContext(ctx: ExtensionContext): void {
 }
 
 // Dev
-const IS_DEV_OVERRIDE: boolean | null = null;
+// TODO:(Sander)
+const IS_DEV_OVERRIDE: boolean | null = true;
 export function isDev(): boolean {
 	if (process.env.DEV_OVERRIDE) {
 		return true;

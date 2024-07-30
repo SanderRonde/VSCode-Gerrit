@@ -2,25 +2,45 @@ import {
 	ChangesTreeProvider,
 	getChangesTreeProvider,
 } from '../../views/activityBar/changes';
+import { RootTreeViewProvider } from '../../views/activityBar/changes/rootTreeView';
 import { SearchResultsTreeProvider } from '../../views/activityBar/searchResults';
 import { ChangeTreeView } from '../../views/activityBar/changes/changeTreeView';
 import { selectChange } from '../../views/statusBar/currentChangeStatusBar';
+import { ViewPanel } from '../../views/activityBar/changes/viewPanel';
 import { GerritChange } from '../gerrit/gerritAPI/gerritChange';
-import { Repository } from '../../types/vscode-extension-git';
 import { flatten, uniqueComplex } from '../util/util';
 import { setContextProp } from '../vscode/context';
+import { GerritRepo } from '../gerrit/gerritRepo';
+import { Data } from '../util/data';
 
-export async function focusChange(gerritRepo: Repository): Promise<void> {
-	const changeNumber = await selectChange(gerritRepo);
-	if (!changeNumber) {
+export async function focusChange(
+	gerritReposD: Data<GerritRepo[]>
+): Promise<void> {
+	const change = await selectChange(gerritReposD);
+	if (!change) {
 		return;
 	}
 
 	// Get a list of everything that is currently rendered
-	const rootTreeViews = ChangesTreeProvider.getInstances().map(
-		(i) => i.rootViewProvider
+	const rootTreeViews = await Promise.all(
+		ChangesTreeProvider.getInstances().map((i) => i.rootViewProvider)
 	);
-	const panels = flatten(rootTreeViews.map((r) => r.getLastChildren()));
+
+	const panels: ViewPanel[] = [];
+	for (const rootTreeView of rootTreeViews) {
+		const lastChildren = rootTreeView.getLastChildren();
+		if (lastChildren.length === 0) {
+			continue;
+		}
+
+		for (const lastChild of lastChildren) {
+			if (lastChild instanceof RootTreeViewProvider) {
+				panels.push(...lastChild.getLastChildren());
+			} else {
+				panels.push(lastChild);
+			}
+		}
+	}
 	const panelChanges = flatten(
 		await Promise.all(
 			panels.map(async (p) =>
@@ -43,7 +63,10 @@ export async function focusChange(gerritRepo: Repository): Promise<void> {
 	const changes = uniqueComplex(panelChanges, (i) => i.change.changeID);
 
 	const match = changes.find(
-		(c) => c.change.number === changeNumber.changeId
+		(c) =>
+			c.change.number === change.changeId &&
+			c.change.gerritRepo.rootUri.toString() ===
+				change.repo.rootUri.toString()
 	);
 	const changesTreeProvider = getChangesTreeProvider();
 	if (match && changesTreeProvider) {
@@ -55,12 +78,14 @@ export async function focusChange(gerritRepo: Repository): Promise<void> {
 		});
 	} else {
 		// Set value that opens it in the search panel
-		await setContextProp(
-			'gerrit:searchChangeNumber',
-			changeNumber.changeId
-		);
+		await setContextProp('gerrit:searchChangeNumber', change.changeId);
+		SearchResultsTreeProvider.setCurrent({
+			type: 'changeNumber',
+			changeNumber: change.changeId,
+			repo: change.repo,
+		});
 		SearchResultsTreeProvider.clear();
-		SearchResultsTreeProvider.refesh();
-		SearchResultsTreeProvider.focus();
+		await SearchResultsTreeProvider.refesh();
+		await SearchResultsTreeProvider.focus();
 	}
 }

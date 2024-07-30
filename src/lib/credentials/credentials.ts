@@ -1,88 +1,77 @@
 import {
-	GitReviewFile,
-	getGitReviewFile,
-	getGitReviewFileCached,
-} from './gitReviewFile';
+	GerritRemote,
+	GerritRemoteWithConfig,
+	GerritRepo,
+	gerritReposToRemotes,
+	RemoteUrl,
+} from '../gerrit/gerritRepo';
+import {
+	ConfigSettings,
+	getConfiguration,
+	getConfigurationWithLegacy,
+} from '../vscode/config';
+import { ConfigurationTarget, QuickPickItem, window } from 'vscode';
 import { MultiStepEntry, MultiStepper } from '../vscode/multiStep';
-import { Repository } from '../../types/vscode-extension-git';
-import { ConfigurationTarget, window } from 'vscode';
 import { GerritAPI } from '../gerrit/gerritAPI/api';
-import { getConfiguration } from '../vscode/config';
-import got from 'got/dist/source';
+import { derefProxy } from '../util/util';
+import { Data } from '../util/data';
 
-function applyTrailingSlashFix(url: string): string {
-	if (url.endsWith('/')) {
-		return url.substring(0, url.length - 1);
+export async function getRemotesWithConfig(
+	gerritRepos: GerritRepo[]
+): Promise<Record<RemoteUrl, GerritRemoteWithConfig>> {
+	const configWithLegacy = getConfigurationWithLegacy();
+	let remotesConfig = configWithLegacy.get('gerrit.remotes') ?? {};
+
+	const remotes = await gerritReposToRemotes(gerritRepos);
+	if (Object.keys(remotesConfig).length === 0) {
+		for (const remote of remotes) {
+			const username = configWithLegacy.get('gerrit.auth.username');
+			const password = configWithLegacy.get('gerrit.auth.password');
+			const cookie = configWithLegacy.get('gerrit.auth.cookie');
+			const extraCookies = configWithLegacy.get('gerrit.extraCookies');
+
+			const existingConfig = remotesConfig?.[remote.url];
+			remotesConfig = {
+				...remotesConfig,
+				[remote.url]: {
+					username: username ?? existingConfig?.username,
+					password: password ?? existingConfig?.password,
+					cookie: cookie ?? existingConfig?.cookie,
+					extraCookies: extraCookies ?? existingConfig?.extraCookies,
+				},
+			};
+		}
 	}
-	return url;
-}
 
-function applySchemeFix(url: string): string {
-	if (!url.includes('://')) {
-		return `https://${url}`;
+	const finalRemotes: Record<string, GerritRemoteWithConfig> = {};
+	for (const remote of remotes) {
+		const remoteConfig = {
+			...remotesConfig['default'],
+			...remotesConfig[remote.url],
+		};
+		finalRemotes[remote.url] = new GerritRemoteWithConfig(
+			remote.url,
+			remote.remoteReposD,
+			remoteConfig
+		);
 	}
-
-	return url;
+	return finalRemotes;
 }
 
-function sanitizeURL(url: string): string {
-	return applySchemeFix(applyTrailingSlashFix(url));
-}
-
-export function getGerritURLFromReviewFile(
-	gitReviewFile: GitReviewFile | null
-): string | null {
+async function enterBasicCredentials(
+	gerritReposD: Data<GerritRepo[]>,
+	remote: GerritRemote
+): Promise<void> {
 	const config = getConfiguration();
-	const configuredValue = config.get('gerrit.auth.url');
-	if (configuredValue) {
-		return sanitizeURL(configuredValue);
-	}
-	if (gitReviewFile) {
-		return sanitizeURL(gitReviewFile.host);
-	}
-	return null;
-}
+	const remotes = await getRemotesWithConfig(gerritReposD.get());
+	const configForRemote = remotes[remote.url] as
+		| GerritRemoteWithConfig
+		| undefined;
 
-export async function getGerritURL(
-	gerritRepo: Repository
-): Promise<string | null> {
-	const config = getConfiguration();
-	const configuredValue = config.get('gerrit.auth.url');
-	if (configuredValue) {
-		return sanitizeURL(configuredValue);
-	}
-	const gitReviewFile = await getGitReviewFileCached(gerritRepo);
-	if (gitReviewFile) {
-		return sanitizeURL(gitReviewFile.host);
-	}
-	return null;
-}
-
-async function enterBasicCredentials(gerritRepo: Repository): Promise<void> {
-	const config = getConfiguration();
-	const initialURLValue = await getGerritURL(gerritRepo);
-	const extraCookies = config.get('gerrit.extraCookies');
-
-	const urlStep = new MultiStepEntry({
-		placeHolder: 'https://gerrithost.com',
-		prompt: 'Enter the URL of your Gerrit server',
-		value: initialURLValue ?? undefined,
-		validate: async (url: string) => {
-			try {
-				await got(url);
-				return { isValid: true };
-			} catch (e) {
-				return {
-					isValid: false,
-					message: `Failed to reach URL: "${e as string}""`,
-				};
-			}
-		},
-	});
 	const usernameStep = new MultiStepEntry({
 		placeHolder: 'myuser',
 		prompt: 'Enter your Gerrit username',
-		value: config.get('gerrit.auth.username'),
+		value: configForRemote?.config.username,
 	});
 	const passwordStep = new MultiStepEntry({
 		placeHolder: 'password',
@@ -90,16 +79,10 @@ async function enterBasicCredentials(gerritRepo: Repository): Promise<void> {
 			`Enter your Gerrit password (see ${
 				stepper.values[0] ?? 'www.yourgerrithost.com'
 			}/settings/#HTTPCredentials)`,
-		value: config.get('gerrit.auth.password'),
+		value: configForRemote?.config.password,
 		isPassword: true,
 		validate: async (password, stepper) => {
-			const [url, username] = stepper.values;
-			if (!url) {
-				return {
-					isValid: false,
-					message: 'Missing URL',
-				};
-			}
+			const [username] = stepper.values;
 			if (!username) {
 				return {
 					isValid: false,
@@ -108,12 +91,14 @@ async function enterBasicCredentials(gerritRepo: Repository): Promise<void> {
 			}
 
 			const api = new GerritAPI(
-				url,
+				gerritReposD,
+				remote,
+				remote.url,
 				username,
 				password,
 				null,
-				extraCookies ?? null,
-				await getGitReviewFile(gerritRepo)
+				configForRemote?.config?.extraCookies ?? null,
+				await remote.getProjects()
 			);
 			if (!(await api.testConnection())) {
 				return {
@@ -125,69 +110,55 @@ async function enterBasicCredentials(gerritRepo: Repository): Promise<void> {
 			return { isValid: true };
 		},
 	});
-	const result = await new MultiStepper([
-		urlStep,
-		usernameStep,
-		passwordStep,
-	]).run();
+	const result = await new MultiStepper([usernameStep, passwordStep]).run();
 
 	if (result === undefined) {
 		// User quit
 		return;
 	}
 
-	const [url, username, password] = result;
-	await Promise.all([
-		url && url !== initialURLValue
-			? config.update('gerrit.auth.url', url, ConfigurationTarget.Global)
-			: Promise.resolve(),
-		username
-			? config.update(
-					'gerrit.auth.username',
-					username,
-					ConfigurationTarget.Global
-				)
-			: Promise.resolve(),
-		password
-			? config.update(
-					'gerrit.auth.password',
-					password,
-					ConfigurationTarget.Global
-				)
-			: Promise.resolve(),
-	]);
+	const [username, password] = result;
+	const updates: ConfigSettings['gerrit.remotes'][string] = {};
+	if (username) {
+		updates.username = username;
+	}
+	if (password) {
+		updates.password = password;
+	}
+	if (Object.keys(updates).length > 0) {
+		await config.update(
+			'gerrit.remotes',
+			derefProxy({
+				...config.get('gerrit.remotes'),
+				[remote.url]: {
+					...(config.get('gerrit.remotes')?.[remote.url] ?? {}),
+					...updates,
+				},
+			}),
+			ConfigurationTarget.Global
+		);
+	}
 
 	await window.showInformationMessage('Gerrit connection successful!');
 }
 
-async function enterCookieCredentials(gerritRepo: Repository): Promise<void> {
+async function enterCookieCredentials(
+	gerritReposD: Data<GerritRepo[]>,
+	remote: GerritRemote
+): Promise<void> {
 	const config = getConfiguration();
-	const initialURLValue = await getGerritURL(gerritRepo);
-	const extraCookies = config.get('gerrit.extraCookies');
+	const remotes = await getRemotesWithConfig(gerritReposD.get());
+	const configForRemote = remotes[remote.url] as
+		| GerritRemoteWithConfig
+		| undefined;
 
-	const urlStep = new MultiStepEntry({
-		placeHolder: 'https://gerrithost.com',
-		prompt: 'Enter the URL of your Gerrit server',
-		value: initialURLValue ?? undefined,
-		validate: async (url: string) => {
-			try {
-				await got(url);
-				return { isValid: true };
-			} catch (e) {
-				return {
-					isValid: false,
-					message: `Failed to reach URL: "${e as string}""`,
-				};
-			}
-		},
-	});
 	const cookieStep = new MultiStepEntry({
 		placeHolder: '34-char-long alphanumeric string',
 		prompt: (stepper) =>
 			`Enter your Gerrit authentication cookie (go to ${
 				stepper.values[0] ?? 'www.yourgerrithost.com'
 			} and copy the value of the GerritAccount cookie)`,
-		value: config.get('gerrit.auth.cookie'),
+		value: configForRemote?.config.cookie,
 		validate: async (cookie, stepper) => {
 			const [url] = stepper.values;
 			if (!url) {
@@ -198,12 +169,14 @@ async function enterCookieCredentials(gerritRepo: Repository): Promise<void> {
 			}
 
 			const api = new GerritAPI(
+				gerritReposD,
+				remote,
 				url,
 				null,
 				null,
 				cookie,
-				extraCookies ?? null,
-				await getGitReviewFile(gerritRepo)
+				configForRemote?.config.extraCookies ?? null,
+				await remote.getProjects()
 			);
 			if (!(await api.testConnection())) {
 				return {
@@ -215,31 +188,95 @@ async function enterCookieCredentials(gerritRepo: Repository): Promise<void> {
 			return { isValid: true };
 		},
 	});
-	const result = await new MultiStepper([urlStep, cookieStep]).run();
+	const result = await new MultiStepper([cookieStep]).run();
 
 	if (result === undefined) {
 		// User quit
 		return;
 	}
 
-	const [url, cookie] = result;
-	await Promise.all([
-		url && url !== initialURLValue
-			? config.update('gerrit.auth.url', url, ConfigurationTarget.Global)
-			: Promise.resolve(),
-		cookie
-			? config.update(
-					'gerrit.auth.cookie',
-					cookie,
-					ConfigurationTarget.Global
-				)
-			: Promise.resolve(),
-	]);
+	const [cookie] = result;
+	const updates: ConfigSettings['gerrit.remotes'][string] = {};
+	if (cookie) {
+		updates.cookie = cookie;
+	}
+	if (Object.keys(updates).length > 0) {
+		await config.update(
+			'gerrit.remotes',
+			derefProxy({
+				...config.get('gerrit.remotes'),
+				[remote.url]: {
+					...(config.get('gerrit.remotes')?.[remote.url] ?? {}),
+					...updates,
+				},
+			}),
+			ConfigurationTarget.Global
+		);
+	}
 
 	await window.showInformationMessage('Gerrit connection successful!');
 }
 
-export async function enterCredentials(gerritRepo: Repository): Promise<void> {
+export async function enterCredentials(
+	gerritReposD: Data<GerritRepo[]>
+): Promise<void> {
+	const gerritRepos = gerritReposD.get();
+	const remotesWithConfig = await getRemotesWithConfig(gerritRepos);
+	const remote = await (async () => {
+		if (Object.keys(remotesWithConfig).length > 1) {
+			const labels = await Promise.all(
+				Object.values(remotesWithConfig).map(
+					async (
+						remote
+					): Promise<
+						QuickPickItem & { remote: GerritRemoteWithConfig }
+					> => {
+						let label = remote.url;
+						if (
+							!(
+								(!remote.config.username ||
+									!remote.config.password) &&
+								!remote.config.cookie
+							)
+						) {
+							const api = new GerritAPI(
+								gerritReposD,
+								remote,
+								remote.url,
+								remote.config.username ?? null,
+								remote.config.password ?? null,
+								remote.config.cookie ?? null,
+								remote.config.extraCookies ?? null,
+								await remote.getProjects()
+							);
+							if (await api.testConnection()) {
+								label = (label +
+									' (authenticated)') as RemoteUrl;
+							}
+						}
+
+						return {
+							label,
+							remote,
+						};
+					}
+				)
+			);
+
+			const choice = await window.showQuickPick(labels, {
+				ignoreFocusOut: true,
+				placeHolder: 'Select the repository to authenticate',
+				title: 'Gerrit Authentication',
+			});
+			return choice?.remote;
+		}
+		return Object.values(remotesWithConfig)[0];
+	})();
+
+	if (!remote) {
+		return;
+	}
+
 	const choice = await window.showQuickPick(
 		[
 			{
@@ -257,8 +294,8 @@ export async function enterCredentials(gerritRepo: Repository): Promise<void> {
 	);
 
 	if (choice?.label === 'Enter username and password') {
-		await enterBasicCredentials(gerritRepo);
+		await enterBasicCredentials(gerritReposD, remote);
 	} else {
-		await enterCookieCredentials(gerritRepo);
+		await enterCookieCredentials(gerritReposD, remote);
 	}
 }

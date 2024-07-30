@@ -1,21 +1,23 @@
 import {
 	DEFAULT_GIT_REVIEW_FILE,
-	getGitReviewFileCached,
+	getGitReviewFile,
 } from '../credentials/gitReviewFile';
 import { GerritChange } from '../gerrit/gerritAPI/gerritChange';
-import { Repository } from '../../types/vscode-extension-git';
 import { GitCommit, getLastCommits } from '../git/gitCLI';
+import { GerritRepo } from '../gerrit/gerritRepo';
 import { getCurrentBranch } from '../git/git';
 import { Uri, env, window } from 'vscode';
+import { Data } from '../util/data';
 import * as path from 'path';
 
 export async function openOnGitiles(
-	gerritRepo: Repository,
+	gerritReposD: Data<GerritRepo[]>,
+	gerritRepo: GerritRepo,
 	permalink: boolean,
 	uri: Uri,
 	line?: number
 ): Promise<void> {
-	const gitReviewFile = await getGitReviewFileCached(gerritRepo);
+	const gitReviewFile = await getGitReviewFile(gerritRepo);
 	if (!gitReviewFile) {
 		void window.showErrorMessage(
 			'Failed to find .gitreview file, which is used to determine URL'
@@ -30,15 +32,9 @@ export async function openOnGitiles(
 
 	const branch = await getCurrentBranch(gerritRepo);
 
-	let project = gitReviewFile.project;
-	if (project.endsWith('.git')) {
-		project = project.slice(0, -'.git'.length);
-	}
+	const project = gitReviewFile.project;
 	const basePath = `https://${gitReviewFile.host}/plugins/gitiles/${project}/+`;
-	const relativeFilePath = path.relative(
-		gerritRepo.rootUri.fsPath,
-		uri.fsPath
-	);
+	const relativeFilePath = path.relative(gerritRepo.rootPath, uri.fsPath);
 
 	// Find the revision with the same hash as the current commit
 	const commit = (await getLastCommits(gerritRepo, 1))[0];
@@ -60,7 +56,11 @@ export async function openOnGitiles(
 			return;
 		}
 
-		const currentChange = await getCurrentChange(gerritRepo, commit);
+		const currentChange = await getCurrentChange(
+			gerritReposD,
+			gerritRepo,
+			commit
+		);
 		if (currentChange) {
 			await env.openExternal(
 				Uri.parse(
@@ -88,7 +88,8 @@ export async function openOnGitiles(
 }
 
 async function getCurrentChange(
-	gerritRepo: Repository,
+	gerritReposD: Data<GerritRepo[]>,
+	gerritRepo: GerritRepo,
 	commit: GitCommit
 ): Promise<{
 	changeNumber: number;
@@ -96,10 +97,15 @@ async function getCurrentChange(
 } | null> {
 	// Now comes the magical part. If we're not on master we want to figure out on what gerrit
 	// change we are and link to the change & patchset.
-	const change = await GerritChange.getCurrentChangeOnce(gerritRepo, [], {
-		cachedID: true,
-		allowFail: true,
-	});
+	const change = await GerritChange.getCurrentChangeOnce(
+		gerritReposD,
+		gerritRepo,
+		[],
+		{
+			cachedID: true,
+			allowFail: true,
+		}
+	);
 	if (!change) {
 		return null;
 	}

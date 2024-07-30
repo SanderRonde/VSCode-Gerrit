@@ -6,11 +6,13 @@ import {
 import { TreeItemWithoutChildren, TreeViewItem } from '../../shared/treeTypes';
 import { GerritChange } from '../../../../lib/gerrit/gerritAPI/gerritChange';
 import { ThemeIcon, TreeItem, TreeItemCollapsibleState } from 'vscode';
-import { Repository } from '../../../../types/vscode-extension-git';
+import { GerritRepo } from '../../../../lib/gerrit/gerritRepo';
+import { Data } from '../../../../lib/util/data';
 
 export class FolderTreeView implements TreeItemWithoutChildren {
 	public constructor(
-		private readonly _gerritRepo: Repository,
+		private readonly _gerritRepoD: Data<GerritRepo[]>,
+		private readonly _gerritRepo: GerritRepo,
 		public folderPath: string,
 		public change: GerritChange,
 		public fileMap: FileMap,
@@ -28,6 +30,7 @@ export class FolderTreeView implements TreeItemWithoutChildren {
 
 	public getChildren(): TreeViewItem[] {
 		return ChangeTreeView.getFilesAndFolders(
+			this._gerritRepoD,
 			this._gerritRepo,
 			this.change,
 			this.fileMap,

@@ -20,7 +20,10 @@ interface StorageObj {
 	 * Change ID to use for the patchset panel
 	 * instead of the current change
 	 */
-	reviewChangeIDOverride: string | null;
+	reviewChangeIDOverride: {
+		changeID: string;
+		repoURI: string;
+	} | null;
 	streamEventsAsked?: boolean;
 	quickCheckoutStashes: QuickCheckoutApplyInfo[];
 	askedDropAllStashes?: boolean;

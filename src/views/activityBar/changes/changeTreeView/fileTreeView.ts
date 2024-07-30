@@ -30,10 +30,11 @@ import { GerritChange } from '../../../../lib/gerrit/gerritAPI/gerritChange';
 import { IterableWeakMap } from '../../../../lib/util/garbageCollection';
 import { getAPIForSubscription } from '../../../../lib/gerrit/gerritAPI';
 import { DocumentManager } from '../../../../providers/commentProvider';
-import { Repository } from '../../../../types/vscode-extension-git';
 import { TreeItemWithoutChildren } from '../../shared/treeTypes';
 import { ternaryWithFallback } from '../../../../lib/util/util';
+import { GerritRepo } from '../../../../lib/gerrit/gerritRepo';
 import { PatchsetDescription } from '../changeTreeView';
+import { Data } from '../../../../lib/util/data';
 import * as path from 'path';
 
 export interface DiffEditorMapEntry {
@@ -51,7 +52,8 @@ export class FileTreeView implements TreeItemWithoutChildren {
 	private static _disposables: Disposable[] = [];
 
 	public constructor(
-		private readonly _gerritRepo: Repository,
+		public readonly gerritReposD: Data<GerritRepo[]>,
+		public readonly gerritRepo: GerritRepo,
 		public filePath: string,
 		public change: GerritChange,
 		public file: GerritFile,
@@ -96,7 +98,8 @@ export class FileTreeView implements TreeItemWithoutChildren {
 	}
 
 	public static async createDiffCommand(
-		gerritRepo: Repository,
+		gerritReposD: Data<GerritRepo[]>,
+		gerritRepo: GerritRepo,
 		file: GerritFile,
 		patchsetBase: PatchsetDescription | null
 	): Promise<Command | null> {
@@ -139,7 +142,9 @@ export class FileTreeView implements TreeItemWithoutChildren {
 			file,
 		});
 
-		const change = await (await getAPIForSubscription())
+		const change = await (
+			await getAPIForSubscription(gerritReposD, gerritRepo)
+		)
 			.getChange(file.changeID, null)
 			.getValue();
 		if (!change) {
@@ -283,7 +288,8 @@ export class FileTreeView implements TreeItemWithoutChildren {
 			) {
 				// Prep cmd
 				const cmd = await FileTreeView.createDiffCommand(
-					this._gerritRepo,
+					this.gerritReposD,
+					this.gerritRepo,
 					this.file,
 					this.patchsetBase
 				);
@@ -339,7 +345,8 @@ export class FileTreeView implements TreeItemWithoutChildren {
 			iconPath: ThemeIcon.File,
 			command:
 				(await FileTreeView.createDiffCommand(
-					this._gerritRepo,
+					this.gerritReposD,
+					this.gerritRepo,
 					this.file,
 					this.patchsetBase
 				)) ?? undefined,

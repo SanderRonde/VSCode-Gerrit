@@ -6,20 +6,29 @@ import {
 	GerritUserResponse,
 } from './types';
 import { PatchsetDescription } from '../../../views/activityBar/changes/changeTreeView';
-import { getCurrentChangeID, getCurrentChangeIDCached } from '../../git/commit';
+import {
+	getCurrentChangeForRepo,
+	getCurrentChangeIDCached,
+} from '../../git/commit';
 import { joinSubscribables } from '../../subscriptions/subscriptionUtil';
 import { GerritComment, GerritDraftComment } from './gerritComment';
+import { getAPIForRepo, getAPIForSubscription } from '../gerritAPI';
 import { DefaultChangeFilter, GerritChangeFilter } from './filters';
-import { Repository } from '../../../types/vscode-extension-git';
 import { Subscribable } from '../../subscriptions/subscriptions';
-import { getAPI, getAPIForSubscription } from '../gerritAPI';
 import { ChangesOffsetParams, GerritAPIWith } from './api';
 import { getConfiguration } from '../../vscode/config';
 import { GerritRevision } from './gerritRevision';
 import { DynamicallyFetchable } from './shared';
 import { DateTime } from '../../util/dateTime';
 import { GerritCommit } from './gerritCommit';
+import { GerritRepo } from '../gerritRepo';
 import { GerritUser } from './gerritUser';
+import { Data } from '../../util/data';
+
+export interface ChangeIDWithRepo {
+	gerritRepo: GerritRepo;
+	changeID: string;
+}
 
 export type CommentMap = Map<string, (GerritComment | GerritDraftComment)[]>;
 
@@ -57,6 +66,8 @@ export class GerritChange extends DynamicallyFetchable {
 
 	public constructor(
 		response: GerritChangeResponse,
+		public gerritReposD: Data<GerritRepo[]>,
+		public gerritRepo: GerritRepo,
 		private readonly _isAllRevisions: boolean
 	) {
 		super();
@@ -97,7 +108,7 @@ export class GerritChange extends DynamicallyFetchable {
 			'username' in response.owner ||
 			'name' in response.owner
 		) {
-			this._detailedOwner = new GerritUser(response.owner);
+			this._detailedOwner = new GerritUser(response.owner, gerritReposD);
 		}
 
 		if (response.revisions) {
@@ -108,6 +119,8 @@ export class GerritChange extends DynamicallyFetchable {
 							k,
 							new GerritRevision(
 								this.changeID,
+								this.gerritReposD,
+								this.gerritRepo,
 								this.project,
 								k,
 								k === response.current_revision!,
@@ -123,10 +136,15 @@ export class GerritChange extends DynamicallyFetchable {
 	}
 
 	public static async getAllComments(
-		changeID: string,
+		gerritReposD: Data<GerritRepo[]>,
+		change: ChangeIDWithRepo,
 		options?: { allowFail: boolean }
 	): Promise<Subscribable<CommentMap>> {
-		const api = await getAPIForSubscription(options?.allowFail);
+		const api = await getAPIForSubscription(
+			gerritReposD,
+			change.gerritRepo,
+			options?.allowFail
+		);
 
 		return joinSubscribables(
 			(comments, draftComments): CommentMap => {
@@ -145,8 +163,8 @@ export class GerritChange extends DynamicallyFetchable {
 				}
 				return mergedMap;
 			},
-			api.getComments(changeID),
-			api.getDraftComments(changeID)
+			api.getComments(change.changeID),
+			api.getDraftComments(change.changeID)
 		);
 	}
 
@@ -155,6 +173,8 @@ export class GerritChange extends DynamicallyFetchable {
 	 * level of filters is AND
 	 */
 	public static async getChanges(
+		gerritReposD: Data<GerritRepo[]>,
+		gerritRepo: GerritRepo,
 		filters: (DefaultChangeFilter | GerritChangeFilter)[][],
 		offset: ChangesOffsetParams,
 		onError:
@@ -165,7 +185,7 @@ export class GerritChange extends DynamicallyFetchable {
 			  ) => void | Promise<void>),
 		...withValues: GerritAPIWith[]
 	): Promise<Subscribable<GerritChange[]> | null> {
-		const api = await getAPI();
+		const api = await getAPIForRepo(gerritReposD, gerritRepo);
 		if (!api) {
 			return null;
 		}
@@ -174,28 +194,37 @@ export class GerritChange extends DynamicallyFetchable {
 	}
 
 	public static async getChange(
-		changeID: string,
+		gerritReposD: Data<GerritRepo[]>,
+		change: ChangeIDWithRepo,
 		withValues: GerritAPIWith[] = [],
 		options?: {
 			allowFail?: boolean;
 		}
 	): Promise<Subscribable<GerritChange | null>> {
-		const api = await getAPIForSubscription(options?.allowFail);
-		return api.getChange(changeID, null, withValues);
+		const api = await getAPIForSubscription(
+			gerritReposD,
+			change.gerritRepo,
+			options?.allowFail
+		);
+		return api.getChange(change.changeID, null, withValues);
 	}
 
 	public static async getChangeOnce(
-		changeID: string,
+		gerritReposD: Data<GerritRepo[]>,
+		change: ChangeIDWithRepo,
 		withValues: GerritAPIWith[] = [],
 		options?: {
 			allowFail?: boolean;
 		}
 	): Promise<GerritChange | null> {
-		return (await this.getChange(changeID, withValues, options)).getValue();
+		return (
+			await this.getChange(gerritReposD, change, withValues, options)
+		).getValue();
 	}
 
 	public static async getCurrentChangeOnce(
-		gerritRepo: Repository,
+		gerritReposD: Data<GerritRepo[]>,
+		gerritRepo: GerritRepo,
 		withValues: GerritAPIWith[] = [],
 		{
 			allowFail = true,
@@ -207,12 +236,14 @@ export class GerritChange extends DynamicallyFetchable {
 	): Promise<GerritChange | null> {
 		const changeID = cachedID
 			? await getCurrentChangeIDCached()
-			: await getCurrentChangeID(gerritRepo);
+			: await getCurrentChangeForRepo(gerritRepo);
 		if (!changeID) {
 			return null;
 		}
 		return (
-			await this.getChange(changeID, withValues, { allowFail })
+			await this.getChange(gerritReposD, changeID, withValues, {
+				allowFail,
+			})
 		).getValue();
 	}
 

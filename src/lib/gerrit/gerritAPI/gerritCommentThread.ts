@@ -8,6 +8,7 @@ import {
 	CommentManager,
 	DocumentCommentManager,
 } from '../../../providers/commentProvider';
+import { CommentDecorationProvider } from '../../../providers/commentDecorationProvider';
 import { GerritCommentBase, GerritDraftComment } from './gerritComment';
 import { CommentThread, CommentThreadCollapsibleState } from 'vscode';
 import { OnceDisposable } from '../../classes/onceDisposable';
@@ -182,12 +183,18 @@ export class GerritCommentThread extends OnceDisposable {
 			: CommentThreadCollapsibleState.Collapsed;
 	}
 
-	public async setResolved(newValue: boolean): Promise<void> {
+	public async setResolved(
+		commentDecorationProvider: CommentDecorationProvider,
+		newValue: boolean
+	): Promise<void> {
 		if (!this.lastComment?.isDraft) {
 			return;
 		}
 
-		await (this.lastComment as GerritDraftComment).setResolved(newValue);
+		await (this.lastComment as GerritDraftComment).setResolved(
+			commentDecorationProvider,
+			newValue
+		);
 		this.update(false);
 	}
 

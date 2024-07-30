@@ -1,8 +1,12 @@
-import { Repository } from '../../../types/vscode-extension-git';
+import {
+	GerritRemoteWithConfig,
+	GerritRepo,
+} from '../../../lib/gerrit/gerritRepo';
 import { getConfiguration } from '../../../lib/vscode/config';
 import { TreeItemWithChildren } from '../shared/treeTypes';
 import { configureChangeLists } from './changeCommands';
 import { ChangesTreeProvider } from '../changes';
+import { Data } from '../../../lib/util/data';
 import { TreeItem, window } from 'vscode';
 import { ViewPanel } from './viewPanel';
 
@@ -10,8 +14,10 @@ export class RootTreeViewProvider implements TreeItemWithChildren {
 	private _lastChildren: ViewPanel[] = [];
 
 	public constructor(
-		private readonly _gerritRepo: Repository,
-		public readonly root: ChangesTreeProvider
+		private readonly _gerritReposD: Data<GerritRepo[]>,
+		private readonly _gerritRemote: GerritRemoteWithConfig,
+		public readonly root: ChangesTreeProvider,
+		private readonly _item: TreeItem = {}
 	) {}
 
 	public static async openConfigSettingsMessage(
@@ -28,7 +34,7 @@ export class RootTreeViewProvider implements TreeItemWithChildren {
 	}
 
 	public getItem(): Promise<TreeItem> {
-		return Promise.resolve({});
+		return Promise.resolve(this._item);
 	}
 
 	public getLastChildren(): ViewPanel[] {
@@ -61,7 +67,12 @@ export class RootTreeViewProvider implements TreeItemWithChildren {
 			}
 
 			return selectedView.panels.map((panel) => {
-				return new ViewPanel(this._gerritRepo, this, panel);
+				return new ViewPanel(
+					this._gerritReposD,
+					this._gerritRemote,
+					this,
+					panel
+				);
 			});
 		})();
 		return (this._lastChildren = children);

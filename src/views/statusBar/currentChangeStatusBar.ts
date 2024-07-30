@@ -4,6 +4,7 @@ import {
 	StatusBarAlignment,
 	StatusBarItem,
 	Disposable,
+	QuickPickItem,
 } from 'vscode';
 import {
 	DefaultChangeFilter,
@@ -12,18 +13,20 @@ import {
 import { gitCheckoutRemote, onChangeLastCommit } from '../../lib/git/git';
 
 import { GerritChange } from '../../lib/gerrit/gerritAPI/gerritChange';
+import { getGitReviewFile } from '../../lib/credentials/gitReviewFile';
 import { GerritExtensionCommands } from '../../commands/command-names';
 import { isGerritCommit, getChangeID } from '../../lib/git/commit';
 import { GerritAPIWith } from '../../lib/gerrit/gerritAPI/api';
 import { GitCommit, tryExecAsync } from '../../lib/git/gitCLI';
-import { Repository } from '../../types/vscode-extension-git';
-import { getAPI } from '../../lib/gerrit/gerritAPI';
+import { getAPIForRepo } from '../../lib/gerrit/gerritAPI';
+import { GerritRepo } from '../../lib/gerrit/gerritRepo';
+import { Data } from '../../lib/util/data';
 
-async function getMainBranchName(gerritRepo: Repository): Promise<string> {
+async function getMainBranchName(gerritRepo: GerritRepo): Promise<string> {
 	const cmd = await tryExecAsync(
 		"git symbolic-ref refs/remotes/origin/HEAD | sed 's@^refs/remotes/origin/@@'",
 		{
-			cwd: gerritRepo.rootUri.fsPath,
+			cwd: gerritRepo.rootPath,
 			timeout: 2000,
 		}
 	);
@@ -33,91 +36,142 @@ async function getMainBranchName(gerritRepo: Repository): Promise<string> {
 	return 'master';
 }
 
+type ChangeQuickPickItem = QuickPickItem &
+	(
+		| {
+				change: GerritChange;
+				type: 'change';
+				repo: GerritRepo;
+		  }
+		| {
+				branchName: string;
+				type: 'branch';
+				repo: GerritRepo;
+		  }
+	);
+
 export async function selectChange(
-	gerritRepo: Repository,
+	gerritReposD: Data<GerritRepo[]>,
 	includeMaster?: false
 ): Promise<null | {
 	type: 'changeId';
 	changeId: number;
+	repo: GerritRepo;
 }>;
 export async function selectChange(
-	gerritRepo: Repository,
+	gerritReposD: Data<GerritRepo[]>,
 	includeMaster: true
 ): Promise<
 	| null
 	| {
 			type: 'changeId';
 			changeId: number;
+			repo: GerritRepo;
 	  }
 	| {
 			type: 'branchName';
 			branchName: string;
+			repo: GerritRepo;
 	  }
 >;
 export async function selectChange(
-	gerritRepo: Repository,
+	gerritReposD: Data<GerritRepo[]>,
 	includeMaster: boolean = false
 ): Promise<
 	| null
 	| {
 			type: 'changeId';
 			changeId: number;
+			repo: GerritRepo;
 	  }
 	| {
 			type: 'branchName';
 			branchName: string;
+			repo: GerritRepo;
 	  }
 > {
 	// Get a list of changes
-	const api = await getAPI();
-	if (!api) {
+	const changesForRepos: Map<GerritRepo, GerritChange[]> = new Map();
+	for (const repo of gerritReposD.get()) {
+		const api = await getAPIForRepo(gerritReposD, repo);
+		if (!api) {
+			continue;
+		}
+		changesForRepos.set(
+			repo,
+			await api
+				.getChanges(
+					[
+						[
+							DefaultChangeFilter.IS_OPEN,
+							filterOr(
+								DefaultChangeFilter.HAS_DRAFT,
+								DefaultChangeFilter.ATTENTION_SELF,
+								DefaultChangeFilter.OWNER_SELF,
+								DefaultChangeFilter.CC_SELF,
+								DefaultChangeFilter.REVIEWER_SELF
+							),
+						],
+					],
+					{
+						count: 500,
+					},
+					undefined,
+					GerritAPIWith.DETAILED_ACCOUNTS
+				)
+				.getValue(true)
+		);
+	}
+
+	if (changesForRepos.size === 0) {
 		void window.showErrorMessage('Failed to connect to Gerrit API');
 		return null;
 	}
 
-	const changes = await api
-		.getChanges(
-			[
-				[
-					DefaultChangeFilter.IS_OPEN,
-					filterOr(
-						DefaultChangeFilter.HAS_DRAFT,
-						DefaultChangeFilter.ATTENTION_SELF,
-						DefaultChangeFilter.OWNER_SELF,
-						DefaultChangeFilter.CC_SELF,
-						DefaultChangeFilter.REVIEWER_SELF
-					),
-				],
-			],
-			{
-				count: 500,
-			},
-			undefined,
-			GerritAPIWith.DETAILED_ACCOUNTS
-		)
-		.getValue(true);
+	const quickPick = window.createQuickPick<ChangeQuickPickItem>();
+	const itemPromises: Promise<ChangeQuickPickItem>[] = [];
+	for (const [repo, changes] of changesForRepos) {
+		for (const change of changes) {
+			itemPromises.push(
+				(async () => {
+					const authorName = (
+						await change.detailedOwner()
+					)?.getName();
+					return {
+						label: change.subject,
+						description: `${authorName ? `by ${authorName} - ` : ''}${
+							change.number
+						}`,
+						detail: change.changeID,
+						change,
+						type: 'change',
+						repo,
+					};
+				})()
+			);
+		}
+	}
 
-	const quickPick = window.createQuickPick();
-	const items = await Promise.all(
-		changes.map(async (change) => {
-			const authorName = (await change.detailedOwner())?.getName();
-			return {
-				label: change.subject,
-				description: `${authorName ? `by ${authorName} - ` : ''}${
-					change.number
-				}`,
-				detail: change.changeID,
-			};
-		})
-	);
-	let mainBranchName = '';
+	const items = await Promise.all(itemPromises);
 	if (includeMaster) {
-		mainBranchName = await getMainBranchName(gerritRepo);
-		items.push({
-			label: mainBranchName,
-			description: 'Main branch',
-			detail: mainBranchName,
-		});
+		for (const gerritRepo of gerritReposD.get()) {
+			const mainBranchName = await getMainBranchName(gerritRepo);
+			let label = mainBranchName;
+			if (gerritReposD.get().length > 1) {
+				const gitReviewFile = await getGitReviewFile(gerritRepo);
+				if (gitReviewFile?.project) {
+					label = `${gitReviewFile.project} - ${mainBranchName}`;
+				}
+			}
+			items.push({
+				label: label,
+				description: 'Main branch',
+				detail: mainBranchName,
+				type: 'branch',
+				branchName: mainBranchName,
+				repo: gerritRepo,
+			});
+		}
 	}
 	quickPick.items = items;
 
@@ -135,10 +189,12 @@ export async function selectChange(
 		| {
 				type: 'changeId';
 				changeId: number;
+				repo: GerritRepo;
 		  }
 		| {
 				type: 'branchName';
 				branchName: string;
+				repo: GerritRepo;
 		  }
 	>((resolve) => {
 		disposables.push(
@@ -148,34 +204,35 @@ export async function selectChange(
 		);
 		disposables.push(
 			quickPick.onDidAccept(() => {
-				const currentLabel = quickPick.selectedItems[0]?.label;
-				if (includeMaster && currentLabel === mainBranchName) {
+				const selectedItem = quickPick.selectedItems[0] as
+					| ChangeQuickPickItem
+					| undefined;
+				if (selectedItem?.type === 'branch') {
 					quickPick.hide();
 					resolve({
 						type: 'branchName',
-						branchName: mainBranchName,
+						branchName: selectedItem.branchName,
+						repo: selectedItem.repo,
 					});
-				} else if (currentLabel) {
-					const change = changes.find(
-						(change) => change.subject === currentLabel
-					);
-					if (!change) {
+				} else if (selectedItem?.type === 'change') {
+					quickPick.hide();
+					resolve({
+						type: 'changeId',
+						changeId: selectedItem.change.number,
+						repo: selectedItem.repo,
+					});
+				} else if (quickPick.value && /^\d+$/.test(quickPick.value)) {
+					if (gerritReposD.get().length > 1) {
 						void window.showErrorMessage(
-							`Invalid change label/number for change: ${currentLabel}`
+							'Checking out a change by number is only supported when there is a single gerrit repo'
 						);
-						resolve(null);
 						return;
 					}
 
 					quickPick.hide();
 					resolve({
 						type: 'changeId',
-						changeId: change.number,
-					});
-				} else if (quickPick.value && /^\d+$/.test(quickPick.value)) {
-					quickPick.hide();
-					resolve({
-						type: 'changeId',
+						repo: gerritReposD.get()[0],
 						changeId: parseInt(quickPick.value, 10),
 					});
 				} else {
@@ -190,14 +247,14 @@ export async function selectChange(
 }
 
 export async function openChangeSelector(
-	gerritRepo: Repository,
+	gerritReposD: Data<GerritRepo[]>,
 	statusBar: CurrentChangeStatusBarManager
 ): Promise<void> {
 	statusBar.setOverride({
 		text: '$(list-unordered) Picking change...',
 		tooltip: 'Picking change to check out',
 	});
-	const change = await selectChange(gerritRepo, true);
+	const change = await selectChange(gerritReposD, true);
 	if (!change) {
 		statusBar.setOverride(null);
 		return;
@@ -207,23 +264,23 @@ export async function openChangeSelector(
 			text: `$(loading~spin) Checking out #${change.changeId}`,
 			tooltip: `Checking out change #${change.changeId}`,
 		});
-		await gitCheckoutRemote(gerritRepo, change.changeId);
+		await gitCheckoutRemote(change.repo, change.changeId);
 	} else {
 		statusBar.setOverride({
 			text: `$(loading~spin) Checking out ${change.branchName}`,
 			tooltip: `Checking out branch ${change.branchName}`,
 		});
-		await gitCheckoutBranch(gerritRepo, change.branchName);
+		await gitCheckoutBranch(change.repo, change.branchName);
 	}
 	statusBar.setOverride(null);
 }
 
 async function gitCheckoutBranch(
-	gerritRepo: Repository,
+	gerritRepo: GerritRepo,
 	branchName: string
 ): Promise<void> {
 	const { success } = await tryExecAsync(`git checkout ${branchName}`, {
-		cwd: gerritRepo.rootUri.fsPath,
+		cwd: gerritRepo.rootPath,
 		timeout: 10000,
 	});
 
@@ -234,19 +291,19 @@ async function gitCheckoutBranch(
 	}
 }
 
-export async function showCurrentChangeStatusBarIcon(
-	gerritRepo: Repository,
+export function showCurrentChangeStatusBarIcon(
+	gerritReposD: Data<GerritRepo[]>,
 	currentChangeStatusBar: CurrentChangeStatusBarManager,
 	context: ExtensionContext
-): Promise<void> {
+): void {
 	context.subscriptions.push(
-		await onChangeLastCommit(
-			gerritRepo,
-			async (lastCommit) => {
-				await currentChangeStatusBar.onCommitUpdate(lastCommit);
-			},
-			true
-		)
+		onChangeLastCommit(gerritReposD, async (gerritRepo, lastCommit) => {
+			await currentChangeStatusBar.onCommitUpdate(
+				gerritReposD,
+				gerritRepo,
+				lastCommit
+			);
+		})
 	);
 }
 
@@ -286,7 +343,15 @@ export class CurrentChangeStatusBarManager implements Disposable {
 		}
 	}
 
-	public async onCommitUpdate(lastCommit: GitCommit): Promise<void> {
+	private _lastConfig: {
+		gerritRepo: GerritRepo;
+		lastCommit: GitCommit;
+	} | null = null;
+	public async onCommitUpdate(
+		gerritReposD: Data<GerritRepo[]>,
+		gerritRepo: GerritRepo,
+		lastCommit: GitCommit
+	): Promise<void> {
 		if (!isGerritCommit(lastCommit)) {
 			return this._instance.hide();
 		}
@@ -300,12 +365,31 @@ export class CurrentChangeStatusBarManager implements Disposable {
 			return;
 		}
 
-		const subscription = await GerritChange.getChange(changeID, [], {
-			allowFail: true,
-		});
+		const subscription = await GerritChange.getChange(
+			gerritReposD,
+			{
+				changeID,
+				gerritRepo,
+			},
+			[],
+			{
+				allowFail: true,
+			}
+		);
+
+		this._lastConfig = {
+			gerritRepo,
+			lastCommit,
+		};
 		subscription.subscribeOnce(
 			new WeakRef(async () => {
-				await this.onCommitUpdate(lastCommit);
+				if (
+					this._lastConfig?.gerritRepo !== gerritRepo ||
+					this._lastConfig?.lastCommit !== lastCommit
+				) {
+					return;
+				}
+				await this.onCommitUpdate(gerritReposD, gerritRepo, lastCommit);
 			}),
 			{ onSame: true }
 		);

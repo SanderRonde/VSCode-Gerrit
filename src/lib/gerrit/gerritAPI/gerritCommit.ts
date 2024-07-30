@@ -1,5 +1,7 @@
 import { GerritAuthor, GerritCommitResponse } from './types';
 import { DynamicallyFetchable } from './shared';
+import { GerritRepo } from '../gerritRepo';
+import { Data } from '../../util/data';
 
 export class GerritCommit extends DynamicallyFetchable {
 	public parents: { commit: string; subject: string }[];
@@ -10,6 +12,8 @@ export class GerritCommit extends DynamicallyFetchable {
 
 	public constructor(
 		public override changeID: string,
+		public override gerritReposD: Data<GerritRepo[]>,
+		public override gerritRepo: GerritRepo,
 		public currentRevision: string,
 		response: GerritCommitResponse
 	) {

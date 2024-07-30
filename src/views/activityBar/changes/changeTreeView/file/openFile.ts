@@ -2,10 +2,10 @@ import { GerritCommentSide } from '../../../../../lib/gerrit/gerritAPI/types';
 import { commands, env, TextDocumentShowOptions, Uri, window } from 'vscode';
 import { FileTreeView } from '../fileTreeView';
 import path = require('path');
-import { getAPI } from '../../../../../lib/gerrit/gerritAPI';
+import { getAPIForRepo } from '../../../../../lib/gerrit/gerritAPI';
 
 export async function openFileOnline(treeView: FileTreeView): Promise<void> {
-	const api = await getAPI();
+	const api = await getAPIForRepo(treeView.gerritReposD, treeView.gerritRepo);
 	if (!api) {
 		await window.showErrorMessage(
 			'Invalid API settings, failed to open file online'

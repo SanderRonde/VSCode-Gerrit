@@ -32,10 +32,6 @@
 	"contributes": {
 		"commands": [
 			{
-				"command": "gerrit.changeGitRepo",
-				"title": "Change git repo"
-			},
-			{
 				"command": "gerrit.ackCommentThread",
 				"title": "Ack",
 				"icon": "$(record)"
@@ -57,11 +53,6 @@
 				"command": "gerrit.clearSearchResults",
 				"title": "Clear search results",
 				"icon": "$(clear-all)"
-			},
-			{
-				"command": "gerrit.collapseAllComments",
-				"title": "Collapse All Comments",
-				"icon": "$(collapse-all)"
 			},
 			{
 				"command": "gerrit.configureChangeList",
@@ -257,10 +248,6 @@
 				"title": "Open line on Gitiles (permalink)"
 			},
 			{
-				"command": "cmd.gerrit.changeGitRepo",
-				"title": "Gerrit: Change git repo"
-			},
-			{
 				"command": "cmd.gerrit.checkConnection",
 				"title": "Gerrit: Check Connection"
 			},
@@ -268,11 +255,6 @@
 				"command": "cmd.gerrit.clearSearchResults",
 				"title": "Gerrit: Clear search results",
 				"icon": "$(clear-all)"
-			},
-			{
-				"command": "cmd.gerrit.collapseAllComments",
-				"title": "Gerrit: Collapse All Comments",
-				"icon": "$(collapse-all)"
 			},
 			{
 				"command": "cmd.gerrit.configureChangeList",
@@ -377,10 +359,6 @@
 		"menus": {
 			"commandPalette": [
 				{
-					"command": "gerrit.changeGitRepo",
-					"when": "false"
-				},
-				{
 					"command": "gerrit.ackCommentThread",
 					"when": "false"
 				},
@@ -398,10 +376,6 @@
 				},
 				{
 					"command": "gerrit.clearSearchResults",
-					"when": "false"
-				},
-				{
-					"command": "gerrit.collapseAllComments",
 					"when": "false"
 				},
 				{
@@ -573,19 +547,11 @@
 					"when": "false"
 				},
 				{
-					"command": "cmd.gerrit.changeGitRepo",
-					"when": "true"
-				},
-				{
 					"command": "cmd.gerrit.checkConnection",
 					"when": "true"
 				},
 				{
 					"command": "cmd.gerrit.clearSearchResults",
-					"when": "true"
-				},
-				{
-					"command": "cmd.gerrit.collapseAllComments",
 					"when": "true"
 				},
 				{
@@ -1007,30 +973,38 @@
 					"title": "Show quick checkouts in statusbar",
 					"description": "Whether quick checkout stashes should be shown in the statusbar for quick access"
 				},
-				"gerrit.auth.username": {
-					"type": "string",
-					"title": "Gerrit username",
-					"description": "Gerrit login username"
-				},
-				"gerrit.auth.password": {
-					"type": "string",
-					"title": "Gerrit password",
-					"description": "Gerrit password (see https://{your_gerit_host}/settings/#HTTPCredentials)"
-				},
-				"gerrit.auth.cookie": {
-					"type": "string",
-					"title": "Gerrit cookie",
-					"description": "Gerrit authentication cookie"
-				},
-				"gerrit.extraCookies": {
+				"gerrit.remotes": {
 					"type": "object",
-					"title": "Extra Gerrit cookies",
-					"description": "Other cookies besides the authentication cookie to send on every request"
+					"title": "Gerrit credentials",
+					"description": "Gerrit login credentials/settings for every gerrit remote (host) you have. If you don't know the remote names by hand, use the \"Enter credentials\" command. Use the `\"default\"` key for a shared/default.",
+					"properties": {
+						"username": {
+							"type": "string",
+							"title": "Gerrit username",
+							"description": "Gerrit login username"
+						},
+						"password": {
+							"type": "string",
+							"title": "Gerrit password",
+							"description": "Gerrit password (see https://{your_gerit_host}/settings/#HTTPCredentials)"
+						},
+						"cookie": {
+							"type": "string",
+							"title": "Gerrit cookie",
+							"description": "Gerrit authentication cookie"
+						},
+						"extraCookies": {
+							"type": "object",
+							"title": "Extra Gerrit cookies",
+							"description": "Other cookies besides the authentication cookie to send on every request",
+							"__shape": ""
+						}
+					}
 				},
-				"gerrit.auth.url": {
-					"type": "string",
-					"title": "URL of the gerrit server to use",
-					"description": "URL of the gerrit server to use (inferred from `.gitreview` if not provided). Uses HTTPS if no scheme is provided"
+				"gerrit.urls": {
+					"type": "object",
+					"title": "Gerrit remote URLs by project path",
+					"description": "Gerrit remote URLs by project path. Use this if the host in your .gitreview file is not correct or not present."
 				},
 				"gerrit.selectedView": {
 					"type": "string",
@@ -1047,10 +1021,6 @@
 					],
 					"default": "unresolved",
 					"description": "When inline comments should be expanded"
-				},
-				"gerrit.gitRepo": {
-					"type": "string",
-					"description": "Git repository to use (only needed for multi-git-repo setups)"
 				},
 				"gerrit.changeTitleTemplate": {
 					"type": "object",
@@ -1428,8 +1398,8 @@
 		"format-staged": "(git diff --ignore-submodules --quiet && bun format) || pretty-quick src/",
 		"format": "prettier --write src/",
 		"copy": "ts-node -T scripts/copy.ts",
-		"package": "bun run prepack && bun vsce package",
-		"package-dev": "bun prepush && bun run build:debug && bun vsce package",
+		"package": "bun run prepack && bun vsce package --no-yarn",
+		"package-dev": "bun prepush && bun run build:debug && bun vsce package --no-yarn",
 		"generate-package": "generate-package-json generate --name Gerrit --input src/commands/defs.ts -w -p package.json --handler src/commands/commands.ts --validate --prefix Gerrit && prettier --write package.json",
 		"prepush": "bun generate-package && bun format-staged && bun lint --fix && bun compile"
 	},

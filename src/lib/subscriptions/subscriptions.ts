@@ -36,18 +36,16 @@ export interface Subscribable<V> extends Disposable {
 
 export class APISubscriptionManager {
 	public static changeSubscriptions =
-		new GenericChangeSubscriptionsManager<GerritChange | null>();
-	public static commentsSubscriptions = new GenericChangeSubscriptionsManager<
+		GenericChangeSubscriptionsManager<GerritChange | null>;
+	public static commentsSubscriptions = GenericChangeSubscriptionsManager<
 		Map<string, GerritComment[]>
-	>();
+	>;
 	public static draftCommentsSubscriptions =
-		new GenericChangeSubscriptionsManager<
-			Map<string, GerritDraftComment[]>
-		>();
-	public static changesSubscriptions = new ChangesSubscriptionsManager();
-	public static filesSubscriptions = new FilesSubscriptionsManager();
+		GenericChangeSubscriptionsManager<Map<string, GerritDraftComment[]>>;
+	public static changesSubscriptions = ChangesSubscriptionsManager;
+	public static filesSubscriptions = FilesSubscriptionsManager;
 	public static quickCheckoutSubscriptions =
-		new QuickCheckoutSubscriptionsManager();
+		QuickCheckoutSubscriptionsManager;
 	public static readonly NO_OP = (): void => {};
 	public static getNullSubscription(): Subscribable<null> {
 		const subscription: Omit<Subscribable<null>, 'mapSubscription'> = {
@@ -66,4 +64,16 @@ export class APISubscriptionManager {
 				APISubSubscriptionManagerBase.createMapper(subscription),
 		};
 	}
+
+	public changeSubscriptions =
+		new GenericChangeSubscriptionsManager<GerritChange | null>();
+	public commentsSubscriptions = new GenericChangeSubscriptionsManager<
+		Map<string, GerritComment[]>
+	>();
+	public draftCommentsSubscriptions = new GenericChangeSubscriptionsManager<
+		Map<string, GerritDraftComment[]>
+	>();
+	public changesSubscriptions = new ChangesSubscriptionsManager();
+	public filesSubscriptions = new FilesSubscriptionsManager();
+	public quickCheckoutSubscriptions = new QuickCheckoutSubscriptionsManager();
 }

@@ -1,5 +1,4 @@
-import { Repository } from '../../types/vscode-extension-git';
-import { createCacheWrapper } from '../util/cache';
+import { GerritRepo } from '../gerrit/gerritRepo';
 import { Uri, workspace } from 'vscode';
 import { log } from '../util/log';
 
@@ -24,7 +23,7 @@ export const DEFAULT_GIT_REVIEW_FILE: Required<OptionalGitReviewProperties> = {
 	port: '29418',
 };
 
-function parseGerritFile(fileContent: string): GitReviewFile | null {
+function parseGitReviewFile(fileContent: string): GitReviewFile | null {
 	if (!fileContent.includes('[gerrit]')) {
 		// This header should be in there
 		return null;
@@ -38,7 +37,12 @@ function parseGerritFile(fileContent: string): GitReviewFile | null {
 
 		const [key, value] = line.split('=');
 		const typedKey = key as keyof GitReviewFile;
-		file[typedKey] = value.trim();
+		const trimmed = value.trim();
+		file[typedKey] = trimmed;
+
+		if (typedKey === 'project' && trimmed.endsWith('.git')) {
+			file[typedKey] = trimmed.slice(0, -'.git'.length);
+		}
 	}
 
 	if (!file.host || !file.project) {
@@ -51,29 +55,34 @@ function parseGerritFile(fileContent: string): GitReviewFile | null {
 	return file as GitReviewFile;
 }
 
+const gitReviewFilesForRepo = new Map<GerritRepo, GitReviewFile | null>();
 export async function getGitReviewFile(
-	gerritRepo: Repository
+	gerritRepo: GerritRepo,
+	cache: boolean = true
 ): Promise<GitReviewFile | null> {
-	const fileContent = await (async (): Promise<string | null> => {
-		try {
-			return Buffer.from(
-				await workspace.fs.readFile(
-					Uri.joinPath(gerritRepo.rootUri, '.gitreview')
-				)
-			).toString('utf8');
-		} catch (e) {
+	if (!cache || !gitReviewFilesForRepo.has(gerritRepo)) {
+		const fileContent = await (async (): Promise<string | null> => {
+			try {
+				return Buffer.from(
+					await workspace.fs.readFile(
+						Uri.joinPath(gerritRepo.rootUri, '.gitreview')
+					)
+				).toString('utf8');
+			} catch (e) {
+				return null;
+			}
+		})();
+		if (!fileContent) {
+			gitReviewFilesForRepo.set(gerritRepo, null);
 			return null;
 		}
-	})();
-	if (!fileContent) {
-		return null;
+
+		const parsed = parseGitReviewFile(fileContent);
+		gitReviewFilesForRepo.set(gerritRepo, parsed);
+		if (!parsed) {
+			return null;
+		}
 	}
 
-	const parsed = parseGerritFile(fileContent);
-	if (parsed) {
-		return parsed;
-	}
-	return null;
+	return gitReviewFilesForRepo.get(gerritRepo)!;
 }
-
-export const getGitReviewFileCached = createCacheWrapper(getGitReviewFile);

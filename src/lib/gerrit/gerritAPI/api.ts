@@ -35,10 +35,10 @@ import { DefaultChangeFilter, GerritChangeFilter, filterAnd } from './filters';
 import { optionalArrayEntry, optionalObjectProperty } from '../../util/util';
 import { ChangeField } from '../../subscriptions/changeSubscription';
 import { GerritComment, GerritDraftComment } from './gerritComment';
-import { GitReviewFile } from '../../credentials/gitReviewFile';
 import { GerritChangeMergeable } from './gerritChangeMergeable';
 import { FileMeta } from '../../../providers/fileProvider';
 import { GerritChangeDetail } from './gerritChangeDetail';
+import { GerritRemote, GerritRepo } from '../gerritRepo';
 import { getConfiguration } from '../../vscode/config';
 import { GerritFile, TextContent } from './gerritFile';
 import { READONLY_MODE } from '../../util/constants';
@@ -49,6 +49,7 @@ import { GerritChange } from './gerritChange';
 import { log, logDev } from '../../util/log';
 import { GerritGroup } from './gerritGroup';
 import { GerritUser } from './gerritUser';
+import { Data } from '../../util/data';
 import { URLSearchParams } from 'url';
 import { window } from 'vscode';
 
@@ -161,6 +162,7 @@ export class GerritAPI {
 	private readonly _MAGIC_PREFIX = ")]}'";
 	private _inFlightRequests: Map<string, Promise<ResponseWithBody<string>>> =
 		new Map();
+	public subscriptionManager = new APISubscriptionManager();
 
 	public getProjects = createCacheSetter(
 		'api.getProjects',
@@ -266,12 +268,14 @@ export class GerritAPI {
 	}
 
 	public constructor(
+		private readonly _gerritReposD: Data<GerritRepo[]>,
+		private readonly _gerritRemote: GerritRemote,
 		private readonly _url: string | null,
 		private readonly _username: string | null,
 		private readonly _password: string | null,
 		private readonly _cookie: string | null,
 		private readonly _extraCookies: Record<string, string> | null,
-		private readonly _gitReviewFile: GitReviewFile | null,
+		private readonly _projects: string[],
 		private readonly _allowFail: boolean = false
 	) {}
 
@@ -391,6 +395,7 @@ export class GerritAPI {
 			body: string
 		) => void | Promise<void>
 	): Promise<(Response<string> & { strippedBody: string }) | null> {
+		console.log(`${body?.method || 'GET'} request to "${url}"`);
 		log(`${body?.method || 'GET'} request to "${url}"`);
 		if (shouldDebugRequests()) {
 			logDev({
@@ -524,7 +529,7 @@ export class GerritAPI {
 
 		return json.map((entry) => {
 			if ('account' in entry) {
-				return new GerritUser(entry.account);
+				return new GerritUser(entry.account, this._gerritReposD);
 			} else {
 				return new GerritGroup(entry.group.name, entry.group);
 			}
@@ -601,12 +606,9 @@ export class GerritAPI {
 		let projectFilter: string | undefined;
 		const config = getConfiguration();
 		if (config.get('gerrit.filterByProject', true)) {
-			if (this._gitReviewFile) {
-				const projectName = this._gitReviewFile.project.endsWith('.git')
-					? this._gitReviewFile.project.slice(0, -'.git'.length)
-					: this._gitReviewFile.project;
-				projectFilter = `project:${projectName}`;
-			}
+			projectFilter = this._projects
+				.map((projectName) => `project:${projectName}`)
+				.join(' OR ');
 		}
 
 		return (existingFilter: string) => {
@@ -620,7 +622,8 @@ export class GerritAPI {
 	public async testConnection(): Promise<boolean> {
 		const response = await this._tryRequest(
 			this.getURL('config/server/version'),
-			this._get
+			this._get,
+			() => {}
 		);
 		return response?.statusCode === 200;
 	}
@@ -647,7 +650,7 @@ export class GerritAPI {
 		field: ChangeField | null,
 		withValues: GerritAPIWith[] = []
 	): Subscribable<GerritChange | null> {
-		return APISubscriptionManager.changeSubscriptions.createFetcher(
+		return this.subscriptionManager.changeSubscriptions.createFetcher(
 			{
 				changeID,
 				withValues,
@@ -670,8 +673,16 @@ export class GerritAPI {
 					return null;
 				}
 
+				const repoForProject =
+					await this._gerritRemote.getRepoForProject(json.project);
+				if (!repoForProject) {
+					return null;
+				}
+
 				return new GerritChange(
 					json,
+					this._gerritReposD,
+					repoForProject,
 					withValues.includes(GerritAPIWith.ALL_REVISIONS)
 				);
 			}
@@ -699,7 +710,7 @@ export class GerritAPI {
 			filterParams.push(['q', additionalFilter(subFilters.join(' '))]);
 		}
 
-		return APISubscriptionManager.changesSubscriptions.createFetcher(
+		return this.subscriptionManager.changesSubscriptions.createFetcher(
 			{
 				filters,
 				offsetParams,
@@ -745,13 +756,26 @@ export class GerritAPI {
 					return [];
 				}
 
-				return json.map(
-					(p) =>
+				const changes = [];
+				for (const changeJson of json) {
+					const repoForProject =
+						await this._gerritRemote.getRepoForProject(
+							changeJson.project
+						);
+					if (!repoForProject) {
+						continue;
+					}
+
+					changes.push(
 						new GerritChange(
-							p,
+							changeJson,
+							this._gerritReposD,
+							repoForProject,
 							withValues.includes(GerritAPIWith.ALL_REVISIONS)
 						)
-				);
+					);
+				}
+				return changes;
 			}
 		);
 	}
@@ -771,7 +795,7 @@ export class GerritAPI {
 			['q', this._applyAdditionalFilter()(query)],
 		];
 
-		return APISubscriptionManager.changesSubscriptions.createFetcher(
+		return this.subscriptionManager.changesSubscriptions.createFetcher(
 			{
 				query,
 				filters: [],
@@ -817,13 +841,26 @@ export class GerritAPI {
 					return [];
 				}
 
-				return json.map(
-					(p) =>
+				const changes = [];
+				for (const changeJson of json) {
+					const repoForProject =
+						await this._gerritRemote.getRepoForProject(
+							changeJson.project
+						);
+					if (!repoForProject) {
+						continue;
+					}
+
+					changes.push(
 						new GerritChange(
-							p,
+							changeJson,
+							this._gerritReposD,
+							repoForProject,
 							withValues.includes(GerritAPIWith.ALL_REVISIONS)
 						)
-				);
+					);
+				}
+				return changes;
 			}
 		);
 	}
@@ -831,7 +868,7 @@ export class GerritAPI {
 	public getComments(
 		changeID: string
 	): Subscribable<Map<string, GerritComment[]>> {
-		return APISubscriptionManager.commentsSubscriptions.createFetcher(
+		return this.subscriptionManager.commentsSubscriptions.createFetcher(
 			{
 				changeID,
 				withValues: [],
@@ -846,6 +883,12 @@ export class GerritAPI {
 					return new Map();
 				}
 
+				const repoForProject =
+					await this._gerritRemote.getRepoForChangeID(changeID, this);
+				if (!repoForProject) {
+					return new Map();
+				}
+
 				const map = new Map<string, GerritComment[]>();
 				for (const filePath in json) {
 					const comments = json[filePath];
@@ -853,7 +896,13 @@ export class GerritAPI {
 						filePath,
 						await Promise.all(
 							comments.map((c) =>
-								GerritComment.from(changeID, filePath, c)
+								GerritComment.from(
+									this._gerritReposD,
+									repoForProject,
+									changeID,
+									filePath,
+									c
+								)
 							)
 						)
 					);
@@ -866,7 +915,7 @@ export class GerritAPI {
 	public getDraftComments(
 		changeID: string
 	): Subscribable<Map<string, GerritDraftComment[]>> {
-		return APISubscriptionManager.draftCommentsSubscriptions.createFetcher(
+		return this.subscriptionManager.draftCommentsSubscriptions.createFetcher(
 			{
 				changeID,
 				withValues: [],
@@ -878,6 +927,12 @@ export class GerritAPI {
 					return new Map();
 				}
 
+				const repoForProject =
+					await this._gerritRemote.getRepoForChangeID(changeID, this);
+				if (!repoForProject) {
+					return new Map();
+				}
+
 				const map = new Map<string, GerritDraftComment[]>();
 				for (const filePath in json) {
 					const comments = json[filePath];
@@ -885,7 +940,13 @@ export class GerritAPI {
 						filePath,
 						await Promise.all(
 							comments.map((c) =>
-								GerritDraftComment.from(changeID, filePath, c)
+								GerritDraftComment.from(
+									this._gerritReposD,
+									repoForProject,
+									changeID,
+									filePath,
+									c
+								)
 							)
 						)
 					);
@@ -901,7 +962,7 @@ export class GerritAPI {
 		revision: PatchsetDescription,
 		baseRevision?: PatchsetDescription
 	): Subscribable<Record<string, GerritFile>> {
-		return APISubscriptionManager.filesSubscriptions.createFetcher(
+		return this.subscriptionManager.filesSubscriptions.createFetcher(
 			{
 				changeID: changeID,
 				revision,
@@ -931,6 +992,12 @@ export class GerritAPI {
 					return {};
 				}
 
+				const repoForProject =
+					await this._gerritRemote.getRepoForChangeID(changeID, this);
+				if (!repoForProject) {
+					return {};
+				}
+
 				return Object.fromEntries(
 					Object.entries(json)
 						.filter(([path]) => path !== '/COMMIT_MSG')
@@ -939,6 +1006,8 @@ export class GerritAPI {
 								path,
 								new GerritFile(
 									changeID,
+									this._gerritReposD,
+									repoForProject,
 									changeProject,
 									revision,
 									path,
@@ -1002,8 +1071,17 @@ export class GerritAPI {
 			return null;
 		}
 
+		const repoForProject = await this._gerritRemote.getRepoForChangeID(
+			changeID,
+			this
+		);
+		if (!repoForProject) {
+			return null;
+		}
+
 		const textContent = TextContent.from(
 			FileMeta.createFileMeta({
+				repoUri: repoForProject.rootUri.toString(),
 				project,
 				commit,
 				filePath,
@@ -1073,7 +1151,21 @@ export class GerritAPI {
 			return null;
 		}
 
-		return GerritDraftComment.from(changeID, filePath, json);
+		const repoForProject = await this._gerritRemote.getRepoForChangeID(
+			changeID,
+			this
+		);
+		if (!repoForProject) {
+			return null;
+		}
+
+		return GerritDraftComment.from(
+			this._gerritReposD,
+			repoForProject,
+			changeID,
+			filePath,
+			json
+		);
 	}
 
 	public async createPatchSetLevelDraftComment({
@@ -1109,7 +1201,21 @@ export class GerritAPI {
 			return null;
 		}
 
-		return GerritDraftComment.from(changeID, filePath, json);
+		const repoForProject = await this._gerritRemote.getRepoForChangeID(
+			changeID,
+			this
+		);
+		if (!repoForProject) {
+			return null;
+		}
+
+		return GerritDraftComment.from(
+			this._gerritReposD,
+			repoForProject,
+			changeID,
+			filePath,
+			json
+		);
 	}
 
 	public async updateDraftComment({
@@ -1148,7 +1254,21 @@ export class GerritAPI {
 			return null;
 		}
 
-		return GerritDraftComment.from(draft.changeID, draft.filePath, json);
+		const repoForProject = await this._gerritRemote.getRepoForChangeID(
+			draft.changeID,
+			this
+		);
+		if (!repoForProject) {
+			return null;
+		}
+
+		return GerritDraftComment.from(
+			this._gerritReposD,
+			repoForProject,
+			draft.changeID,
+			draft.filePath,
+			json
+		);
 	}
 
 	public async deleteDraftComment(
@@ -1178,7 +1298,7 @@ export class GerritAPI {
 			return null;
 		}
 
-		return new GerritUser(json);
+		return new GerritUser(json, this._gerritReposD);
 	}
 
 	public async getUsers(
@@ -1200,7 +1320,9 @@ export class GerritAPI {
 			return [];
 		}
 
-		return json.map((userJson) => new GerritUser(userJson));
+		return json.map(
+			(userJson) => new GerritUser(userJson, this._gerritReposD)
+		);
 	}
 
 	public async getUsersCached(
@@ -1230,9 +1352,13 @@ export class GerritAPI {
 			return null;
 		}
 
-		return new GerritChangeDetail(json);
+		return new GerritChangeDetail(json, this._gerritReposD);
 	}
 
+	/**
+	 * Good-to-know: gerrit has the amazing habit of sending back an ERR_INVALID_RESPONSE when
+	 * querying the mergeable status of an already-merged change.
+	 */
 	public async getChangeMergable(
 		changeID: string
 	): Promise<GerritChangeMergeable | null> {
@@ -1395,7 +1521,8 @@ export class GerritAPI {
 	public async getGerritVersion(): Promise<VersionNumber | null> {
 		const response = await this._tryRequest(
 			this.getURL('config/server/version', false),
-			this._get
+			this._get,
+			() => {}
 		);
 
 		if (!response || !this._assertRequestSucceeded(response)) {

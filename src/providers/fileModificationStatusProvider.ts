@@ -7,10 +7,14 @@ import {
 } from 'vscode';
 import { FileMetaWithSideAndBase, GERRIT_FILE_SCHEME } from './fileProvider';
 import { GerritRevisionFileStatus } from '../lib/gerrit/gerritAPI/types';
+import { GerritRepo, getRepoFromUri } from '../lib/gerrit/gerritRepo';
 import { GerritChange } from '../lib/gerrit/gerritAPI/gerritChange';
 import { GerritFile } from '../lib/gerrit/gerritAPI/gerritFile';
+import { Data } from '../lib/util/data';
 
 export class FileModificationStatusProvider implements FileDecorationProvider {
+	public constructor(private readonly _gerritReposD: Data<GerritRepo[]>) {}
+
 	private _formatFilePath(filePath: string): string {
 		const trimmed = (() => {
 			if (filePath.startsWith('/') || filePath.startsWith('\\')) {
@@ -78,7 +82,18 @@ export class FileModificationStatusProvider implements FileDecorationProvider {
 			return;
 		}
 
-		const change = await GerritChange.getChangeOnce(meta.changeID);
+		const gerritRepo = getRepoFromUri(
+			this._gerritReposD.get(),
+			meta.repoUri.toString()
+		);
+		if (!gerritRepo) {
+			return;
+		}
+
+		const change = await GerritChange.getChangeOnce(this._gerritReposD, {
+			changeID: meta.changeID,
+			gerritRepo: gerritRepo,
+		});
 		if (!change || token.isCancellationRequested) {
 			return;
 		}

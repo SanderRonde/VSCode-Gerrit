@@ -12,20 +12,22 @@ import {
 	Range,
 	Uri,
 } from 'vscode';
-import { getCommentDecorationProvider } from '../../../providers/commentDecorationProvider';
 import {
 	GerritCommentRange,
 	GerritCommentResponse,
 	GerritCommentSide,
 } from './types';
+import { CommentDecorationProvider } from '../../../providers/commentDecorationProvider';
 import { APISubscriptionManager } from '../../subscriptions/subscriptions';
 import { MATCH_ANY } from '../../subscriptions/baseSubscriptions';
 import { GerritCommentThread } from './gerritCommentThread';
 import { FileMeta } from '../../../providers/fileProvider';
 import { DynamicallyFetchable } from './shared';
 import { DateTime } from '../../util/dateTime';
+import { getAPIForRepo } from '../gerritAPI';
+import { GerritRepo } from '../gerritRepo';
 import { GerritUser } from './gerritUser';
-import { getAPI } from '../gerritAPI';
+import { Data } from '../../util/data';
 
 export abstract class GerritCommentBase
 	extends DynamicallyFetchable
@@ -71,6 +73,8 @@ export abstract class GerritCommentBase
 	}
 
 	protected constructor(
+		public override gerritReposD: Data<GerritRepo[]>,
+		public readonly gerritRepo: GerritRepo,
 		public override changeID: string,
 		public filePath: string,
 		response: GerritCommentResponse
@@ -79,7 +83,7 @@ export abstract class GerritCommentBase
 
 		this.id = response.id;
 		this.gerritAuthor = response.author
-			? new GerritUser(response.author)
+			? new GerritUser(response.author, this.gerritReposD)
 			: undefined;
 		this.patchSet = response.patch_set;
 		this.commitID = response.commit_id;
@@ -101,17 +105,21 @@ export abstract class GerritCommentBase
 		this.sourceContentType = response.source_content_type;
 	}
 
-	public static async create(options: {
-		content: string;
-		changeID: string;
-		revision: string;
-		filePath: string;
-		unresolved: boolean;
-		lineOrRange?: number | GerritCommentRange;
-		replyTo?: string;
-		side: GerritCommentSide | undefined;
-	}): Promise<GerritDraftComment | null> {
-		const api = await getAPI();
+	public static async create(
+		gerritReposD: Data<GerritRepo[]>,
+		gerritRepo: GerritRepo,
+		options: {
+			content: string;
+			changeID: string;
+			revision: string;
+			filePath: string;
+			unresolved: boolean;
+			lineOrRange?: number | GerritCommentRange;
+			replyTo?: string;
+			side: GerritCommentSide | undefined;
+		}
+	): Promise<GerritDraftComment | null> {
+		const api = await getAPIForRepo(gerritReposD, gerritRepo);
 		if (!api) {
 			return null;
 		}
@@ -170,11 +178,19 @@ export class GerritComment extends GerritCommentBase {
 	}
 
 	public static async from(
+		gerritReposD: Data<GerritRepo[]>,
+		gerritRepo: GerritRepo,
 		changeID: string,
 		filePath: string,
 		response: GerritCommentResponse
 	): Promise<GerritComment> {
-		return new GerritComment(changeID, filePath, response).init();
+		return new GerritComment(
+			gerritReposD,
+			gerritRepo,
+			changeID,
+			filePath,
+			response
+		).init();
 	}
 
 	public getContextValues(): string[] {
@@ -213,16 +229,37 @@ export class GerritDraftComment extends GerritCommentBase implements Comment {
 		this._draftMessage = str;
 	}
 
+	public constructor(
+		public override gerritReposD: Data<GerritRepo[]>,
+		public override gerritRepo: GerritRepo,
+		changeID: string,
+		filePath: string,
+		response: GerritCommentResponse
+	) {
+		super(gerritReposD, gerritRepo, changeID, filePath, response);
+	}
+
 	public static from(
+		gerritReposD: Data<GerritRepo[]>,
+		gerritRepo: GerritRepo,
 		changeID: string,
 		filePath: string,
 		response: GerritCommentResponse
 	): Promise<GerritDraftComment> {
-		return new GerritDraftComment(changeID, filePath, response).init();
+		return new GerritDraftComment(
+			gerritReposD,
+			gerritRepo,
+			changeID,
+			filePath,
+			response
+		).init();
 	}
 
-	public static async refreshComments(uri: Uri): Promise<void> {
-		await getCommentDecorationProvider().refreshFileComments(uri);
+	public static async refreshComments(
+		commentDecorationProvider: CommentDecorationProvider,
+		uri: Uri
+	): Promise<void> {
+		await commentDecorationProvider.refreshFileComments(uri);
 
 		const meta = FileMeta.tryFrom(uri);
 		await APISubscriptionManager.commentsSubscriptions.invalidate({
@@ -238,38 +275,22 @@ export class GerritDraftComment extends GerritCommentBase implements Comment {
 
 	public override async init(): Promise<this> {
 		await super.init();
-		this._self = await GerritUser.getSelf();
+		this._self = await GerritUser.getSelf(
+			this.gerritReposD,
+			this.gerritRepo
+		);
 		return this;
 	}
 
-	public async setMessage(message: string): Promise<void> {
-		if (message !== this.message) {
-			return;
-		}
-
-		const api = await getAPI();
-		if (!api) {
-			return;
-		}
-
-		const newComment = await api.updateDraftComment({
-			draft: this,
-			changes: {
-				content: message,
-			},
-		});
-		if (newComment) {
-			this.updated = newComment.updated;
-			this.message = newComment.message;
-		}
-	}
-
-	public async setResolved(isResolved: boolean): Promise<void> {
+	public async setResolved(
+		commentDecorationProvider: CommentDecorationProvider,
+		isResolved: boolean
+	): Promise<void> {
 		if (this.unresolved !== isResolved) {
 			return;
 		}
 
-		const api = await getAPI();
+		const api = await getAPIForRepo(this.gerritReposD, this.gerritRepo);
 		if (!api) {
 			return;
 		}
@@ -287,18 +308,25 @@ export class GerritDraftComment extends GerritCommentBase implements Comment {
 
 		const uri = this.thread?.thread.uri;
 		if (uri) {
-			await GerritDraftComment.refreshComments(uri);
+			await GerritDraftComment.refreshComments(
+				commentDecorationProvider,
+				uri
+			);
 		}
 	}
 
 	public async saveDraftMessage(
+		commentDecorationProvider: CommentDecorationProvider,
 		resolvedStatus: boolean | null = null
 	): Promise<void> {
 		const draft = this._draftMessage;
 		this._draftMessage = undefined;
 		if (draft !== undefined || resolvedStatus !== undefined) {
 			await this.updateInThread(async (c) => {
-				const api = await getAPI();
+				const api = await getAPIForRepo(
+					this.gerritReposD,
+					this.gerritRepo
+				);
 				if (!api) {
 					return;
 				}
@@ -325,12 +353,17 @@ export class GerritDraftComment extends GerritCommentBase implements Comment {
 
 		const uri = this.thread?.thread.uri;
 		if (uri) {
-			await GerritDraftComment.refreshComments(uri);
+			await GerritDraftComment.refreshComments(
+				commentDecorationProvider,
+				uri
+			);
 		}
 	}
 
-	public async delete(): Promise<boolean> {
-		const api = await getAPI();
+	public async delete(
+		commentDecorationProvider: CommentDecorationProvider
+	): Promise<boolean> {
+		const api = await getAPIForRepo(this.gerritReposD, this.gerritRepo);
 		if (!api) {
 			return false;
 		}
@@ -344,7 +377,10 @@ export class GerritDraftComment extends GerritCommentBase implements Comment {
 			this.thread.removeComment(this);
 			const uri = this.thread?.thread.uri;
 			if (uri) {
-				await GerritDraftComment.refreshComments(uri);
+				await GerritDraftComment.refreshComments(
+					commentDecorationProvider,
+					uri
+				);
 			}
 		}
 

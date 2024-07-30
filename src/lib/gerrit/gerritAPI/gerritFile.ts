@@ -9,11 +9,12 @@ import {
 	GerritRevisionFileStatus,
 } from './types';
 import { PatchsetDescription } from '../../../views/activityBar/changes/changeTreeView';
-import { Repository } from '../../../types/vscode-extension-git';
 import { DynamicallyFetchable } from './shared';
 import { GerritChange } from './gerritChange';
+import { getAPIForRepo } from '../gerritAPI';
+import { GerritRepo } from '../gerritRepo';
 import { Uri, workspace } from 'vscode';
-import { getAPI } from '../gerritAPI';
+import { Data } from '../../util/data';
 import { GerritAPIWith } from './api';
 
 export class TextContent {
@@ -70,6 +71,8 @@ export class GerritFile extends DynamicallyFetchable {
 
 	public constructor(
 		public override changeID: string,
+		public override gerritReposD: Data<GerritRepo[]>,
+		public override gerritRepo: GerritRepo,
 		public readonly changeProject: string,
 		public currentRevision: PatchsetDescription,
 		public filePath: string,
@@ -89,7 +92,10 @@ export class GerritFile extends DynamicallyFetchable {
 	}
 
 	public async getOldContent(): Promise<TextContent | null> {
-		const change = await GerritChange.getChangeOnce(this.changeID);
+		const change = await GerritChange.getChangeOnce(this.gerritReposD, {
+			changeID: this.changeID,
+			gerritRepo: this.gerritRepo,
+		});
 		if (!change) {
 			return null;
 		}
@@ -116,7 +122,7 @@ export class GerritFile extends DynamicallyFetchable {
 		const filePath = useOldPath
 			? this.oldPath ?? this.filePath
 			: this.filePath;
-		const api = await getAPI();
+		const api = await getAPIForRepo(this.gerritReposD, this.gerritRepo);
 		if (!api) {
 			return null;
 		}
@@ -135,7 +141,7 @@ export class GerritFile extends DynamicallyFetchable {
 	}
 
 	public getLocalURI(
-		gerritRepo: Repository,
+		gerritRepo: GerritRepo,
 		forSide: GerritCommentSide,
 		forBaseRevision: PatchsetDescription | null,
 		context: string[],
@@ -145,6 +151,7 @@ export class GerritFile extends DynamicallyFetchable {
 		return filePath.with({
 			query: FileMetaWithSideAndBase.createFileMetaWithSideAndRevision(
 				{
+					repoUri: gerritRepo.rootUri.toString(),
 					project: this.changeProject,
 					commit: this.currentRevision,
 					filePath: this.filePath,
@@ -159,7 +166,7 @@ export class GerritFile extends DynamicallyFetchable {
 	}
 
 	public async isLocalFile(
-		gerritRepo: Repository,
+		gerritRepo: GerritRepo,
 		content: TextContent
 	): Promise<boolean> {
 		const filePath = this.getLocalURI(

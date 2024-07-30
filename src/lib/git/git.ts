@@ -1,6 +1,12 @@
 import {
+	GerritRepo,
+	getCurrentGerritRepo,
+	onChangeCurrentRepo,
+	setListenerForRepos,
+} from '../gerrit/gerritRepo';
+import {
 	DEFAULT_GIT_REVIEW_FILE,
-	getGitReviewFileCached,
+	getGitReviewFile,
 	GitReviewFile,
 } from '../credentials/gitReviewFile';
 import {
@@ -19,18 +25,19 @@ import {
 } from './gitCLI';
 import { ChangeTreeView } from '../../views/activityBar/changes/changeTreeView';
 import { APISubscriptionManager } from '../subscriptions/subscriptions';
+import { ReviewWebviewProvider } from '../../views/activityBar/review';
 import { PERIODICAL_GIT_FETCH_INTERVAL } from '../util/constants';
 import { MATCH_ANY } from '../subscriptions/baseSubscriptions';
-import { Repository } from '../../types/vscode-extension-git';
 import { createAwaitingInterval } from '../util/util';
 import { getConfiguration } from '../vscode/config';
+import { getCurrentChangeForRepo } from './commit';
 import { VersionNumber } from '../util/version';
-import { getCurrentChangeID } from './commit';
+import { Data } from '../util/data';
 import { log } from '../util/log';
 import { rebase } from './rebase';
 
-export async function onChangeLastCommit(
-	gerritRepo: Repository,
+export async function onChangeLastCommitForRepo(
+	gerritRepo: GerritRepo,
 	handler: (lastCommit: GitCommit) => void | Promise<void>,
 	callInitial = false
 ): Promise<Disposable> {
@@ -58,6 +65,57 @@ export async function onChangeLastCommit(
 	}, PERIODICAL_GIT_FETCH_INTERVAL);
 
 	return interval;
+}
+
+export function onChangeLastCommit(
+	gerritReposD: Data<GerritRepo[]>,
+	handler: (
+		gerritRepo: GerritRepo,
+		lastCommit: GitCommit
+	) => void | Promise<void>
+): Disposable {
+	let currentRepo = getCurrentGerritRepo(gerritReposD.get(), 'silent');
+	const lastCommits = new Map<GerritRepo, GitCommit>();
+
+	const subscriptions = new Set<Disposable>();
+	subscriptions.add(
+		onChangeCurrentRepo(gerritReposD, async (repo) => {
+			currentRepo = repo;
+			const lastCommit = lastCommits.get(repo);
+			if (lastCommit) {
+				await handler(repo, lastCommit);
+			}
+		})
+	);
+
+	setListenerForRepos(
+		gerritReposD,
+		async (gerritRepo) => {
+			const disposable = await onChangeLastCommitForRepo(
+				gerritRepo,
+				async (lastCommit) => {
+					lastCommits.set(gerritRepo, lastCommit);
+					if (gerritRepo === currentRepo) {
+						await handler(gerritRepo, lastCommit);
+					}
+				},
+				true
+			);
+			subscriptions.add(disposable);
+			return disposable;
+		},
+		(_, disposable) => {
+			if (disposable) {
+				disposable.dispose();
+				subscriptions.delete(disposable);
+			}
+		}
+	);
+	return {
+		dispose: () => {
+			subscriptions.forEach((s) => void s.dispose());
+		},
+	};
 }
 
 export async function createStash(
@@ -284,21 +342,21 @@ export async function getGitVersion(
 	return gitVersion;
 }
 
-async function ensureNoRebaseErrors(gerritRepo: Repository): Promise<boolean> {
-	const gitReviewFile = await getGitReviewFileCached(gerritRepo);
+async function ensureNoRebaseErrors(gerritRepo: GerritRepo): Promise<boolean> {
+	const gitReviewFile = await getGitReviewFile(gerritRepo);
 	if (
 		!gitReviewFile ||
-		!(await ensureCleanWorkingTree(gerritRepo.rootUri.fsPath))
+		!(await ensureCleanWorkingTree(gerritRepo.rootPath))
 	) {
 		return false;
 	}
 
-	const gitVersion = await getGitVersion(gerritRepo.rootUri.fsPath);
+	const gitVersion = await getGitVersion(gerritRepo.rootPath);
 	if (!gitVersion) {
 		return false;
 	}
 
-	return rebase(gerritRepo.rootUri.fsPath, {
+	return rebase(gerritRepo.rootPath, {
 		title: 'Run Git Review',
 		callback: () => {
 			const terminal = window.createTerminal('Git Review');
@@ -322,12 +380,12 @@ export function getChangeIDFromCheckoutString(
 }
 
 export async function gitCheckoutRemote(
-	gerritRepo: Repository,
+	gerritRepo: GerritRepo,
 	patchNumberOrChangeID: number | string,
 	patchSet: number | undefined = undefined,
 	silent: boolean = false
 ): Promise<boolean> {
-	const uri = gerritRepo.rootUri.fsPath;
+	const uri = gerritRepo.rootPath;
 	if (!(await ensureCleanWorkingTree(uri, silent))) {
 		return false;
 	}
@@ -352,7 +410,10 @@ export async function gitCheckoutRemote(
 }
 
 const URL_REGEX = /http(s)?[:\w./+]+/g;
-export async function gitReview(gerritRepo: Repository): Promise<void> {
+export async function gitReview(
+	gerritRepo: GerritRepo,
+	reviewWebviewProvider: ReviewWebviewProvider
+): Promise<void> {
 	const config = getConfiguration();
 	const showProgressInNotification = config.get(
 		'gerrit.messages.postReviewNotification',
@@ -374,7 +435,7 @@ export async function gitReview(gerritRepo: Repository): Promise<void> {
 				message: 'Ensuring no rebase errors',
 				increment: 10,
 			});
-			const uri = gerritRepo.rootUri.fsPath;
+			const uri = gerritRepo.rootPath;
 			if (!(await ensureNoRebaseErrors(gerritRepo))) {
 				return {
 					success: false,
@@ -456,10 +517,10 @@ export async function gitReview(gerritRepo: Repository): Promise<void> {
 		}
 	);
 
-	const changeID = await getCurrentChangeID(gerritRepo);
-	if (changeID) {
+	const change = await getCurrentChangeForRepo(gerritRepo);
+	if (change) {
 		await APISubscriptionManager.changeSubscriptions.invalidate({
-			changeID,
+			changeID: change.changeID,
 			field: MATCH_ANY,
 			withValues: MATCH_ANY,
 		});
@@ -485,13 +546,17 @@ export async function gitReview(gerritRepo: Repository): Promise<void> {
 			if (result === viewRemoteOption) {
 				await env.openExternal(Uri.parse(url));
 			} else if (result === openReviewPanelOption) {
-				const changeID = await getCurrentChangeID(gerritRepo);
-				if (!changeID) {
+				const change = await getCurrentChangeForRepo(gerritRepo);
+				if (!change) {
 					void window.showErrorMessage(
 						'Failed to get current change ID'
 					);
 				} else {
-					await ChangeTreeView.openInReview(changeID);
+					await ChangeTreeView.openInReview(
+						gerritRepo,
+						reviewWebviewProvider,
+						change.changeID
+					);
 				}
 			} else if (result === disableMessageOption) {
 				await config.update(
@@ -522,9 +587,9 @@ export async function gitReview(gerritRepo: Repository): Promise<void> {
 }
 
 export async function getCurrentBranch(
-	gerritRepo: Repository
+	gerritRepo: GerritRepo
 ): Promise<string | null> {
-	const uri = gerritRepo.rootUri.fsPath;
+	const uri = gerritRepo.rootPath;
 	const { stdout, success } = await tryExecAsync(
 		'git rev-parse --abbrev-ref HEAD',
 		{

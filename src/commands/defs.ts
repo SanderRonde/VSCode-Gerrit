@@ -50,10 +50,6 @@ export type GerritCodicons = DefaultCodiconStrings | LocalIcons;
 export const commands: {
 	[K in GerritExtensionCommands]: CommandDefinition<GerritCodicons>;
 } = {
-	'gerrit.changeGitRepo': {
-		title: 'Change git repo',
-		inCommandPalette: true,
-	},
 	'gerrit.ackCommentThread': {
 		title: 'Ack',
 		icon: '$(record)',
@@ -79,11 +75,6 @@ export const commands: {
 			contextProp('gerrit:searchQuery'),
 			contextProp('gerrit:searchChangeNumber')
 		),
-	},
-	'gerrit.collapseAllComments': {
-		title: 'Collapse All Comments',
-		icon: '$(collapse-all)',
-		inCommandPalette: contextProp('gerrit:connected'),
 	},
 	'gerrit.configureChangeList': {
 		title: 'Configure filters',
@@ -717,45 +708,97 @@ export const config = {
 				'Whether quick checkout stashes should be shown in the statusbar for quick access',
 		},
 	},
-	'gerrit.auth.username': {
-		jsonDefinition: {
-			type: 'string',
-			title: 'Gerrit username',
-			description: 'Gerrit login username',
-		},
-	},
-	'gerrit.auth.password': {
-		jsonDefinition: {
-			type: 'string',
-			title: 'Gerrit password',
-			description:
-				'Gerrit password (see https://{your_gerit_host}/settings/#HTTPCredentials)',
-		},
-	},
-	'gerrit.auth.cookie': {
-		jsonDefinition: {
-			type: 'string',
-			title: 'Gerrit cookie',
-			description: 'Gerrit authentication cookie',
-		},
-	},
-	'gerrit.extraCookies': {
+	'gerrit.remotes': {
 		jsonDefinition: {
 			type: 'object',
-			title: 'Extra Gerrit cookies',
-			__shape: '' as unknown as Record<string, string>,
+			title: 'Gerrit credentials',
 			description:
-				'Other cookies besides the authentication cookie to send on every request',
+				'Gerrit login credentials/settings for every gerrit remote (host) you have. If you don\'t know the remote names by hand, use the "Enter credentials" command. Use the `"default"` key for a shared/default.',
+			properties: {
+				username: {
+					type: 'string',
+					title: 'Gerrit username',
+					description: 'Gerrit login username',
+				},
+				password: {
+					type: 'string',
+					title: 'Gerrit password',
+					description:
+						'Gerrit password (see https://{your_gerit_host}/settings/#HTTPCredentials)',
+				},
+				cookie: {
+					type: 'string',
+					title: 'Gerrit cookie',
+					description: 'Gerrit authentication cookie',
+				},
+				extraCookies: {
+					type: 'object',
+					title: 'Extra Gerrit cookies',
+					description:
+						'Other cookies besides the authentication cookie to send on every request',
+					__shape: '' as unknown as Record<string, string>,
+				},
+			},
+			__shape: '' as unknown as Record<
+				string,
+				{
+					username?: string;
+					password?: string;
+					cookie?: string;
+					extraCookies?: Record<string, string>;
+					url?: string;
+				}
+			>,
 		},
 	},
-	'gerrit.auth.url': {
+	'gerrit.urls': {
 		jsonDefinition: {
-			type: 'string',
-			title: 'URL of the gerrit server to use',
+			type: 'object',
+			title: 'Gerrit remote URLs by project path',
 			description:
-				'URL of the gerrit server to use (inferred from `.gitreview` if not provided). Uses HTTPS if no scheme is provided',
+				'Gerrit remote URLs by project path. Use this if the host in your .gitreview file is not correct or not present.',
+			__shape: '' as unknown as Record<string, string>,
 		},
 	},
+	// 'gerrit.auth.username': {
+	// 	jsonDefinition: {
+	// 		type: 'string',
+	// 		title: 'Gerrit username',
+	// 		description: 'Gerrit login username',
+	// 	},
+	// },
+	// 'gerrit.auth.password': {
+	// 	jsonDefinition: {
+	// 		type: 'string',
+	// 		title: 'Gerrit password',
+	// 		description:
+	// 			'Gerrit password (see https://{your_gerit_host}/settings/#HTTPCredentials)',
+	// 	},
+	// },
+	// 'gerrit.auth.cookie': {
+	// 	jsonDefinition: {
+	// 		type: 'string',
+	// 		title: 'Gerrit cookie',
+	// 		description: 'Gerrit authentication cookie',
+	// 	},
+	// },
+	// 'gerrit.extraCookies': {
+	// 	jsonDefinition: {
+	// 		type: 'object',
+	// 		title: 'Extra Gerrit cookies',
+	// 		__shape: '' as unknown as Record<string, string>,
+	// 		description:
+	// 			'Other cookies besides the authentication cookie to send on every request',
+	// 	},
+	// },
+	// 'gerrit.auth.url': {
+	// 	jsonDefinition: {
+	// 		type: 'string',
+	// 		title: 'URL of the gerrit server to use',
+	// 		description:
+	// 			'URL of the gerrit server to use (inferred from `.gitreview` if not provided). Uses HTTPS if no scheme is provided',
+	// 	},
+	// },
 	'gerrit.selectedView': {
 		jsonDefinition: {
 			type: 'string',
@@ -775,13 +818,6 @@ export const config = {
 			],
 			default: ExpandComments.UNRESOLVED,
 			description: 'When inline comments should be expanded',
-		},
-	},
-	'gerrit.gitRepo': {
-		jsonDefinition: {
-			type: 'string',
-			description:
-				'Git repository to use (only needed for multi-git-repo setups)',
 		},
 	},
 	'gerrit.changeTitleTemplate': {

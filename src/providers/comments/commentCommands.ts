@@ -11,16 +11,20 @@ import {
 	window,
 	workspace,
 } from 'vscode';
+import {
+	ChangeIDWithRepo,
+	GerritChange,
+} from '../../lib/gerrit/gerritAPI/gerritChange';
 import { FileTreeView } from '../../views/activityBar/changes/changeTreeView/fileTreeView';
 import { GerritCommentBase } from '../../lib/gerrit/gerritAPI/gerritComment';
 import { CommentManager, DocumentCommentManager } from '../commentProvider';
-import { GerritChange } from '../../lib/gerrit/gerritAPI/gerritChange';
+import { GerritRepo, getRepoFromUri } from '../../lib/gerrit/gerritRepo';
 import { avg, diff, uniqueComplex } from '../../lib/util/util';
-import { Repository } from '../../types/vscode-extension-git';
 import { FileMeta, FileMetaCreate } from '../fileProvider';
-import { getCurrentChangeID } from '../../lib/git/commit';
+import { getCurrentChange } from '../../lib/git/commit';
 import { CacheContainer } from '../../lib/util/cache';
 import * as gitDiffParser from 'gitdiff-parser';
+import { Data } from '../../lib/util/data';
 
 function getCurrentMeta(): FileMeta | null {
 	// First check currently open editor's URI
@@ -147,14 +151,17 @@ function buildExpandedThreadRanges(
 	return expandedThreads;
 }
 
-async function getAllComments(changeID: string): Promise<{
+async function getAllComments(
+	gerritReposD: Data<GerritRepo[]>,
+	change: ChangeIDWithRepo
+): Promise<{
 	allThreads: ThreadMap;
 	unresolvedThreads: ThreadMap;
 }> {
 	const { allThreads, resolvedThreadMap: unresolvedThreadMap } =
 		await (async () => {
 			const allComments = await (
-				await GerritChange.getAllComments(changeID)
+				await GerritChange.getAllComments(gerritReposD, change)
 			).getValue();
 
 			const baseEntries = [...allComments.entries()].map(
@@ -315,7 +322,10 @@ function getClosestNumWithMaxDistance(
 	return sortedNumbers[sortedNumbers.length - 1];
 }
 
-async function getCurrentCommentData(gerritRepo: Repository): Promise<{
+async function getCurrentCommentData(
+	gerritReposD: Data<GerritRepo[]>
+): Promise<{
+	currentRepo: GerritRepo;
 	comment: {
 		range: Range | null;
 		comments: GerritCommentBase[];
@@ -327,15 +337,29 @@ async function getCurrentCommentData(gerritRepo: Repository): Promise<{
 	filePath: string | undefined;
 } | null> {
 	const meta = getCurrentMeta();
-	const changeID = meta?.changeID ?? (await getCurrentChangeID(gerritRepo));
-	if (!changeID) {
+	const change: ChangeIDWithRepo | null = await (async () => {
+		if (meta) {
+			const gerritRepo = getRepoFromUri(gerritReposD.get(), meta.repoUri);
+			if (gerritRepo) {
+				return {
+					changeID: meta.changeID,
+					gerritRepo,
+				};
+			}
+		}
+		return await getCurrentChange(gerritReposD.get(), 'silent');
+	})();
+	if (!change) {
 		void window.showInformationMessage(
 			'Failed to find currently active change'
 		);
 		return null;
 	}
 
-	const { unresolvedThreads, allThreads } = await getAllComments(changeID);
+	const { unresolvedThreads, allThreads } = await getAllComments(
+		gerritReposD,
+		change
+	);
 
 	// If we have meta info, we want to start at the current position
 	const currentComment =
@@ -379,11 +403,12 @@ async function getCurrentCommentData(gerritRepo: Repository): Promise<{
 			);
 		})();
 	return {
+		currentRepo: change.gerritRepo,
 		unresolvedThreads,
 		allThreads,
 		comment: currentComment ?? null,
 		currentMeta: meta,
-		changeID,
+		changeID: change.changeID,
 		filePath:
 			window.activeTextEditor &&
 			(meta?.filePath ??
@@ -413,7 +438,7 @@ function supersortFilePaths(filePaths: string[]): string[] {
 }
 
 async function jumpToUnresolvedCommentShared(
-	gerritRepo: Repository,
+	gerritReposD: Data<GerritRepo[]>,
 	resolveIndices: (
 		data: Exclude<Awaited<ReturnType<typeof getCurrentCommentData>>, null>
 	) => {
@@ -421,7 +446,7 @@ async function jumpToUnresolvedCommentShared(
 		commentIndex: COMMENT_POSITION | number;
 	}
 ): Promise<void> {
-	const data = await getCurrentCommentData(gerritRepo);
+	const data = await getCurrentCommentData(gerritReposD);
 	if (!data) {
 		return;
 	}
@@ -435,7 +460,10 @@ async function jumpToUnresolvedCommentShared(
 			return data.currentMeta;
 		}
 
-		const change = await GerritChange.getChangeOnce(data.changeID);
+		const change = await GerritChange.getChangeOnce(gerritReposD, {
+			changeID: data.changeID,
+			gerritRepo: data.currentRepo,
+		});
 		if (!change) {
 			void window.showInformationMessage('Failed to get current change');
 			return null;
@@ -451,6 +479,7 @@ async function jumpToUnresolvedCommentShared(
 			changeID: change.changeID,
 			commit: revision,
 			context: [],
+			repoUri: data.currentRepo.rootPath,
 		};
 	})();
 	if (!partialFileMeta) {
@@ -473,6 +502,7 @@ async function jumpToUnresolvedCommentShared(
 				{
 					id: partialFileMeta.changeID,
 					project: partialFileMeta.project,
+					gerritRepo: data.currentRepo,
 				},
 				partialFileMeta.commit,
 				data.allThreads.get(PATCHSET_LEVEL_KEY)!.map((t) => t.comments)
@@ -495,13 +525,18 @@ async function jumpToUnresolvedCommentShared(
 			const lastRevision = await (async () => {
 				if (!diffEditor) {
 					const change = await GerritChange.getChangeOnce(
-						data.currentMeta!.changeID
+						gerritReposD,
+						{
+							changeID: data.currentMeta!.changeID,
+							gerritRepo: data.currentRepo,
+						}
 					);
 					return change?.getCurrentRevision();
 				}
-				const change = await GerritChange.getChangeOnce(
-					diffEditor.changeID
-				);
+				const change = await GerritChange.getChangeOnce(gerritReposD, {
+					changeID: diffEditor.changeID,
+					gerritRepo: data.currentRepo,
+				});
 				if (!change) {
 					return null;
 				}
@@ -518,7 +553,8 @@ async function jumpToUnresolvedCommentShared(
 			}
 
 			const cmd = await FileTreeView.createDiffCommand(
-				gerritRepo,
+				gerritReposD,
+				data.currentRepo,
 				file,
 				diffEditor?.baseRevision ?? null
 			);
@@ -535,7 +571,7 @@ async function jumpToUnresolvedCommentShared(
 		} else {
 			await commands.executeCommand(
 				'vscode.open',
-				Uri.joinPath(gerritRepo.rootUri, filePath)
+				Uri.joinPath(data.currentRepo.rootUri, filePath)
 			);
 		}
 	}
@@ -563,14 +599,15 @@ async function jumpToUnresolvedCommentShared(
 			? manager.diffData?.diff
 			: await (async () => {
 					const file = await CommentManager.getFileFromOpenDocument(
-						gerritRepo,
+						gerritReposD,
+						data.currentRepo,
 						window.activeTextEditor!.document
 					);
 					if (!file) {
 						return null;
 					}
 					const hashes = await CommentManager.getFileHashObjects(
-						gerritRepo,
+						data.currentRepo,
 						file,
 						window.activeTextEditor!.document
 					);
@@ -580,7 +617,7 @@ async function jumpToUnresolvedCommentShared(
 
 					const parser =
 						gitDiffParser as unknown as typeof import('gitdiff-parser').default;
-					const diff = await gerritRepo.diffBlobs(
+					const diff = await data.currentRepo.repository.diffBlobs(
 						hashes.newHash,
 						hashes.modifiedHash
 					);
@@ -619,9 +656,9 @@ enum COMMENT_POSITION {
 }
 
 export async function nextUnresolvedComment(
-	gerritRepo: Repository
+	gerritReposD: Data<GerritRepo[]>
 ): Promise<void> {
-	await jumpToUnresolvedCommentShared(gerritRepo, (data) => {
+	await jumpToUnresolvedCommentShared(gerritReposD, (data) => {
 		const allFilePaths = supersortFilePaths(data.unresolvedThreads.keys());
 
 		// If no file path, return first comment of first file
@@ -683,9 +720,9 @@ export async function nextUnresolvedComment(
 }
 
 export async function previousUnresolvedComment(
-	gerritRepo: Repository
+	gerritReposD: Data<GerritRepo[]>
 ): Promise<void> {
-	await jumpToUnresolvedCommentShared(gerritRepo, (data) => {
+	await jumpToUnresolvedCommentShared(gerritReposD, (data) => {
 		const allFilePaths = supersortFilePaths([
 			...data.unresolvedThreads.keys(),
 		]);

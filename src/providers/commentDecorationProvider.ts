@@ -5,11 +5,16 @@ import {
 	FileDecorationProvider,
 	Uri,
 } from 'vscode';
+import {
+	GerritRepo,
+	getCurrentGerritRepoForUri,
+} from '../lib/gerrit/gerritRepo';
 import { GerritChange } from '../lib/gerrit/gerritAPI/gerritChange';
 import { FileMeta, GERRIT_FILE_SCHEME } from './fileProvider';
 import { DocumentCommentManager } from './commentProvider';
+import { Data } from '../lib/util/data';
 
-class CommentDecorationProvider implements FileDecorationProvider {
+export class CommentDecorationProvider implements FileDecorationProvider {
 	private _fileUnresolvedCommentCounts: Map<string, Map<string, number>> =
 		new Map();
 	private _onDidChangeFileDecorations: EventEmitter<Uri | Uri[]> =
@@ -17,13 +22,28 @@ class CommentDecorationProvider implements FileDecorationProvider {
 	public onDidChangeFileDecorations: Event<Uri | Uri[]> =
 		this._onDidChangeFileDecorations.event;
 
+	public constructor(private readonly _gerritReposD: Data<GerritRepo[]>) {}
+
 	private async _getUnresolvedCommentCount(
 		changeID: string,
 		filePath: string,
 		uri: Uri
 	): Promise<number> {
-		const allCommentsSubscription =
-			await GerritChange.getAllComments(changeID);
+		const gerritRepo = getCurrentGerritRepoForUri(
+			this._gerritReposD.get(),
+			uri,
+			'silent'
+		);
+		if (!gerritRepo) {
+			return 0;
+		}
+		const allCommentsSubscription = await GerritChange.getAllComments(
+			this._gerritReposD,
+			{
+				changeID,
+				gerritRepo,
+			}
+		);
 		const allComments = await allCommentsSubscription.getValue();
 		allCommentsSubscription.subscribeOnce(
 			new WeakRef(() => this.refreshFileComments(uri))
@@ -119,12 +139,4 @@ class CommentDecorationProvider implements FileDecorationProvider {
 
 		return;
 	}
-}
-
-let commentDecorationProvider: CommentDecorationProvider | null = null;
-export function getCommentDecorationProvider(): CommentDecorationProvider {
-	if (commentDecorationProvider) {
-		return commentDecorationProvider;
-	}
-	return (commentDecorationProvider = new CommentDecorationProvider());
 }

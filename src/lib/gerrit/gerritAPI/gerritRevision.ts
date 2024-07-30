@@ -5,16 +5,15 @@ import {
 	GerritUserResponse,
 	RevisionType,
 } from './types';
-import {
-	APISubscriptionManager,
-	Subscribable,
-} from '../../subscriptions/subscriptions';
 import { PatchsetDescription } from '../../../views/activityBar/changes/changeTreeView';
 import { ChangeField } from '../../subscriptions/changeSubscription';
+import { Subscribable } from '../../subscriptions/subscriptions';
 import { getAPIForSubscription } from '../gerritAPI';
 import { DynamicallyFetchable } from './shared';
 import { GerritCommit } from './gerritCommit';
+import { GerritRepo } from '../gerritRepo';
 import { GerritFile } from './gerritFile';
+import { Data } from '../../util/data';
 import { GerritAPIWith } from './api';
 
 export class GerritRevision extends DynamicallyFetchable {
@@ -34,6 +33,8 @@ export class GerritRevision extends DynamicallyFetchable {
 
 	public constructor(
 		public override changeID: string,
+		public override gerritReposD: Data<GerritRepo[]>,
+		public override gerritRepo: GerritRepo,
 		private readonly _changeProject: string,
 		public revisionID: string,
 		public isCurrentRevision: boolean,
@@ -59,6 +60,8 @@ export class GerritRevision extends DynamicallyFetchable {
 		if (response.commit) {
 			this._commit = new GerritCommit(
 				this.changeID,
+				this.gerritReposD,
+				this.gerritRepo,
 				this.revisionID,
 				response.commit
 			);
@@ -72,6 +75,8 @@ export class GerritRevision extends DynamicallyFetchable {
 							k,
 							new GerritFile(
 								this.changeID,
+								this.gerritReposD,
+								this.gerritRepo,
 								this._changeProject,
 								{
 									id: this.revisionID,
@@ -90,11 +95,14 @@ export class GerritRevision extends DynamicallyFetchable {
 		baseRevision: PatchsetDescription | null = null,
 		...additionalWith: GerritAPIWith[]
 	): Promise<Subscribable<Record<string, GerritFile>>> {
-		const api = await getAPIForSubscription();
+		const api = await getAPIForSubscription(
+			this.gerritReposD,
+			this.gerritRepo
+		);
 
 		if (baseRevision === null && this.isCurrentRevision) {
 			const subscription =
-				APISubscriptionManager.filesSubscriptions.createFetcher(
+				api.subscriptionManager.filesSubscriptions.createFetcher(
 					{
 						changeID: this.changeID,
 						revision: {

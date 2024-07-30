@@ -6,7 +6,7 @@ import {
 	spawn,
 	SpawnOptionsWithoutStdio,
 } from 'child_process';
-import { Repository } from '../../types/vscode-extension-git';
+import { GerritRepo } from '../gerrit/gerritRepo';
 import { log } from '../util/log';
 
 export interface GitCommit {
@@ -131,7 +131,7 @@ const COMMIT_FORMAT = '%H%n%B';
 const COMMIT_REGEX = /(.*)\n([^]*?)(?:\x00)/gm;
 
 export async function getLastCommits(
-	gerritRepo: Repository,
+	gerritRepo: GerritRepo,
 	count: number
 ): Promise<GitCommit[]> {
 	// We use the native `git log` command here instead of the actual
@@ -141,7 +141,7 @@ export async function getLastCommits(
 		const stdout = await execAsync(
 			`git log --format='${COMMIT_FORMAT}' -z -n ${count}`,
 			{
-				cwd: gerritRepo.rootUri.fsPath,
+				cwd: gerritRepo.rootPath,
 			}
 		);
 		let match = COMMIT_REGEX.exec(stdout);

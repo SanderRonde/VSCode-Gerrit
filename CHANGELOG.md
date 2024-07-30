@@ -2,6 +2,10 @@
 
 All notable changes to the "gerrit" extension will be documented in this file.
 
+## 1.2.42
+
+-   Add support for the new `resolved` state for VSCode comments
+
 ## 1.1.37
 
 -   Checkout using change selector doesn't silently fail

@@ -4,6 +4,7 @@ import {
 	comments,
 	CommentThread,
 	CommentThreadCollapsibleState,
+	CommentThreadState,
 	Disposable,
 	env,
 	Position,
@@ -50,7 +51,6 @@ export interface NewlyCreatedGerritCommentReply {
 }
 
 interface GerritCommentThreadProps {
-	resolved: boolean;
 	comments: GerritCommentBase[];
 }
 
@@ -200,7 +200,7 @@ export class DocumentCommentManager {
 							(c) =>
 								c.side ??
 								GerritCommentSide.RIGHT === fileMeta.side
-					  );
+						);
 			let threads = DocumentCommentManager.getThreadRanges(
 				DocumentCommentManager.buildThreadsFromComments(
 					thisSideComments
@@ -278,6 +278,10 @@ export class DocumentCommentManager {
 			thread.range,
 			thread.comments
 		) as CommentThread & Partial<GerritCommentThreadProps>;
+		vscodeThread.state = thread.comments[thread.comments.length - 1]
+			.unresolved
+			? CommentThreadState.Unresolved
+			: CommentThreadState.Resolved;
 		this._createdThreads.add(vscodeThread);
 		const gthread = GerritCommentThread.from(vscodeThread);
 		gthread?.setComments(thread.comments, true);
@@ -482,7 +486,7 @@ export class CommentManager {
 				? this.mapOldPositionToNew(
 						modifiedDiffParsed[0],
 						hunk.newStart + hunk.newLines - 1
-				  )
+					)
 				: hunk.newStart + hunk.newLines - 1;
 			if (start > 0 && end > 0) {
 				ranges.push(new Range(start - 1, 0, end - 1, 0));
@@ -725,7 +729,7 @@ async function createComment(
 		? DocumentCommentManager.applyDiffToCommentRange(
 				thread.thread.range,
 				manager.diffData.diff
-		  )
+			)
 		: thread.thread.range;
 
 	const meta = FileMetaWithSideAndBase.tryFrom(thread.thread.uri);

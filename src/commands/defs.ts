@@ -80,11 +80,6 @@ export const commands: {
 			contextProp('gerrit:searchChangeNumber')
 		),
 	},
-	'gerrit.collapseAllComments': {
-		title: 'Collapse All Comments',
-		icon: '$(collapse-all)',
-		inCommandPalette: contextProp('gerrit:connected'),
-	},
 	'gerrit.configureChangeList': {
 		title: 'Configure filters',
 		icon: '$(gear)',

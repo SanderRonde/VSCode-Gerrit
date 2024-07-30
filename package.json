@@ -59,11 +59,6 @@
 				"icon": "$(clear-all)"
 			},
 			{
-				"command": "gerrit.collapseAllComments",
-				"title": "Collapse All Comments",
-				"icon": "$(collapse-all)"
-			},
-			{
 				"command": "gerrit.configureChangeList",
 				"title": "Configure filters",
 				"icon": "$(gear)"
@@ -270,11 +265,6 @@
 				"icon": "$(clear-all)"
 			},
 			{
-				"command": "cmd.gerrit.collapseAllComments",
-				"title": "Gerrit: Collapse All Comments",
-				"icon": "$(collapse-all)"
-			},
-			{
 				"command": "cmd.gerrit.configureChangeList",
 				"title": "Gerrit: Configure filters",
 				"icon": "$(gear)"
@@ -398,10 +388,6 @@
 				},
 				{
 					"command": "gerrit.clearSearchResults",
-					"when": "false"
-				},
-				{
-					"command": "gerrit.collapseAllComments",
 					"when": "false"
 				},
 				{
@@ -582,10 +568,6 @@
 				},
 				{
 					"command": "cmd.gerrit.clearSearchResults",
-					"when": "true"
-				},
-				{
-					"command": "cmd.gerrit.collapseAllComments",
 					"when": "true"
 				},
 				{

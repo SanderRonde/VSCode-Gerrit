@@ -1410,8 +1410,8 @@
 		"format-staged": "(git diff --ignore-submodules --quiet && bun format) || pretty-quick src/",
 		"format": "prettier --write src/",
 		"copy": "ts-node -T scripts/copy.ts",
-		"package": "bun run prepack && bun vsce package",
-		"package-dev": "bun prepush && bun run build:debug && bun vsce package",
+		"package": "bun run prepack && bun vsce package --no-yarn",
+		"package-dev": "bun prepush && bun run build:debug && bun vsce package --no-yarn",
 		"generate-package": "generate-package-json generate --name Gerrit --input src/commands/defs.ts -w -p package.json --handler src/commands/commands.ts --validate --prefix Gerrit && prettier --write package.json",
 		"prepush": "bun generate-package && bun format-staged && bun lint --fix && bun compile"
 	},

@@ -47,6 +47,8 @@ export function getConfigurationWithLegacy(): TypedWorkspaceConfiguration<
 		'gerrit.auth.url'?: string;
 		/** @deprecated */
 		'gerrit.extraCookies'?: Record<string, string>;
+		/** @deprecated */
+		'gerrit.urls'?: Record<string, string>;
 	}
 > {
 	return getConfiguration();

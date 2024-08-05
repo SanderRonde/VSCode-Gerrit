@@ -165,7 +165,7 @@ class MultiRepoTreeViewProvider implements TreeItemWithChildren {
 					remote,
 					this.root,
 					{
-						label: remote.url,
+						label: remote.host,
 						collapsibleState: TreeItemCollapsibleState.Expanded,
 					}
 				)

@@ -11,6 +11,7 @@ To set up the extension, there's a few settings you need to configure. The easie
 -   `gerrit.remotes` - An object mapping every gerrit root you have to the following fields:
     -   `username` - This is your username on gerrit. You can find this next to the `Username` field under "HTTP Credentials".
     -   `password` - This is your HTTP password. You can generate one by clicking "Generate new password" and copying it.
+    -   `url` - The URL that will be used to access gerrit. This is the URL you use to access gerrit in your browser (e.g. `<your-gerrit-url>/dashboard/self`)
     -   `cookie` - This is your authentication cookie. You can find it by opening gerrit, opening the developer tools, going to the "Application" tab and expanding the "Cookies" section. Then copy the value of the `GerritAccount` cookie.
     -   `extraCookies` - Other cookies besides the authentication cookie to send on every request. Can be used for company-specific authentication.
 

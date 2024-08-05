@@ -726,6 +726,12 @@ export const config = {
 					description:
 						'Gerrit password (see https://{your_gerit_host}/settings/#HTTPCredentials)',
 				},
+				url: {
+					type: 'string',
+					title: 'URL of the REST API',
+					description:
+						'URL of the REST API. This is generally the same as the URL where your dashboard is hosted.',
+				},
 				cookie: {
 					type: 'string',
 					title: 'Gerrit cookie',
@@ -747,7 +753,14 @@ export const config = {
 					},
 				},
 				{
-					'default': {
+					'example.com': {
+						username: 'username',
+						password: 'password',
+						url: 'example.com/codereview'
+					},
+				},
+				{
+					default: {
 						username: 'username',
 					},
 					'gerrit.example.com': {
@@ -770,15 +783,15 @@ export const config = {
 			>,
 		},
 	},
-	'gerrit.urls': {
-		jsonDefinition: {
-			type: 'object',
-			title: 'Gerrit remote URLs by project path',
-			description:
-				'Gerrit remote URLs by project path. Use this if the host in your .gitreview file is not correct or not present.',
-			__shape: '' as unknown as Record<string, string>,
-		},
-	},
+	// 'gerrit.urls': {
+	// 	jsonDefinition: {
+	// 		type: 'object',
+	// 		title: 'Gerrit remote URLs by project path',
+	// 		description:
+	// 			'Gerrit remote URLs by project path. Use this if the host in your .gitreview file is not correct or not present.',
+	// 		__shape: '' as unknown as Record<string, string>,
+	// 	},
+	// },
 	// 'gerrit.auth.username': {
 	// 	jsonDefinition: {
 	// 		type: 'string',

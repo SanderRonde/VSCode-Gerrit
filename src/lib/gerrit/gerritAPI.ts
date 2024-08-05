@@ -49,7 +49,7 @@ export async function checkConnection(
 		const api = new GerritAPI(
 			gerritReposD,
 			remote,
-			remote.url,
+			remote.host,
 			remote.config.username ?? null,
 			remote.config.password ?? null,
 			remote.config.cookie ?? null,
@@ -60,7 +60,7 @@ export async function checkConnection(
 			if (gerritRepos.length > 1) {
 				await showInvalidSettingsMessage(
 					gerritReposD,
-					`Connection to Gerrit repository ${remote.url} failed, please check your settings and/or connection`
+					`Connection to Gerrit repository ${remote.host} failed, please check your settings and/or connection`
 				);
 			} else {
 				await showInvalidSettingsMessage(
@@ -82,7 +82,7 @@ async function createAPI(
 ): Promise<GerritAPI | null> {
 	const remotesWithConfigs = await getRemotesWithConfig(gerritReposD.get());
 
-	const remoteWithConfig = remotesWithConfigs[remote.url] as
+	const remoteWithConfig = remotesWithConfigs[remote.host] as
 		| GerritRemoteWithConfig
 		| undefined;
 	const lastConfig = lastConfigs.get(remote);
@@ -117,7 +117,7 @@ async function createAPI(
 	const api = new GerritAPI(
 		gerritReposD,
 		remoteWithConfig,
-		remoteWithConfig.url,
+		remoteWithConfig.host,
 		remoteWithConfig.config?.username ?? null,
 		remoteWithConfig.config?.password ?? null,
 		remoteWithConfig.config?.cookie ?? null,
@@ -219,7 +219,7 @@ export async function getAPIForSubscription(
 	return new GerritAPI(
 		gerritReposD,
 		remote,
-		remote.url,
+		remote.host,
 		remote.config.username ?? null,
 		remote.config.password ?? null,
 		remote.config.cookie ?? null,

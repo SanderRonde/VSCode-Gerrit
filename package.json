@@ -988,6 +988,11 @@
 							"title": "Gerrit password",
 							"description": "Gerrit password (see https://{your_gerit_host}/settings/#HTTPCredentials)"
 						},
+						"restURL": {
+							"type": "string",
+							"title": "URL of the REST API",
+							"description": "URL of the REST API. This is generally the same as the URL where your dashboard is hosted."
+						},
 						"cookie": {
 							"type": "string",
 							"title": "Gerrit cookie",
@@ -1019,11 +1024,6 @@
 							}
 						}
 					]
-				},
-				"gerrit.urls": {
-					"type": "object",
-					"title": "Gerrit remote URLs by project path",
-					"description": "Gerrit remote URLs by project path. Use this if the host in your .gitreview file is not correct or not present."
 				},
 				"gerrit.selectedView": {
 					"type": "string",

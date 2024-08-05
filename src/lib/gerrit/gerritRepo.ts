@@ -5,7 +5,6 @@ import {
 } from '../../types/vscode-extension-git';
 import { Disposable, ExtensionContext, extensions, Uri, window } from 'vscode';
 import { getGitReviewFile } from '../credentials/gitReviewFile';
-import { getConfiguration } from '../vscode/config';
 import { isGerritCommit } from '../git/commit';
 import { GerritAPI } from './gerritAPI/api';
 import { wait } from '../util/util';
@@ -26,7 +25,7 @@ export class GerritRepo {
 
 export class GerritRemote {
 	public constructor(
-		public readonly url: RemoteUrl,
+		public readonly host: HostUrl,
 		public readonly remoteReposD: Data<GerritRepo[]>
 	) {}
 
@@ -83,21 +82,25 @@ export class GerritRemote {
 	}
 }
 
+export type HostUrl = string & {
+	__remoteUrl: never;
+};
 export type RemoteUrl = string & {
 	__remoteUrl: never;
 };
 export class GerritRemoteWithConfig extends GerritRemote {
 	public constructor(
-		public override readonly url: RemoteUrl,
+		public override readonly host: HostUrl,
 		public override readonly remoteReposD: Data<GerritRepo[]>,
 		public readonly config: {
 			username?: string;
 			password?: string;
 			cookie?: string;
 			extraCookies?: Record<string, string>;
+			url: string;
 		}
 	) {
-		super(url, remoteReposD);
+		super(host, remoteReposD);
 	}
 }
 
@@ -119,26 +122,21 @@ function applySchemeFix(url: string): RemoteUrl {
 export async function gerritReposToRemotes(
 	gerritRepos: GerritRepo[]
 ): Promise<GerritRemote[]> {
-	const remoteUrlMap = getConfiguration().get('gerrit.urls') ?? {};
-
 	const remotesMap = new Map<string, GerritRepo[]>();
 	for (const gerritRepo of gerritRepos) {
 		const gitReviewFile = await getGitReviewFile(gerritRepo);
 		if (!gitReviewFile) {
 			continue;
 		}
-		const url =
-			remoteUrlMap[gerritRepo.rootPath] ??
-			gitReviewFile.remote ??
-			gitReviewFile.host;
-		remotesMap.set(url, [...(remotesMap.get(url) ?? []), gerritRepo]);
+		const host = gitReviewFile.remote ?? gitReviewFile.host;
+		remotesMap.set(host, [...(remotesMap.get(host) ?? []), gerritRepo]);
 	}
 
 	const remotes = [];
-	for (const [url, gerritRepos] of remotesMap.entries()) {
+	for (const [host, gerritRepos] of remotesMap.entries()) {
 		remotes.push(
 			new GerritRemote(
-				applySchemeFix(applyTrailingSlashFix(url)),
+				applySchemeFix(applyTrailingSlashFix(host)),
 				new Data(gerritRepos)
 			)
 		);

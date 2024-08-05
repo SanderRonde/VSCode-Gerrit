@@ -999,7 +999,26 @@
 							"description": "Other cookies besides the authentication cookie to send on every request",
 							"__shape": ""
 						}
-					}
+					},
+					"examples": [
+						{
+							"gerrit.example.com": {
+								"username": "username",
+								"password": "password"
+							}
+						},
+						{
+							"default": {
+								"username": "username"
+							},
+							"gerrit.example.com": {
+								"password": "password"
+							},
+							"gerrit.otherExample.com": {
+								"password": "password"
+							}
+						}
+					]
 				},
 				"gerrit.urls": {
 					"type": "object",

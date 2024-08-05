@@ -739,6 +739,25 @@ export const config = {
 					__shape: '' as unknown as Record<string, string>,
 				},
 			},
+			examples: [
+				{
+					'gerrit.example.com': {
+						username: 'username',
+						password: 'password',
+					},
+				},
+				{
+					'default': {
+						username: 'username',
+					},
+					'gerrit.example.com': {
+						password: 'password',
+					},
+					'gerrit.otherExample.com': {
+						password: 'password',
+					},
+				},
+			],
 			__shape: '' as unknown as Record<
 				string,
 				{

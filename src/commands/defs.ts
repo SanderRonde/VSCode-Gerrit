@@ -756,7 +756,7 @@ export const config = {
 					'example.com': {
 						username: 'username',
 						password: 'password',
-						url: 'example.com/codereview'
+						url: 'example.com/codereview',
 					},
 				},
 				{

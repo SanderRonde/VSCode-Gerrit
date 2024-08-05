@@ -988,7 +988,7 @@
 							"title": "Gerrit password",
 							"description": "Gerrit password (see https://{your_gerit_host}/settings/#HTTPCredentials)"
 						},
-						"restURL": {
+						"url": {
 							"type": "string",
 							"title": "URL of the REST API",
 							"description": "URL of the REST API. This is generally the same as the URL where your dashboard is hosted."
@@ -1010,6 +1010,13 @@
 							"gerrit.example.com": {
 								"username": "username",
 								"password": "password"
+							}
+						},
+						{
+							"example.com": {
+								"username": "username",
+								"password": "password",
+								"url": "example.com/codereview"
 							}
 						},
 						{

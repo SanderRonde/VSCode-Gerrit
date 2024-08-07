@@ -6,6 +6,7 @@ import {
 import { Disposable, ExtensionContext, extensions, Uri, window } from 'vscode';
 import { getGitReviewFile } from '../credentials/gitReviewFile';
 import { isGerritCommit } from '../git/commit';
+import { tryExecAsync } from '../git/gitCLI';
 import { GerritAPI } from './gerritAPI/api';
 import { wait } from '../util/util';
 import { Data } from '../util/data';
@@ -125,10 +126,16 @@ export async function gerritReposToRemotes(
 	const remotesMap = new Map<string, GerritRepo[]>();
 	for (const gerritRepo of gerritRepos) {
 		const gitReviewFile = await getGitReviewFile(gerritRepo);
-		if (!gitReviewFile) {
-			continue;
+		let host = gitReviewFile?.remote ?? gitReviewFile?.host;
+		if (!host) {
+			const { stdout, success } = await tryExecAsync(
+				'git config --get remote.origin.url',
+				{
+					cwd: gerritRepo.rootPath,
+				}
+			);
+			host = success ? stdout.trim() : gerritRepo.rootPath;
 		}
-		const host = gitReviewFile.remote ?? gitReviewFile.host;
 		remotesMap.set(host, [...(remotesMap.get(host) ?? []), gerritRepo]);
 	}
 

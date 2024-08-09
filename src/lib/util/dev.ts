@@ -1,5 +1,4 @@
 import { ExtensionContext, ExtensionMode } from 'vscode';
-import { logDev } from './log';
 
 let context: ExtensionContext | null = null;
 export function setDevContext(ctx: ExtensionContext): void {
@@ -14,16 +13,14 @@ export function isDev(): boolean {
 		return true;
 	}
 	if (!context) {
-		// Use `logDev` to prevent an infinite loop
-		logDev(
+		console.log(
 			'isDev called before context was set, returning false. Please flag this issue'
 		);
 		return false;
 	}
 	if (IS_DEV_OVERRIDE !== null) {
 		if (context.extensionMode === ExtensionMode.Production) {
-			// Use `logDev` to prevent an infinite loop
-			logDev(
+			console.log(
 				'isDev override set in prod build (or context not set at call time), assuming prod mode. Please flag this issue'
 			);
 			return false;

@@ -1,6 +1,4 @@
-import {
-	getGitReviewFile,
-} from '../credentials/gitReviewFile';
+import { getGitReviewFile } from '../credentials/gitReviewFile';
 import { GerritChange } from '../gerrit/gerritAPI/gerritChange';
 import { getCurrentBranch, getMainBranch } from '../git/git';
 import { GitCommit, getLastCommits } from '../git/gitCLI';

@@ -85,7 +85,7 @@ export class ReviewWebviewProvider implements WebviewViewProvider, Disposable {
 			return '';
 		}
 
-		const revisions = await change.revisions();
+		const revisions = await change.allRevisions();
 		if (!revisions || Object.values(revisions).length === 0) {
 			return '';
 		}
@@ -369,7 +369,7 @@ export class ReviewWebviewProvider implements WebviewViewProvider, Disposable {
 			return;
 		}
 
-		const revisions = await change.revisions();
+		const revisions = await change.allRevisions();
 		if (!revisions) {
 			return;
 		}

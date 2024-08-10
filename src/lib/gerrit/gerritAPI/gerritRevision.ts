@@ -11,6 +11,7 @@ import { Subscribable } from '../../subscriptions/subscriptions';
 import { getAPIForSubscription } from '../gerritAPI';
 import { DynamicallyFetchable } from './shared';
 import { GerritCommit } from './gerritCommit';
+import { GerritChange } from './gerritChange';
 import { GerritRepo } from '../gerritRepo';
 import { GerritFile } from './gerritFile';
 import { Data } from '../../util/data';
@@ -32,6 +33,7 @@ export class GerritRevision extends DynamicallyFetchable {
 	public _commit: GerritCommit | null = null;
 
 	public constructor(
+		public readonly change: GerritChange,
 		public override changeID: string,
 		public override gerritReposD: Data<GerritRepo[]>,
 		public override gerritRepo: GerritRepo,

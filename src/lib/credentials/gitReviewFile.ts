@@ -18,8 +18,8 @@ export interface GitReviewFile extends OptionalGitReviewProperties {
 export const DEFAULT_GIT_REVIEW_FILE: Required<OptionalGitReviewProperties> = {
 	branch: 'master',
 	defaultbranch: 'master',
-	defaultremote: 'origin',
-	remote: 'origin',
+	defaultremote: 'gerrit',
+	remote: 'gerrit',
 	port: '29418',
 };
 

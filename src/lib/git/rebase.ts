@@ -1,7 +1,7 @@
 import {
+	checkoutChangeID,
 	ensureCleanWorkingTree,
 	ensureMainBranchUpdated,
-	getChangeIDFromCheckoutString,
 	getCurrentBranch,
 	getGitVersion,
 } from './git';
@@ -100,15 +100,11 @@ export async function rebase(
 	}[]
 ): Promise<boolean> {
 	const rebaseCommand = 'git pull --rebase';
-	const { success } = await tryExecAsync(rebaseCommand, {
-		cwd: uri,
-	});
+	const { success } = await tryExecAsync(rebaseCommand, uri);
 	if (!success) {
 		const { success: abortSuccess } = await tryExecAsync(
 			'git rebase --abort',
-			{
-				cwd: uri,
-			}
+			uri
 		);
 		if (!abortSuccess) {
 			void window.showErrorMessage(
@@ -163,17 +159,8 @@ export async function rebaseOntoParent(gerritRepo: GerritRepo): Promise<void> {
 			}
 
 			progress.report({
-				message: 'Getting git review file',
-				increment: 20,
-			});
-			const gitReviewFile = await getGitReviewFile(gerritRepo);
-			if (!gitReviewFile || token.isCancellationRequested) {
-				return;
-			}
-
-			progress.report({
 				message: 'Rebasing',
-				increment: 20,
+				increment: 40,
 			});
 			if (!(await rebase(gerritRepo.rootPath))) {
 				return;
@@ -218,11 +205,11 @@ export async function recursiveRebase(
 			}
 
 			progress.report({
-				message: 'Getting git review file',
+				message: 'Getting .gitreview file',
 				increment: getRelativeProgress(2.5),
 			});
 			const gitReviewFile = await getGitReviewFile(gerritRepo);
-			if (!gitReviewFile || token.isCancellationRequested) {
+			if (token.isCancellationRequested) {
 				return;
 			}
 
@@ -303,9 +290,10 @@ export async function recursiveRebase(
 				);
 				if (answer === CHECKOUT_ORIGINAL_OPTION) {
 					if (
-						!(await tryExecAsync(`git checkout ${initialBranch}`, {
-							cwd: gerritRepo.rootPath,
-						}))
+						!(await tryExecAsync(
+							`git checkout ${initialBranch}`,
+							gerritRepo.rootPath
+						))
 					) {
 						void window.showErrorMessage(
 							'Failed to checkout original branch'
@@ -327,13 +315,10 @@ export async function recursiveRebase(
 				});
 
 				// Checkout branch
-				const { success } = await tryExecAsync(
-					`git-review -d "${getChangeIDFromCheckoutString(
-						operation.change.number
-					)}"`,
-					{
-						cwd: gerritRepo.rootPath,
-					}
+				const success = await checkoutChangeID(
+					gerritReposD,
+					gerritRepo,
+					operation.change.change_id
 				);
 				if (token.isCancellationRequested) {
 					return;
@@ -351,9 +336,7 @@ export async function recursiveRebase(
 							if (
 								!(await tryExecAsync(
 									`git checkout ${initialBranch}`,
-									{
-										cwd: gerritRepo.rootPath,
-									}
+									gerritRepo.rootPath
 								))
 							) {
 								void window.showErrorMessage(
@@ -387,9 +370,7 @@ export async function recursiveRebase(
 						if (
 							!(await tryExecAsync(
 								`git checkout ${initialBranch}`,
-								{
-									cwd: gerritRepo.rootPath,
-								}
+								gerritRepo.rootPath
 							))
 						) {
 							void window.showErrorMessage(

@@ -63,33 +63,18 @@ import { ChangeTreeView } from '../views/activityBar/changes/changeTreeView';
 import { QuickCheckoutTreeEntry } from '../views/activityBar/quickCheckout';
 import { listenForStreamEvents } from '../lib/stream-events/stream-events';
 import { GerritCommentBase } from '../lib/gerrit/gerritAPI/gerritComment';
-import { getChangeIDFromCheckoutString, gitReview } from '../lib/git/git';
 import { createAutoRegisterCommand } from 'vscode-generate-package-json';
 import { rebaseOntoParent, recursiveRebase } from '../lib/git/rebase';
 import { ReviewWebviewProvider } from '../views/activityBar/review';
 import { enterCredentials } from '../lib/credentials/credentials';
 import { focusChange } from '../lib/commandHandlers/focusChange';
+import { checkoutChangeID, pushForReview } from '../lib/git/git';
 import { GitExtension } from '../types/vscode-extension-git';
 import { checkConnection } from '../lib/gerrit/gerritAPI';
 import { GerritExtensionCommands } from './command-names';
 import { openOnGitiles } from '../lib/gitiles/gitiles';
 import { commands, GerritCodicons } from './defs';
-import { tryExecAsync } from '../lib/git/gitCLI';
 import { Data } from '../lib/util/data';
-
-async function checkoutChange(uri: string, changeID: string): Promise<boolean> {
-	const { success } = await tryExecAsync(
-		`git-review -d ${getChangeIDFromCheckoutString(changeID)}`,
-		{
-			cwd: uri,
-		}
-	);
-	if (!success) {
-		void window.showErrorMessage('Failed to checkout change');
-		return false;
-	}
-	return true;
-}
 
 export function registerCommands(
 	currentChangeStatusBar: CurrentChangeStatusBarManager,
@@ -357,8 +342,13 @@ export function registerCommands(
 		registerCommand(
 			GerritExtensionCommands.REBASE,
 			async (changeTreeView: ChangeTreeView) => {
-				const gitURI = changeTreeView.gerritRepo.rootPath;
-				if (!(await checkoutChange(gitURI, changeTreeView.changeID))) {
+				if (
+					!(await checkoutChangeID(
+						gerritReposD,
+						changeTreeView.gerritRepo,
+						changeTreeView.changeID
+					))
+				) {
 					return;
 				}
 
@@ -386,8 +376,13 @@ export function registerCommands(
 		registerCommand(
 			GerritExtensionCommands.RECURSIVE_REBASE,
 			async (changeTreeView: ChangeTreeView) => {
-				const gitURI = changeTreeView.gerritRepo.rootPath;
-				if (!(await checkoutChange(gitURI, changeTreeView.changeID))) {
+				if (
+					!(await checkoutChangeID(
+						gerritReposD,
+						changeTreeView.gerritRepo,
+						changeTreeView.changeID
+					))
+				) {
 					return;
 				}
 
@@ -438,7 +433,7 @@ export function registerCommands(
 					return;
 				}
 
-				await gitReview(repository, reviewWebviewProvider);
+				await pushForReview(repository, reviewWebviewProvider);
 			}
 		)
 	);

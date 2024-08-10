@@ -54,3 +54,9 @@ export function invert(filter: GerritChangeFilter): GerritChangeFilter {
 export function offset(amount: number): GerritChangeFilter {
 	return `S:${amount}` as GerritChangeFilter;
 }
+
+export function filterNumberOrChangeID(
+	numberOrChangeID: string | number
+): GerritChangeFilter {
+	return String(numberOrChangeID) as GerritChangeFilter;
+}

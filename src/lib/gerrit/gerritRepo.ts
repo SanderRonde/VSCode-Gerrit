@@ -130,9 +130,7 @@ export async function gerritReposToRemotes(
 		if (!host) {
 			const { stdout, success } = await tryExecAsync(
 				'git config --get remote.origin.url',
-				{
-					cwd: gerritRepo.rootPath,
-				}
+				gerritRepo.rootPath
 			);
 			host = success ? stdout.trim() : gerritRepo.rootPath;
 		}

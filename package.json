@@ -959,8 +959,8 @@
 				},
 				"gerrit.messages.postReviewNotification": {
 					"type": "boolean",
-					"title": "Show notification after running `git review`",
-					"description": "Show notification after running `git review` that allows you to either open the change online or in the review panel",
+					"title": "Show notification after pushing for review`",
+					"description": "Show notification after pushing for review` that allows you to either open the change online or in the review panel",
 					"default": true
 				},
 				"gerrit.quickCheckout.dropAllStashes": {

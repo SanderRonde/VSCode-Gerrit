@@ -540,7 +540,7 @@ async function jumpToUnresolvedCommentShared(
 				if (!change) {
 					return null;
 				}
-				const revisions = await change.revisions();
+				const revisions = await change.allRevisions();
 				return revisions?.[diffEditor.file.currentRevision.id];
 			})();
 			const files = await (await lastRevision?.files(

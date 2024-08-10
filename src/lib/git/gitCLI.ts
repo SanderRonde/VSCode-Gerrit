@@ -38,7 +38,8 @@ export async function execAsync(
 
 export async function tryExecAsync(
 	cmd: string,
-	options?: ExecOptions & {
+	uri: string,
+	options?: Omit<ExecOptions, 'cwd'> & {
 		silent?: boolean;
 	}
 ): Promise<{
@@ -53,20 +54,27 @@ export async function tryExecAsync(
 		stderr: string;
 		err: Error | null;
 	}>((resolve) => {
-		exec(cmd, options, (err, stdout, stderr) => {
-			if (err && !options?.silent) {
-				log(`Tried to run "${cmd}", but failed`);
-				log(`Stdout: ${stdout.toString()}`);
-				log(`Stderr: ${stderr.toString()}`);
-				log(`Error: ${err.message}`);
+		exec(
+			cmd,
+			{
+				...options,
+				cwd: uri,
+			},
+			(err, stdout, stderr) => {
+				if (err && !options?.silent) {
+					log(`Tried to run "${cmd}", but failed`);
+					log(`Stdout: ${stdout.toString()}`);
+					log(`Stderr: ${stderr.toString()}`);
+					log(`Error: ${err.message}`);
+				}
+				resolve({
+					success: !err,
+					stdout: stdout.toString(),
+					stderr: stderr.toString(),
+					err,
+				});
 			}
-			resolve({
-				success: !err,
-				stdout: stdout.toString(),
-				stderr: stderr.toString(),
-				err,
-			});
-		});
+		);
 	});
 }
 

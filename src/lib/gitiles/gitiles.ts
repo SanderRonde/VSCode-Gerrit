@@ -1,11 +1,10 @@
 import {
-	DEFAULT_GIT_REVIEW_FILE,
 	getGitReviewFile,
 } from '../credentials/gitReviewFile';
 import { GerritChange } from '../gerrit/gerritAPI/gerritChange';
+import { getCurrentBranch, getMainBranch } from '../git/git';
 import { GitCommit, getLastCommits } from '../git/gitCLI';
 import { GerritRepo } from '../gerrit/gerritRepo';
-import { getCurrentBranch } from '../git/git';
 import { Uri, env, window } from 'vscode';
 import { Data } from '../util/data';
 import * as path from 'path';
@@ -25,11 +24,7 @@ export async function openOnGitiles(
 		return;
 	}
 
-	const mainBranch =
-		gitReviewFile.branch ??
-		gitReviewFile.defaultbranch ??
-		DEFAULT_GIT_REVIEW_FILE.branch;
-
+	const mainBranch = await getMainBranch(gerritRepo, gitReviewFile);
 	const branch = await getCurrentBranch(gerritRepo);
 
 	const project = gitReviewFile.project;
@@ -110,7 +105,7 @@ async function getCurrentChange(
 		return null;
 	}
 
-	const revisionsForChange = await change.revisions();
+	const revisionsForChange = await change.allRevisions();
 	if (!revisionsForChange) {
 		return null;
 	}

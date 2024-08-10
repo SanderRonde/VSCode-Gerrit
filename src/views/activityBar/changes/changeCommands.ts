@@ -68,6 +68,7 @@ export async function checkoutBranch(
 	changeTreeView: ChangeTreeView
 ): Promise<void> {
 	await gitCheckoutRemote(
+		changeTreeView.gerritReposD,
 		gerritRepo,
 		changeTreeView.changeID,
 		undefined,

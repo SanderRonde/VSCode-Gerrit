@@ -65,6 +65,7 @@ export class URIHandler implements UriHandler {
 			// If set, checkout change, if not, stay on master and diff
 			if (
 				!(await gitCheckoutRemote(
+					this._gerritReposD,
 					gerritRepo,
 					changeID,
 					query.patchSet ? Number(query.patchSet) : undefined,
@@ -95,7 +96,7 @@ export class URIHandler implements UriHandler {
 					if (!query.patchSet) {
 						return change?.getCurrentRevision();
 					}
-					const revisions = await change?.revisions();
+					const revisions = await change?.allRevisions();
 					return Object.values(revisions ?? {}).find(
 						(revision) => String(revision.number) === query.patchSet
 					);
@@ -157,7 +158,7 @@ export class URIHandler implements UriHandler {
 		change: GerritChange,
 		patchSet?: number
 	): Promise<boolean> {
-		const revisions = await change.revisions();
+		const revisions = await change.allRevisions();
 		if (!revisions) {
 			return false;
 		}
@@ -174,9 +175,7 @@ export class URIHandler implements UriHandler {
 		// Check if git hash of the revision is somewhere in the git log
 		const proc = await tryExecAsync(
 			`git merge-base --is-ancestor ${revision.revisionID} HEAD`,
-			{
-				cwd: change.gerritRepo.rootPath,
-			}
+			change.gerritRepo.rootPath
 		);
 		return proc.success;
 	}

@@ -7,10 +7,14 @@ import {
 	QuickPickItem,
 } from 'vscode';
 import {
+	getRemote,
+	gitCheckoutRemote,
+	onChangeLastCommit,
+} from '../../lib/git/git';
+import {
 	DefaultChangeFilter,
 	filterOr,
 } from '../../lib/gerrit/gerritAPI/filters';
-import { gitCheckoutRemote, onChangeLastCommit } from '../../lib/git/git';
 
 import { GerritChange } from '../../lib/gerrit/gerritAPI/gerritChange';
 import { getGitReviewFile } from '../../lib/credentials/gitReviewFile';
@@ -21,12 +25,16 @@ import { GitCommit, tryExecAsync } from '../../lib/git/gitCLI';
 import { getAPIForRepo } from '../../lib/gerrit/gerritAPI';
 import { GerritRepo } from '../../lib/gerrit/gerritRepo';
 import { Data } from '../../lib/util/data';
+import { wait } from '../../lib/util/util';
 
-async function getMainBranchName(gerritRepo: GerritRepo): Promise<string> {
+export async function getMainBranchName(
+	gerritRepo: GerritRepo
+): Promise<string> {
+	const remote = getRemote(await getGitReviewFile(gerritRepo));
 	const cmd = await tryExecAsync(
-		"git symbolic-ref refs/remotes/origin/HEAD | sed 's@^refs/remotes/origin/@@'",
+		`git symbolic-ref refs/remotes/${remote}/HEAD | sed 's@^refs/remotes/${remote}/@@'`,
+		gerritRepo.rootPath,
 		{
-			cwd: gerritRepo.rootPath,
 			timeout: 2000,
 		}
 	);
@@ -259,36 +267,54 @@ export async function openChangeSelector(
 		statusBar.setOverride(null);
 		return;
 	}
+	let success = true;
 	if (change.type === 'changeId') {
 		statusBar.setOverride({
 			text: `$(loading~spin) Checking out #${change.changeId}`,
 			tooltip: `Checking out change #${change.changeId}`,
 		});
-		await gitCheckoutRemote(change.repo, change.changeId);
+		success = await gitCheckoutRemote(
+			gerritReposD,
+			change.repo,
+			change.changeId
+		);
 	} else {
 		statusBar.setOverride({
 			text: `$(loading~spin) Checking out ${change.branchName}`,
 			tooltip: `Checking out branch ${change.branchName}`,
 		});
-		await gitCheckoutBranch(change.repo, change.branchName);
+		success = await gitCheckoutBranch(change.repo, change.branchName);
 	}
+
+	if (!success) {
+		statusBar.setOverride({
+			text: 'Checkout failed',
+			tooltip: 'Checkout failed',
+		});
+		await wait(3000);
+	}
+
 	statusBar.setOverride(null);
 }
 
 async function gitCheckoutBranch(
 	gerritRepo: GerritRepo,
 	branchName: string
-): Promise<void> {
-	const { success } = await tryExecAsync(`git checkout ${branchName}`, {
-		cwd: gerritRepo.rootPath,
-		timeout: 10000,
-	});
+): Promise<boolean> {
+	const { success } = await tryExecAsync(
+		`git checkout ${branchName}`,
+		gerritRepo.rootPath,
+		{
+			timeout: 10000,
+		}
+	);
 
 	if (!success) {
 		void window.showErrorMessage(
 			'Checkout failed. Please see log for more details'
 		);
 	}
+	return success;
 }
 
 export function showCurrentChangeStatusBarIcon(

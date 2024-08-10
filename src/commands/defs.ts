@@ -686,9 +686,9 @@ export const config = {
 	'gerrit.messages.postReviewNotification': {
 		jsonDefinition: {
 			type: 'boolean',
-			title: 'Show notification after running `git review`',
+			title: 'Show notification after pushing for review`',
 			description:
-				'Show notification after running `git review` that allows you to either open the change online or in the review panel',
+				'Show notification after pushing for review` that allows you to either open the change online or in the review panel',
 			default: true,
 		},
 	},

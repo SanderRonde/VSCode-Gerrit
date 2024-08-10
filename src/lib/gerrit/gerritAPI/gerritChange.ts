@@ -118,6 +118,7 @@ export class GerritChange extends DynamicallyFetchable {
 						[
 							k,
 							new GerritRevision(
+								this,
 								this.changeID,
 								this.gerritReposD,
 								this.gerritRepo,
@@ -283,20 +284,20 @@ export class GerritChange extends DynamicallyFetchable {
 		return this._fieldFallbackGetter(
 			'_currentRevisions',
 			[GerritAPIWith.CURRENT_REVISION, ...additionalWith],
-			(c) => c.revisions(),
+			(c) => c.allRevisions(),
 			async (c) => {
 				this._currentRevision = await c.currentRevision();
 			}
 		);
 	}
 
-	public revisions(
+	public allRevisions(
 		...additionalWith: GerritAPIWith[]
 	): Promise<Record<string, GerritRevision> | null> {
 		return this._fieldFallbackGetter(
 			'_revisions',
 			[GerritAPIWith.ALL_REVISIONS, ...additionalWith],
-			(c) => c.revisions(),
+			(c) => c.allRevisions(),
 			async (c) => {
 				this._currentRevision = await c.currentRevision();
 				this._currentRevisions = await this.currentRevisions();

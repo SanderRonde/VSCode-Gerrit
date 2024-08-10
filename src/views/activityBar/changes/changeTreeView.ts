@@ -213,7 +213,7 @@ export class ChangeTreeView
 		if (this._patchSetCurrent === null) {
 			return await change.getCurrentRevision();
 		}
-		const revisions = await change.revisions();
+		const revisions = await change.allRevisions();
 		if (!revisions) {
 			return null;
 		}
@@ -465,7 +465,7 @@ export class ChangeTreeView
 		}
 
 		const change = (await this.change)!;
-		const revisions = await change.revisions();
+		const revisions = await change.allRevisions();
 		if (!revisions) {
 			void window.showErrorMessage('Failed to find change revisions');
 			return;

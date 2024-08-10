@@ -24,15 +24,14 @@ export function updateUploaderState(
 			}
 
 			const gitReviewFile = await getGitReviewFile(gerritRepo);
-			if (!gitReviewFile) {
-				return false;
-			}
 
 			const [change, self] = await Promise.all([
 				GerritChange.getChangeOnce(
 					gerritReposD,
 					{
-						changeID: `${gitReviewFile.project}~${changeID}`,
+						changeID: gitReviewFile
+							? `${gitReviewFile.project}~${changeID}`
+							: changeID,
 						gerritRepo,
 					},
 					[GerritAPIWith.ALL_REVISIONS],
@@ -49,7 +48,7 @@ export function updateUploaderState(
 			}
 
 			for (const revision of Object.values(
-				(await change.revisions()) ?? {}
+				(await change.allRevisions()) ?? {}
 			)) {
 				if (revision.uploader._account_id === self.accountID) {
 					return true;

@@ -150,7 +150,7 @@ export class FileTreeView implements TreeItemWithoutChildren {
 		if (!change) {
 			return null;
 		}
-		const revisions = await change.revisions();
+		const revisions = await change.allRevisions();
 		if (!revisions) {
 			return null;
 		}

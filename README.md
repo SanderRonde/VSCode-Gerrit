@@ -15,8 +15,6 @@ To set up the extension, there's a few settings you need to configure. The easie
     -   `cookie` - This is your authentication cookie. You can find it by opening gerrit, opening the developer tools, going to the "Application" tab and expanding the "Cookies" section. Then copy the value of the `GerritAccount` cookie.
     -   `extraCookies` - Other cookies besides the authentication cookie to send on every request. Can be used for company-specific authentication.
 
-Additionally the extension requires the python package [git-review](https://pypi.org/project/git-review/) to be installed.
-
 ## Features
 
 ### Changes panel
@@ -37,7 +35,7 @@ The review panel allows you to post your draft comments and to reply or vote on 
 
 ### Quick checkout
 
-Quick checkout allows you to quickly check out a patch while you're working on something. It is essentially equal to `git stash && git review -d changeId`. It then adds a quick-checkout entry both in the Gerrit panel and in the statusbar. Clicking this entry checks out the original branch you were on before doing a quick-checkout and re-applies the stash you created. This allows you to quickly check out a change for review without losing your work.
+Quick checkout allows you to quickly check out a patch while you're working on something. It is essentially equal to `git stash && git checkout ...`. It then adds a quick-checkout entry both in the Gerrit panel and in the statusbar. Clicking this entry checks out the original branch you were on before doing a quick-checkout and re-applies the stash you created. This allows you to quickly check out a change for review without losing your work.
 
 ### Change selector
 
@@ -45,7 +43,7 @@ The change selector can be found in the statusbar. It will at all times list the
 
 ### Push for review
 
-The Gerrit extension also adds a "Push for review" button in your git panel. It's the vertical line with a circle in the middle. When you click it, the extension will run `git review` for you. If all goes well it then allows you to open the link online, among some other actions.
+The Gerrit extension also adds a "Push for review" button in your git panel. It's the vertical line with a circle in the middle. When you click it, the extension will push the change to gerrit. If all goes well it then allows you to open the link online, among some other actions.
 
 ### Open on [gitiles](https://gerrit.googlesource.com/gitiles/)
 

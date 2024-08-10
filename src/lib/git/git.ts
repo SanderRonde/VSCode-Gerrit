@@ -17,24 +17,23 @@ import {
 	ConfigurationTarget,
 	ProgressLocation,
 } from 'vscode';
-import {
-	execAndMonitor,
-	getLastCommits,
-	GitCommit,
-	tryExecAsync,
-} from './gitCLI';
+import { getMainBranchName } from '../../views/statusBar/currentChangeStatusBar';
 import { ChangeTreeView } from '../../views/activityBar/changes/changeTreeView';
 import { APISubscriptionManager } from '../subscriptions/subscriptions';
 import { ReviewWebviewProvider } from '../../views/activityBar/review';
+import { filterNumberOrChangeID } from '../gerrit/gerritAPI/filters';
+import { GerritRevision } from '../gerrit/gerritAPI/gerritRevision';
+import { getLastCommits, GitCommit, tryExecAsync } from './gitCLI';
 import { PERIODICAL_GIT_FETCH_INTERVAL } from '../util/constants';
 import { MATCH_ANY } from '../subscriptions/baseSubscriptions';
+import { GerritAPIWith } from '../gerrit/gerritAPI/api';
 import { createAwaitingInterval } from '../util/util';
+import { getAPIForRepo } from '../gerrit/gerritAPI';
 import { getConfiguration } from '../vscode/config';
 import { getCurrentChangeForRepo } from './commit';
 import { VersionNumber } from '../util/version';
 import { Data } from '../util/data';
 import { log } from '../util/log';
-import { rebase } from './rebase';
 
 export async function onChangeLastCommitForRepo(
 	gerritRepo: GerritRepo,
@@ -123,11 +122,8 @@ export async function createStash(
 	stashName: string
 ): Promise<boolean> {
 	if (
-		!(
-			await tryExecAsync(`git stash push -u -m "${stashName}"`, {
-				cwd: uri,
-			})
-		).success
+		!(await tryExecAsync(`git stash push -u -m "${stashName}"`, uri))
+			.success
 	) {
 		void window.showErrorMessage(
 			'Failed to create stash, see log for details'
@@ -144,9 +140,7 @@ export async function findStash(
 ): Promise<string | boolean> {
 	const { success: listSuccess, stdout } = await tryExecAsync(
 		'git stash list',
-		{
-			cwd: uri,
-		}
+		uri
 	);
 	if (!listSuccess) {
 		void window.showErrorMessage(
@@ -186,9 +180,7 @@ export async function dropStash(
 		return stash;
 	}
 
-	const { success } = await tryExecAsync(`git stash drop "${stash}"`, {
-		cwd: uri,
-	});
+	const { success } = await tryExecAsync(`git stash drop "${stash}"`, uri);
 	if (!success) {
 		void window.showErrorMessage(
 			'Failed to drop stash, see log for details'
@@ -205,8 +197,8 @@ export async function ensureCleanWorkingTree(
 	{
 		const { success } = await tryExecAsync(
 			'git diff --ignore-submodules --quiet',
+			gitURI,
 			{
-				cwd: gitURI,
 				silent: true,
 			}
 		);
@@ -239,9 +231,7 @@ export async function ensureCleanWorkingTree(
 				}
 			}
 			if (choice.title === 'Amend all changes') {
-				const { success } = await tryExecAsync('git add .', {
-					cwd: gitURI,
-				});
+				const { success } = await tryExecAsync('git add .', gitURI);
 				if (!success) {
 					void window.showErrorMessage(
 						'Failed to add all changes, see log for details'
@@ -250,9 +240,7 @@ export async function ensureCleanWorkingTree(
 				}
 				const { success: commitSuccess } = await tryExecAsync(
 					'git commit -C HEAD --amend',
-					{
-						cwd: gitURI,
-					}
+					gitURI
 				);
 				if (!commitSuccess) {
 					void window.showErrorMessage(
@@ -268,8 +256,8 @@ export async function ensureCleanWorkingTree(
 	{
 		const { success } = await tryExecAsync(
 			'git diff --cached --ignore-submodules --quiet',
+			gitURI,
 			{
-				cwd: gitURI,
 				silent: true,
 			}
 		);
@@ -286,19 +274,24 @@ export async function ensureCleanWorkingTree(
 	return true;
 }
 
+export function getRemote(gitReviewFile: GitReviewFile | null): string {
+	return gitReviewFile
+		? gitReviewFile.remote ??
+				gitReviewFile.defaultremote ??
+				DEFAULT_GIT_REVIEW_FILE.remote
+		: 'origin';
+}
+
 export async function ensureMainBranchUpdated(
 	uri: string,
-	gitReviewFile: GitReviewFile
+	gitReviewFile: GitReviewFile | null
 ): Promise<string | false> {
-	const remote =
-		gitReviewFile.remote ??
-		gitReviewFile.defaultremote ??
-		DEFAULT_GIT_REVIEW_FILE.remote;
-
+	const remote = getRemote(gitReviewFile);
 	{
-		const { success } = await tryExecAsync(`git remote update ${remote}`, {
-			cwd: uri,
-		});
+		const { success } = await tryExecAsync(
+			`git remote update ${remote}`,
+			uri
+		);
 		if (!success) {
 			void window.showErrorMessage(
 				'Failed to update remote, please check the log panel for details.'
@@ -314,9 +307,7 @@ export async function getGitVersion(
 	uri: string
 ): Promise<VersionNumber | null> {
 	const gitVersion = await (async (): Promise<VersionNumber | null> => {
-		const { stdout, success } = await tryExecAsync('git version', {
-			cwd: uri,
-		});
+		const { stdout, success } = await tryExecAsync('git version', uri);
 		if (!success) {
 			return null;
 		}
@@ -342,44 +333,19 @@ export async function getGitVersion(
 	return gitVersion;
 }
 
-async function ensureNoRebaseErrors(gerritRepo: GerritRepo): Promise<boolean> {
-	const gitReviewFile = await getGitReviewFile(gerritRepo);
-	if (
-		!gitReviewFile ||
-		!(await ensureCleanWorkingTree(gerritRepo.rootPath))
-	) {
-		return false;
-	}
-
-	const gitVersion = await getGitVersion(gerritRepo.rootPath);
-	if (!gitVersion) {
-		return false;
-	}
-
-	return rebase(gerritRepo.rootPath, {
-		title: 'Run Git Review',
-		callback: () => {
-			const terminal = window.createTerminal('Git Review');
-			terminal.show(false);
-			terminal.sendText('git review', true);
-		},
-	});
-}
-
-export function getChangeIDFromCheckoutString(
-	changeID: string | number
-): string {
-	if (typeof changeID === 'number') {
-		return String(changeID);
-	}
-	if (changeID.indexOf('~') === 0) {
-		return changeID;
-	}
-	const [, idFromPair, idFromTriplet] = changeID.split('~');
-	return idFromTriplet ?? idFromPair;
+export async function getMainBranch(
+	gerritRepo: GerritRepo,
+	gitReviewFile: GitReviewFile | null
+): Promise<string> {
+	return gitReviewFile
+		? gitReviewFile.branch ??
+				gitReviewFile.defaultbranch ??
+				DEFAULT_GIT_REVIEW_FILE.branch
+		: await getMainBranchName(gerritRepo);
 }
 
 export async function gitCheckoutRemote(
+	gerritReposD: Data<GerritRepo[]>,
 	gerritRepo: GerritRepo,
 	patchNumberOrChangeID: number | string,
 	patchSet: number | undefined = undefined,
@@ -390,27 +356,16 @@ export async function gitCheckoutRemote(
 		return false;
 	}
 
-	let changeString =
-		getChangeIDFromCheckoutString(patchNumberOrChangeID) ??
-		patchNumberOrChangeID;
-	if (patchSet) {
-		changeString += `/${patchSet}`;
-	}
-	const { success } = await tryExecAsync(`git-review -d "${changeString}"`, {
-		cwd: uri,
-		timeout: 10000,
-	});
-
-	if (!success) {
-		void window.showErrorMessage(
-			'Checkout failed. Please see log for more details'
-		);
-	}
-	return success;
+	return await checkoutChangeID(
+		gerritReposD,
+		gerritRepo,
+		patchNumberOrChangeID,
+		patchSet
+	);
 }
 
 const URL_REGEX = /http(s)?[:\w./+]+/g;
-export async function gitReview(
+export async function pushForReview(
 	gerritRepo: GerritRepo,
 	reviewWebviewProvider: ReviewWebviewProvider
 ): Promise<void> {
@@ -432,11 +387,12 @@ export async function gitReview(
 		},
 		async (progress) => {
 			progress.report({
-				message: 'Ensuring no rebase errors',
+				message: 'Ensuring clean working directory',
 				increment: 10,
 			});
 			const uri = gerritRepo.rootPath;
-			if (!(await ensureNoRebaseErrors(gerritRepo))) {
+
+			if (!(await ensureCleanWorkingTree(gerritRepo.rootPath, false))) {
 				return {
 					success: false,
 					handled: true,
@@ -444,76 +400,77 @@ export async function gitReview(
 				};
 			}
 			progress.report({
-				increment: 40,
+				increment: 20,
+			});
+
+			progress.report({
+				message: 'Checking for multiple commits',
+			});
+
+			const gitReviewFile = await getGitReviewFile(gerritRepo);
+			const remote = getRemote(gitReviewFile);
+			const { success: gitLogSuccess, stdout: gitLogStdout } =
+				await tryExecAsync(
+					`git log --color=always --decorate --oneline --no-show-signature HEAD --not --remotes=${remote}`,
+					uri
+				);
+			if (!gitLogSuccess) {
+				void window.showErrorMessage(
+					'Failed to execute git, please see log for more details'
+				);
+				return {
+					success: false,
+					handled: true,
+					stdout: '',
+				};
+			}
+
+			const queuedCommits = gitLogStdout.trim().split('\n');
+			if (queuedCommits.length > 1) {
+				const YES_OPTION = 'Yes';
+				const CANCEL_OPTION = 'Cancel';
+				const choice = await window.showInformationMessage(
+					'You are about to submit multiple commits, are you sure?',
+					YES_OPTION,
+					CANCEL_OPTION
+				);
+
+				if (choice === CANCEL_OPTION || !choice) {
+					return {
+						success: false,
+						stdout: '',
+						handled: true,
+					};
+				}
+			}
+
+			progress.report({
+				increment: 20,
 			});
 
 			progress.report({
 				message: 'Pushing for review',
 			});
-			const result = await new Promise<{
-				success: boolean;
-				stdout: string;
-				handled: boolean;
-			}>((resolve) => {
-				let ignoreInitialResult = false;
-				void execAndMonitor(
-					'git-review',
-					async (stdout, proc) => {
-						if (
-							!stdout.includes(
-								'You are about to submit multiple commits.'
-							)
-						) {
-							return;
-						}
 
-						ignoreInitialResult = true;
-						proc.kill();
-						const YES_OPTION = 'Yes';
-						const CANCEL_OPTION = 'Cancel';
-						const choice = await window.showInformationMessage(
-							'You are about to submit multiple commits, are you sure?',
-							YES_OPTION,
-							CANCEL_OPTION
-						);
+			const branch = await getMainBranch(gerritRepo, gitReviewFile);
+			const {
+				success: pushSuccess,
+				stdout: pushStdout,
+				stderr: pushStderr,
+			} = await tryExecAsync(
+				`git push --no-follow-tags ${remote} HEAD:refs/for/${branch}`,
+				gerritRepo.rootPath
+			);
 
-						if (choice === YES_OPTION) {
-							const result = await tryExecAsync('git-review -y', {
-								cwd: uri,
-								timeout: 10000,
-							});
-							resolve({
-								success: result.success,
-								stdout: result.stdout,
-								handled: true,
-							});
-						} else if (choice === CANCEL_OPTION || !choice) {
-							resolve({
-								success: false,
-								stdout: '',
-								handled: true,
-							});
-						}
-					},
-					{
-						cwd: uri,
-						timeout: 10000,
-					}
-				).then(({ success, stdout }) => {
-					if (success && !ignoreInitialResult) {
-						resolve({
-							success: true,
-							handled: true,
-							stdout,
-						});
-					}
-				});
-			});
 			progress.report({
 				increment: 50,
 			});
 
-			return result;
+			return {
+				handled: false,
+				stdout: pushStdout + pushStderr,
+				success: pushSuccess,
+			};
 		}
 	);
 
@@ -581,7 +538,7 @@ export async function gitReview(
 		}
 	} else if (!handled) {
 		void window.showErrorMessage(
-			'Git review failed, please see log for more details'
+			'Push for review failed, please see log for more details'
 		);
 	}
 }
@@ -592,9 +549,7 @@ export async function getCurrentBranch(
 	const uri = gerritRepo.rootPath;
 	const { stdout, success } = await tryExecAsync(
 		'git rev-parse --abbrev-ref HEAD',
-		{
-			cwd: uri,
-		}
+		uri
 	);
 
 	if (!success) {
@@ -605,4 +560,122 @@ export async function getCurrentBranch(
 	}
 
 	return stdout.trim();
+}
+
+async function checkoutRevision(
+	gerritRepo: GerritRepo,
+	revision: GerritRevision
+): Promise<boolean> {
+	const success = await (async () => {
+		const fetchResult = await tryExecAsync(
+			`git fetch ${getRemote(await getGitReviewFile(gerritRepo))} ${revision.fetch.ssh.ref}`,
+			gerritRepo.rootPath
+		);
+		if (!fetchResult.success) {
+			return false;
+		}
+
+		const checkoutResult = await tryExecAsync(
+			`git checkout -b change-${revision.change.number} FETCH_HEAD`,
+			gerritRepo.rootPath,
+			{
+				timeout: 10000,
+			}
+		);
+		if (!checkoutResult.success) {
+			return false;
+		}
+		return true;
+	})();
+
+	if (!success) {
+		void window.showErrorMessage('Failed to checkout change');
+	}
+	return success;
+}
+
+async function checkoutByNumbers(
+	gerritRepo: GerritRepo,
+	changeNumber: number,
+	patchSet: number
+): Promise<boolean> {
+	const success = await (async () => {
+		let checksumNumber = String(changeNumber).slice(-2);
+		if (checksumNumber.length === 1) {
+			checksumNumber = `0${checksumNumber}`;
+		}
+		const ref = `refs/changes/${checksumNumber}/${changeNumber}/${patchSet}`;
+		const fetchResult = await tryExecAsync(
+			`git fetch ${getRemote(await getGitReviewFile(gerritRepo))} ${ref}`,
+			gerritRepo.rootPath
+		);
+		if (!fetchResult.success) {
+			return false;
+		}
+
+		const checkoutResult = await tryExecAsync(
+			`git checkout -b change-${changeNumber} FETCH_HEAD`,
+			gerritRepo.rootPath,
+			{
+				timeout: 10000,
+			}
+		);
+		if (!checkoutResult.success) {
+			return false;
+		}
+		return true;
+	})();
+
+	if (!success) {
+		void window.showErrorMessage('Failed to checkout change');
+	}
+	return success;
+}
+
+export async function checkoutChangeID(
+	gerritReposD: Data<GerritRepo[]>,
+	gerritRepo: GerritRepo,
+	numberOrChangeID: number | string,
+	patchSet: number | undefined = undefined
+): Promise<boolean> {
+	const success = await (async () => {
+		const api = await getAPIForRepo(gerritReposD, gerritRepo);
+		if (!api) {
+			return false;
+		}
+
+		const changes = await api
+			.getChanges(
+				[[filterNumberOrChangeID(numberOrChangeID)]],
+				undefined,
+				undefined,
+				GerritAPIWith.CURRENT_REVISION
+			)
+			.fetchOnce();
+
+		if (!changes.length) {
+			return false;
+		}
+
+		const change = changes[0];
+		const currentRevision = await change.getCurrentRevision();
+		if (!currentRevision) {
+			return false;
+		}
+
+		if (!patchSet) {
+			// Check out latest
+			return checkoutRevision(
+				change.gerritRepo,
+
+				currentRevision
+			);
+		}
+		return checkoutByNumbers(change.gerritRepo, change.number, patchSet);
+	})();
+
+	if (!success) {
+		void window.showErrorMessage('Failed to find change to check out');
+	}
+	return success;
 }

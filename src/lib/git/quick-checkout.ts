@@ -1,9 +1,9 @@
 import {
+	checkoutChangeID,
 	createStash,
 	dropStash,
 	ensureCleanWorkingTree,
 	findStash,
-	getChangeIDFromCheckoutString,
 	getCurrentBranch,
 } from './git';
 import {
@@ -35,9 +35,7 @@ export async function applyGitStash(
 		return stash;
 	}
 
-	const { success } = await tryExecAsync(`git stash apply "${stash}"`, {
-		cwd: uri,
-	});
+	const { success } = await tryExecAsync(`git stash apply "${stash}"`, uri);
 	if (!success) {
 		void window.showErrorMessage(
 			'Failed to apply stash, see log for details'
@@ -141,13 +139,10 @@ export async function quickCheckout(
 				message: 'Checking out change',
 				increment: 5,
 			});
-			const { success } = await tryExecAsync(
-				`git-review -d "${getChangeIDFromCheckoutString(
-					changeTreeView.changeID
-				)}"`,
-				{
-					cwd: gerritRepo.rootPath,
-				}
+			const success = await checkoutChangeID(
+				changeTreeView.gerritReposD,
+				gerritRepo,
+				changeTreeView.changeID
 			);
 			if (!success) {
 				void window.showErrorMessage('Failed to checkout change');
@@ -314,9 +309,10 @@ async function applyQuickCheckoutShared(
 	});
 	// First check out branch
 	if (
-		!(await tryExecAsync(`git checkout ${info.originalBranch}`, {
-			cwd: gerritRepo.rootPath,
-		}))
+		!(await tryExecAsync(
+			`git checkout ${info.originalBranch}`,
+			gerritRepo.rootPath
+		))
 	) {
 		void window.showErrorMessage('Failed to checkout branch');
 		return false;

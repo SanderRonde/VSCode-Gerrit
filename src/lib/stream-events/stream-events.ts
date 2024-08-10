@@ -72,7 +72,7 @@ export async function canStreamEvents(
 	const cmd = `ssh -p ${gitReviewFile.port ?? DEFAULT_GIT_REVIEW_FILE.port} ${
 		gitReviewFile.host
 	} gerrit stream-events`;
-	const result = await tryExecAsync(cmd, {
+	const result = await tryExecAsync(cmd, gerritRepo.rootPath, {
 		timeout: 5000,
 		killSignal: 'SIGSEGV',
 	});

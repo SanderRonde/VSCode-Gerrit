@@ -2,6 +2,10 @@
 
 All notable changes to the "gerrit" extension will be documented in this file.
 
+## 1.2.43
+
+-   Improve debugging of credentials setup. Now shows whether connection or authentication failed and shows a cURL command to reproduce the request.
+
 ## 1.2.42
 
 -   Add support for the new `resolved` state for VSCode comments

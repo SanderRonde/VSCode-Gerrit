@@ -55,14 +55,28 @@ export async function checkConnection(): Promise<void> {
 		extraCookies ?? null,
 		gitReviewFile
 	);
-	if (!(await api.testConnection())) {
+	const connection = await api.testConnection();
+	const showCurlButton = {
+		title: 'Show cURL command',
+		callback: connection.runCurlCommand,
+	};
+	if (!connection.exists) {
 		await showInvalidSettingsMessage(
-			'Connection to Gerrit failed, please check your settings and/or connection'
+			'Connection to Gerrit failed, please check your settings and/or connection',
+			[showCurlButton]
+		);
+		return;
+	} else if (!connection.authenticated) {
+		await showInvalidSettingsMessage(
+			'Gerrit authentication failed, please check your credentials',
+			[showCurlButton]
 		);
 		return;
 	}
 
-	await window.showInformationMessage('Succesfully connected!');
+	await window.showInformationMessage(
+		'Succesfully connected and authenticated!'
+	);
 }
 
 export async function createAPI(

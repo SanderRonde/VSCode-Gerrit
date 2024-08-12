@@ -3,9 +3,14 @@ import {
 	getGitReviewFile,
 	getGitReviewFileCached,
 } from './gitReviewFile';
+import {
+	ConfigurationTarget,
+	QuickInputButton,
+	ThemeIcon,
+	window,
+} from 'vscode';
 import { MultiStepEntry, MultiStepper } from '../vscode/multiStep';
 import { Repository } from '../../types/vscode-extension-git';
-import { ConfigurationTarget, window } from 'vscode';
 import { GerritAPI } from '../gerrit/gerritAPI/api';
 import { getConfiguration } from '../vscode/config';
 import got from 'got/dist/source';
@@ -57,6 +62,11 @@ export async function getGerritURL(
 	}
 	return null;
 }
+
+const VIEW_CURL_CMD_BUTTON: QuickInputButton = {
+	tooltip: 'View cURL command',
+	iconPath: new ThemeIcon('code'),
+};
 
 async function enterBasicCredentials(gerritRepo: Repository): Promise<void> {
 	const config = getConfiguration();
@@ -115,10 +125,22 @@ async function enterBasicCredentials(gerritRepo: Repository): Promise<void> {
 				extraCookies ?? null,
 				await getGitReviewFile(gerritRepo)
 			);
-			if (!(await api.testConnection())) {
+			const connection = await api.testConnection();
+			const viewCurlCmd = {
+				button: VIEW_CURL_CMD_BUTTON,
+				callback: connection.runCurlCommand,
+			};
+			if (!connection.exists) {
 				return {
 					isValid: false,
-					message: 'Invalid URL or credentials',
+					message: 'Connection failed, invalid URL',
+					buttons: [viewCurlCmd],
+				};
+			} else if (!connection.authenticated) {
+				return {
+					isValid: false,
+					message: 'Authentication failed, invalid credentials',
+					buttons: [viewCurlCmd],
 				};
 			}
 
@@ -205,10 +227,22 @@ async function enterCookieCredentials(gerritRepo: Repository): Promise<void> {
 				extraCookies ?? null,
 				await getGitReviewFile(gerritRepo)
 			);
-			if (!(await api.testConnection())) {
+			const connection = await api.testConnection();
+			const viewCurlCmd = {
+				button: VIEW_CURL_CMD_BUTTON,
+				callback: connection.runCurlCommand,
+			};
+			if (!connection.exists) {
 				return {
 					isValid: false,
-					message: 'Invalid URL or cookie',
+					message: 'Connection failed, invalid URL',
+					buttons: [viewCurlCmd],
+				};
+			} else if (!connection.authenticated) {
+				return {
+					isValid: false,
+					message: 'Authentication failed, invalid cookie,',
+					buttons: [viewCurlCmd],
 				};
 			}
 

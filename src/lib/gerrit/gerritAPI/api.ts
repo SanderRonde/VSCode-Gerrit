@@ -211,7 +211,9 @@ export class GerritAPI {
 		'api.getGroups'
 	);
 
-	private get _cookieJar(): PromiseCookieJar | undefined {
+	private get _cookieJar():
+		| (PromiseCookieJar & { cookieString: string })
+		| undefined {
 		// This is secretly a proxy... So we need to spread it to make it writable
 		const cookies = { ...(this._extraCookies ?? {}) };
 		if (this._cookie) {
@@ -229,6 +231,7 @@ export class GerritAPI {
 			getCookieString: () => {
 				return Promise.resolve(cookieString);
 			},
+			cookieString,
 			setCookie: () => Promise.resolve(),
 		};
 	}
@@ -617,12 +620,36 @@ export class GerritAPI {
 		};
 	}
 
-	public async testConnection(): Promise<boolean> {
-		const response = await this._tryRequest(
-			this.getURL('config/server/version'),
-			this._get
-		);
-		return response?.statusCode === 200;
+	public async testConnection(): Promise<{
+		exists: boolean;
+		authenticated: boolean;
+		runCurlCommand: () => void;
+	}> {
+		const versionUrl = this.getURL('config/server/version', false);
+		const versionResponse = await this._tryRequest(versionUrl, this._get);
+		const accessUrl = this.getURL('access', true);
+		const accessResponse = await this._tryRequest(accessUrl, this._get);
+
+		return {
+			exists: versionResponse?.statusCode === 200,
+			authenticated: accessResponse?.statusCode === 200,
+			runCurlCommand: () => {
+				const terminal = window.createTerminal('cUrl');
+				const userArg =
+					this._username && this._password
+						? ` --user "${this._username}:${this._password}"`
+						: '';
+				const cookieString = this._cookieJar?.cookieString;
+				const cookieArg = cookieString
+					? ` --cookie "${cookieString}"`
+					: '';
+				terminal.sendText(
+					`echo "Unauthenticated: " && curl${cookieArg} "${versionUrl}" && echo -e "\\nAuthenticated:" && curl${userArg}${cookieArg} "${accessUrl}"`,
+					false
+				);
+				terminal.show();
+			},
+		};
 	}
 
 	/**

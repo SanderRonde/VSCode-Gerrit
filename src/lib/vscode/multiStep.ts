@@ -1,4 +1,10 @@
-import { Disposable, InputBox, QuickInputButtons, window } from 'vscode';
+import {
+	Disposable,
+	InputBox,
+	QuickInputButton,
+	QuickInputButtons,
+	window,
+} from 'vscode';
 
 type GettableValue = string | ((stepper: MultiStepper) => string);
 
@@ -14,6 +20,10 @@ export class MultiStepEntry {
 			) => Promise<{
 				isValid: boolean;
 				message?: string;
+				buttons?: {
+					button: QuickInputButton;
+					callback: () => void;
+				}[];
 			}>;
 			isPassword?: boolean;
 		}
@@ -45,6 +55,7 @@ export class MultiStepEntry {
 		input.value =
 			MultiStepEntry.getGettable(stepper, this.settings.value)! ?? '';
 		input.password = !!this.settings.isPassword;
+		input.validationMessage = undefined;
 	}
 
 	public async validate(
@@ -68,11 +79,20 @@ export class MultiStepEntry {
 
 		if (result.isValid) {
 			input.validationMessage = undefined;
+			input.buttons = stepper.getButtons();
 			input.show();
 			return true;
 		}
 
 		input.validationMessage = result.message;
+		const buttons = result.buttons ?? [];
+		for (const button of buttons) {
+			stepper.buttonHandlers.set(button.button, button.callback);
+		}
+		input.buttons = [
+			...stepper.getButtons(),
+			...buttons.map((b) => b.button),
+		];
 		input.show();
 		return false;
 	}
@@ -87,6 +107,7 @@ export class MultiStepper {
 	private _resolveRunPromise:
 		| null
 		| ((value: (string | undefined)[] | undefined) => void) = null;
+	public buttonHandlers = new WeakMap<QuickInputButton, () => void>();
 
 	private get _currentStep(): MultiStepEntry {
 		return this._steps[this._currentStepIndex];
@@ -94,6 +115,12 @@ export class MultiStepper {
 
 	public get values(): (string | undefined)[] {
 		return this._values;
+	}
+
+	public getButtons(
+		stepIndex: number = this._currentStepIndex
+	): QuickInputButton[] {
+		return stepIndex > 0 ? [QuickInputButtons.Back] : [];
 	}
 
 	public constructor(private readonly _steps: MultiStepEntry[]) {
@@ -110,7 +137,7 @@ export class MultiStepper {
 		const step = this._currentStep;
 		input.step = stepIndex + 1;
 		step.setInputSettings(this, input);
-		input.buttons = stepIndex > 0 ? [QuickInputButtons.Back] : [];
+		input.buttons = this.getButtons(stepIndex);
 	}
 
 	private _prevStep(input: InputBox): void {
@@ -140,6 +167,11 @@ export class MultiStepper {
 			input.onDidTriggerButton((e) => {
 				if (e === QuickInputButtons.Back) {
 					this._prevStep(input);
+				} else {
+					const handler = this.buttonHandlers.get(e);
+					if (handler) {
+						handler();
+					}
 				}
 			})
 		);

@@ -230,10 +230,7 @@ export class GerritAPI {
 	): (PromiseCookieJar & { cookieString: string }) | undefined {
 		// This is secretly a proxy... So we need to spread it to make it writable
 		const cookies = { ...(this._extraCookies ?? {}) };
-		if (
-			this._authCookie &&
-			(options.method === 'GET')
-		) {
+		if (this._authCookie && options.method === 'GET') {
 			cookies['GerritAccount'] = this._authCookie;
 		}
 
@@ -385,10 +382,7 @@ export class GerritAPI {
 					'a/'
 				);
 				url += `${authUrlPrefix}${options.path}`;
-				if (
-					this._authCookie &&
-					(options.method !== 'GET')
-				) {
+				if (this._authCookie && options.method !== 'GET') {
 					searchParams['access_token'] = this._authCookie;
 				}
 			} else {

@@ -2,6 +2,10 @@
 
 All notable changes to the "gerrit" extension will be documented in this file.
 
+## 1.2.45
+
+-   Store credentials in the keychain instead of the settings
+
 ## 1.2.44
 
 -   Fix `gerrit.auth.cookie` setting to work for PUT requests as well

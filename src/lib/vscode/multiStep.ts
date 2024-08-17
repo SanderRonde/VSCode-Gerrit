@@ -8,7 +8,7 @@ import {
 
 type GettableValue<V extends string | object> =
 	| V
-	| ((stepper: MultiStepper) => V);
+	| ((stepper: MultiStepper) => V | Promise<V>);
 
 export class MultiStepEntry {
 	public constructor(
@@ -37,30 +37,34 @@ export class MultiStepEntry {
 		}
 	) {}
 
-	public static getGettable<V extends string | object>(
+	public static async getGettable<V extends string | object>(
 		stepper: MultiStepper,
 		gettableValue?: GettableValue<V>
-	): V | undefined {
+	): Promise<V | undefined> {
 		if (!gettableValue) {
 			return gettableValue;
 		}
 		if (typeof gettableValue === 'function') {
-			return gettableValue(stepper) as V;
+			return (await gettableValue(stepper)) as V;
 		}
 		return gettableValue;
 	}
 
-	public setInputSettings(stepper: MultiStepper, input: InputBox): void {
-		input.placeholder = MultiStepEntry.getGettable(
+	public async setInputSettings(
+		stepper: MultiStepper,
+		input: InputBox
+	): Promise<void> {
+		input.placeholder = await MultiStepEntry.getGettable(
 			stepper,
 			this.settings.placeHolder
 		);
-		input.prompt = MultiStepEntry.getGettable(
+		input.prompt = await MultiStepEntry.getGettable(
 			stepper,
 			this.settings.prompt
 		);
 		input.value =
-			MultiStepEntry.getGettable(stepper, this.settings.value)! ?? '';
+			(await MultiStepEntry.getGettable(stepper, this.settings.value)!) ??
+			'';
 		input.password = !!this.settings.isPassword;
 		input.validationMessage = undefined;
 	}
@@ -86,7 +90,7 @@ export class MultiStepEntry {
 
 		if (result.isValid) {
 			input.validationMessage = undefined;
-			input.buttons = stepper.getButtons();
+			input.buttons = await stepper.getButtons();
 			input.show();
 			return true;
 		}
@@ -97,7 +101,7 @@ export class MultiStepEntry {
 			stepper.buttonHandlers.set(button.button, button.callback);
 		}
 		input.buttons = [
-			...stepper.getButtons(),
+			...(await stepper.getButtons()),
 			...buttons.map((b) => b.button),
 		];
 		input.show();
@@ -124,16 +128,17 @@ export class MultiStepper {
 		return this._values;
 	}
 
-	public getButtons(
+	public async getButtons(
 		stepIndex: number = this._currentStepIndex
-	): QuickInputButton[] {
+	): Promise<QuickInputButton[]> {
 		const buttons = [];
 		if (stepIndex > 0) {
 			buttons.push(QuickInputButtons.Back);
 		}
 		const step = this._steps[stepIndex];
 		const stepButtons = step.settings.buttons
-			? MultiStepEntry.getGettable(this, step.settings.buttons) ?? []
+			? (await MultiStepEntry.getGettable(this, step.settings.buttons)) ??
+				[]
 			: [];
 		if (step.settings.buttons) {
 			for (const { button, callback } of stepButtons) {
@@ -144,30 +149,23 @@ export class MultiStepper {
 		return buttons;
 	}
 
-	public constructor(private readonly _steps: MultiStepEntry[]) {
-		this._values = this._steps.map((step) => {
-			return (
-				MultiStepEntry.getGettable(this, step.settings.value) ??
-				undefined
-			);
-		});
-	}
+	public constructor(private readonly _steps: MultiStepEntry[]) {}
 
-	private _runStep(input: InputBox, stepIndex: number): void {
+	private async _runStep(input: InputBox, stepIndex: number): Promise<void> {
 		this._currentStepIndex = stepIndex;
 		const step = this._currentStep;
 		input.step = stepIndex + 1;
-		step.setInputSettings(this, input);
-		input.buttons = this.getButtons(stepIndex);
+		await step.setInputSettings(this, input);
+		input.buttons = await this.getButtons(stepIndex);
 	}
 
-	private _prevStep(input: InputBox): void {
-		this._runStep(input, this._currentStepIndex - 1);
+	private _prevStep(input: InputBox): Promise<void> {
+		return this._runStep(input, this._currentStepIndex - 1);
 	}
 
-	private _nextStep(input: InputBox): void {
+	private async _nextStep(input: InputBox): Promise<void> {
 		if (this._currentStepIndex + 1 < this._steps.length) {
-			this._runStep(input, this._currentStepIndex + 1);
+			await this._runStep(input, this._currentStepIndex + 1);
 		} else {
 			// Done :)
 			this.dispose();
@@ -176,7 +174,18 @@ export class MultiStepper {
 		}
 	}
 
-	public run(): Promise<undefined | (string | undefined)[]> {
+	public async run(): Promise<undefined | (string | undefined)[]> {
+		this._values = await Promise.all(
+			this._steps.map(async (step) => {
+				return (
+					(await MultiStepEntry.getGettable(
+						this,
+						step.settings.value
+					)) ?? undefined
+				);
+			})
+		);
+
 		this._runPromise = new Promise((resolve) => {
 			this._resolveRunPromise = resolve;
 		});
@@ -187,7 +196,7 @@ export class MultiStepper {
 		this._disposables.push(
 			input.onDidTriggerButton((e) => {
 				if (e === QuickInputButtons.Back) {
-					this._prevStep(input);
+					void this._prevStep(input);
 				} else {
 					const handler = this.buttonHandlers.get(e);
 					if (handler) {
@@ -208,12 +217,12 @@ export class MultiStepper {
 					await this._currentStep.validate(this, input, input.value)
 				) {
 					this._values[this._currentStepIndex] = input.value;
-					this._nextStep(input);
+					await this._nextStep(input);
 				}
 			})
 		);
 
-		this._runStep(input, 0);
+		await this._runStep(input, 0);
 		input.show();
 
 		return this._runPromise;

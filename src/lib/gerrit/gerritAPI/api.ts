@@ -368,7 +368,7 @@ export class GerritAPI {
 	}
 
 	private _getUrlAndParams(options: RequestOptions): {
-		url: string;
+		url: string | null;
 		searchParams: RequestOptions['searchParams'];
 	} {
 		const searchParams = options.searchParams ?? {};
@@ -406,7 +406,7 @@ export class GerritAPI {
 			}
 		}
 		return {
-			url,
+			url: url || null,
 			searchParams,
 		};
 	}
@@ -415,7 +415,12 @@ export class GerritAPI {
 		options: RequestOptions
 	): Promise<(Response<string> & { strippedBody: string }) | null> {
 		const { url, searchParams } = this._getUrlAndParams(options);
-		log(`${options.method} request to "${url}"`);
+		log(`${options.method} request to "${url ?? '<no-url>'}"`);
+
+		if (!url) {
+			log('No URL configured');
+			return null;
+		}
 
 		const body: RequestBodyOptions = {
 			method: options.method,
@@ -682,8 +687,10 @@ export class GerritAPI {
 					cookieArg = ` --cookie "${cookieJar.cookieString}"`;
 				}
 
-				const versionUrl = this._getUrlAndParams(versionConfig).url;
-				const selfUrl = this._getUrlAndParams(selfConfig).url;
+				const versionUrl =
+					this._getUrlAndParams(versionConfig).url ?? '<no-url>';
+				const selfUrl =
+					this._getUrlAndParams(selfConfig).url ?? '<no-url>';
 				terminal.sendText(
 					`echo "Unauthenticated: " && curl${cookieArg} "${versionUrl}" && echo -e "\\nAuthenticated:" && curl${userArg}${cookieArg} "${selfUrl}"`,
 					false

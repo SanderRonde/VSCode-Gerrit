@@ -5,6 +5,7 @@ import {
 	ThemeIcon,
 	Uri,
 	window,
+	workspace,
 } from 'vscode';
 import {
 	GitReviewFile,
@@ -15,6 +16,7 @@ import { MultiStepEntry, MultiStepper } from '../vscode/multiStep';
 import { Repository } from '../../types/vscode-extension-git';
 import { GerritAPI } from '../gerrit/gerritAPI/api';
 import { getConfiguration } from '../vscode/config';
+import { GerritSecrets } from './secrets';
 import got from 'got/dist/source';
 
 function applyTrailingSlashFix(url: string): string {
@@ -102,7 +104,12 @@ async function enterBasicCredentials(gerritRepo: Repository): Promise<void> {
 			`Enter your Gerrit password (see ${
 				stepper.values[0] ?? 'www.yourgerrithost.com'
 			}/settings/#HTTPCredentials)`,
-		value: config.get('gerrit.auth.password'),
+		value: async (stepper) =>
+			(await GerritSecrets.getForUrlOrWorkspace(
+				'password',
+				stepper.values[0],
+				workspace.workspaceFolders?.[0].uri
+			)) ?? '',
 		isPassword: true,
 		buttons: (stepper) => [
 			{
@@ -188,10 +195,11 @@ async function enterBasicCredentials(gerritRepo: Repository): Promise<void> {
 				)
 			: Promise.resolve(),
 		password
-			? config.update(
-					'gerrit.auth.password',
-					password,
-					ConfigurationTarget.Global
+			? GerritSecrets.setForUrlAndWorkspace(
+					'password',
+					url,
+					workspace.workspaceFolders?.[0].uri,
+					password
 				)
 			: Promise.resolve(),
 	]);
@@ -226,7 +234,12 @@ async function enterCookieCredentials(gerritRepo: Repository): Promise<void> {
 			`Enter your Gerrit authentication cookie (go to ${
 				stepper.values[0] ?? 'www.yourgerrithost.com'
 			} and copy the value of the GerritAccount cookie)`,
-		value: config.get('gerrit.auth.cookie'),
+		value: async (stepper) =>
+			(await GerritSecrets.getForUrlOrWorkspace(
+				'cookie',
+				stepper.values[0],
+				workspace.workspaceFolders?.[0].uri
+			)) ?? '',
 		validate: async (cookie, stepper) => {
 			const [url] = stepper.values;
 			if (!url) {
@@ -279,10 +292,11 @@ async function enterCookieCredentials(gerritRepo: Repository): Promise<void> {
 			? config.update('gerrit.auth.url', url, ConfigurationTarget.Global)
 			: Promise.resolve(),
 		cookie
-			? config.update(
-					'gerrit.auth.cookie',
-					cookie,
-					ConfigurationTarget.Global
+			? GerritSecrets.setForUrlAndWorkspace(
+					'cookie',
+					url,
+					workspace.workspaceFolders?.[0].uri,
+					cookie
 				)
 			: Promise.resolve(),
 	]);

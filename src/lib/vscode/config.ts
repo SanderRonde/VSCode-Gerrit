@@ -48,3 +48,15 @@ export function initConfigListener(): void {
 		}
 	});
 }
+
+/** @deprecated */
+export function getConfigurationWithLegacy(): TypedWorkspaceConfiguration<
+	ConfigSettings & {
+		/** @deprecated */
+		'gerrit.auth.password'?: string;
+		/** @deprecated */
+		'gerrit.auth.cookie'?: string;
+	}
+> {
+	return getConfiguration();
+}

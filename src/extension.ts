@@ -32,6 +32,7 @@ import { getGerritRepo, pickGitRepo } from './lib/gerrit/gerrit';
 import { GerritUser } from './lib/gerrit/gerritAPI/gerritUser';
 import { updateUploaderState } from './lib/state/uploader';
 import { GerritCodicons, commands } from './commands/defs';
+import { GerritSecrets } from './lib/credentials/secrets';
 import { registerCommands } from './commands/commands';
 import { setupChangeIDCache } from './lib/git/commit';
 import { createOutputChannel } from './lib/util/log';
@@ -70,6 +71,7 @@ export async function activate(context: ExtensionContext): Promise<void> {
 		return;
 	}
 
+	GerritSecrets.secretStorage = context.secrets;
 	await setAPIGitReviewFile(gerritRepo);
 
 	// Register commands

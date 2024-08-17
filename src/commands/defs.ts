@@ -719,21 +719,6 @@ export const config = {
 			description: 'Gerrit login username',
 		},
 	},
-	'gerrit.auth.password': {
-		jsonDefinition: {
-			type: 'string',
-			title: 'Gerrit password',
-			description:
-				'Gerrit password (see https://{your_gerit_host}/settings/#HTTPCredentials)',
-		},
-	},
-	'gerrit.auth.cookie': {
-		jsonDefinition: {
-			type: 'string',
-			title: 'Gerrit cookie',
-			description: 'Gerrit authentication cookie',
-		},
-	},
 	'gerrit.extraCookies': {
 		jsonDefinition: {
 			type: 'object',

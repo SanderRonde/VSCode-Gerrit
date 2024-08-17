@@ -6,12 +6,12 @@ Extension for integrating the [gerrit code review tool](https://www.gerritcodere
 
 ## Setup
 
-To set up the extension, there's a few settings you need to configure. To get these values, go to your gerrit user settings (click on the little cogwheel) and scroll down to "HTTP Credentials". Then you need to choose between either entering your HTTP username and password or using cookie-based authentication.
+To set up the extension, you'll need to set up authentication. This can be done by running the `Gerrit: Enter credentials` command. This will walk you through the process. Some of these settings can also be configured through settings, while others are stored as encrypted secrets.
 
 -   `gerrit.auth.username` - This is your username on gerrit. You can find this next to the `Username` field under "HTTP Credentials".
--   `gerrit.auth.password` - This is your HTTP password. You can generate one by clicking "Generate new password" and copying it.
--   `gerrit.auth.cookie` - This is your authentication cookie. You can find it by opening gerrit, opening the developer tools, going to the "Application" tab and expanding the "Cookies" section. Then copy the value of the `GerritAccount` cookie.
 -   `gerrit.auth.url` - This is automatically inferred from your `.gitreview` file (if you have one). If you don't have one or it doesn't work, set this URL to the HTTP URL of your gerrit instance. This will be the URL your visit in the browser.
+-   `password` (encrypted secret) - This is your HTTP password. You can generate one by clicking "Generate new password" on Gerrit and copying it.
+-   `cookie` (encrypted secret) - This is your authentication cookie. Use this if your administrator has disabled the use of HTTP credentials. You can find it by going to gerrit in your browser, opening the developer tools, and finding the value of the cookie named `GerritAccount`.
 
 Additionally the extension requires the python package [git-review](https://pypi.org/project/git-review/) to be installed.
 

@@ -2,14 +2,15 @@ import {
 	GitReviewFile,
 	getGitReviewFileCached,
 } from '../credentials/gitReviewFile';
-import { getGerritURLFromReviewFile } from '../credentials/credentials';
+import { getConfiguration, getConfigurationWithLegacy } from '../vscode/config';
+import { getGerritURLFromReviewFile } from '../credentials/enterCredentials';
 import { showInvalidSettingsMessage } from '../vscode/messages';
 import { Repository } from '../../types/vscode-extension-git';
-import { getConfiguration } from '../vscode/config';
+import { GerritSecrets } from '../credentials/secrets';
 import { setContextProp } from '../vscode/context';
 import { GerritAPI } from './gerritAPI/api';
+import { window, workspace } from 'vscode';
 import { log } from '../util/log';
-import { window } from 'vscode';
 
 let api: GerritAPI | null = null;
 let failAllowedAPI: GerritAPI | null = null;
@@ -33,11 +34,19 @@ function hasSameConfig(
 }
 
 export async function checkConnection(): Promise<void> {
-	const config = getConfiguration();
+	const config = getConfigurationWithLegacy();
 	const url = getGerritURLFromReviewFile(gitReviewFile);
 	const username = config.get('gerrit.auth.username');
-	const password = config.get('gerrit.auth.password');
-	const cookie = config.get('gerrit.auth.cookie');
+	const password = await GerritSecrets.getForUrlOrWorkspace(
+		'password',
+		url ?? undefined,
+		workspace.workspaceFolders?.[0]?.uri
+	);
+	const cookie = await GerritSecrets.getForUrlOrWorkspace(
+		'cookie',
+		url ?? undefined,
+		workspace.workspaceFolders?.[0]?.uri
+	);
 	const extraCookies = config.get('gerrit.extraCookies');
 
 	if (!url || ((!username || !password) && !cookie)) {
@@ -85,13 +94,21 @@ export async function createAPI(
 	const config = getConfiguration();
 	const url = getGerritURLFromReviewFile(gitReviewFile);
 	const username = config.get('gerrit.auth.username');
-	const password = config.get('gerrit.auth.password');
-	const cookie = config.get('gerrit.auth.cookie');
+	const password = await GerritSecrets.getForUrlOrWorkspace(
+		'password',
+		url ?? undefined,
+		workspace.workspaceFolders?.[0]?.uri
+	);
+	const cookie = await GerritSecrets.getForUrlOrWorkspace(
+		'cookie',
+		url ?? undefined,
+		workspace.workspaceFolders?.[0]?.uri
+	);
 	const extraCookies = config.get('gerrit.extraCookies');
 
 	if (!url || ((!username || !password) && !cookie)) {
 		await setContextProp('gerrit:connected', false);
-		if (!hasSameConfig(url ?? undefined, username, password)) {
+		if (!hasSameConfig(url ?? undefined, username, password ?? undefined)) {
 			log(
 				'Missing URL, username or password. Please set them in your settings. (gerrit.auth.{url|username|password})'
 			);
@@ -102,7 +119,7 @@ export async function createAPI(
 		lastConfig = {
 			url: url ?? undefined,
 			username,
-			password,
+			password: password ?? undefined,
 		};
 		return null;
 	}

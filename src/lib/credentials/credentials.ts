@@ -1,14 +1,16 @@
 import {
+	ConfigurationTarget,
+	env,
+	QuickInputButton,
+	ThemeIcon,
+	Uri,
+	window,
+} from 'vscode';
+import {
 	GitReviewFile,
 	getGitReviewFile,
 	getGitReviewFileCached,
 } from './gitReviewFile';
-import {
-	ConfigurationTarget,
-	QuickInputButton,
-	ThemeIcon,
-	window,
-} from 'vscode';
 import { MultiStepEntry, MultiStepper } from '../vscode/multiStep';
 import { Repository } from '../../types/vscode-extension-git';
 import { GerritAPI } from '../gerrit/gerritAPI/api';
@@ -102,6 +104,21 @@ async function enterBasicCredentials(gerritRepo: Repository): Promise<void> {
 			}/settings/#HTTPCredentials)`,
 		value: config.get('gerrit.auth.password'),
 		isPassword: true,
+		buttons: (stepper) => [
+			{
+				button: {
+					iconPath: new ThemeIcon('globe'),
+					tooltip: 'View online',
+				},
+				callback: () => {
+					void env.openExternal(
+						Uri.parse(
+							`${stepper.values[0] ?? 'www.yourgerrithost.com'}/settings/#HTTPCredentials`
+						)
+					);
+				},
+			},
+		],
 		validate: async (password, stepper) => {
 			const [url, username] = stepper.values;
 			if (!url) {

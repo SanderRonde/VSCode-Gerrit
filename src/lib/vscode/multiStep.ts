@@ -6,14 +6,22 @@ import {
 	window,
 } from 'vscode';
 
-type GettableValue = string | ((stepper: MultiStepper) => string);
+type GettableValue<V extends string | object> =
+	| V
+	| ((stepper: MultiStepper) => V);
 
 export class MultiStepEntry {
 	public constructor(
 		public settings: {
-			placeHolder?: GettableValue;
-			prompt?: GettableValue;
-			value?: GettableValue;
+			placeHolder?: GettableValue<string>;
+			prompt?: GettableValue<string>;
+			value?: GettableValue<string>;
+			buttons?: GettableValue<
+				{
+					button: QuickInputButton;
+					callback: () => void;
+				}[]
+			>;
 			validate?: (
 				value: string,
 				stepper: MultiStepper
@@ -29,18 +37,17 @@ export class MultiStepEntry {
 		}
 	) {}
 
-	public static getGettable(
+	public static getGettable<V extends string | object>(
 		stepper: MultiStepper,
-		gettableValue?: GettableValue
-	): string | undefined {
+		gettableValue?: GettableValue<V>
+	): V | undefined {
 		if (!gettableValue) {
 			return gettableValue;
 		}
-		if (typeof gettableValue === 'string') {
-			return gettableValue;
+		if (typeof gettableValue === 'function') {
+			return gettableValue(stepper) as V;
 		}
-
-		return gettableValue(stepper);
+		return gettableValue;
 	}
 
 	public setInputSettings(stepper: MultiStepper, input: InputBox): void {
@@ -120,7 +127,21 @@ export class MultiStepper {
 	public getButtons(
 		stepIndex: number = this._currentStepIndex
 	): QuickInputButton[] {
-		return stepIndex > 0 ? [QuickInputButtons.Back] : [];
+		const buttons = [];
+		if (stepIndex > 0) {
+			buttons.push(QuickInputButtons.Back);
+		}
+		const step = this._steps[stepIndex];
+		const stepButtons = step.settings.buttons
+			? MultiStepEntry.getGettable(this, step.settings.buttons) ?? []
+			: [];
+		if (step.settings.buttons) {
+			for (const { button, callback } of stepButtons) {
+				this.buttonHandlers.set(button, callback);
+				buttons.push(button);
+			}
+		}
+		return buttons;
 	}
 
 	public constructor(private readonly _steps: MultiStepEntry[]) {

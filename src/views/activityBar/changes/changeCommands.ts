@@ -94,6 +94,6 @@ export async function openChangeOnline(
 
 	const { number, project } = change;
 	await env.openExternal(
-		Uri.parse(api.getURL(`c/${project}/+/${number}`, false))
+		Uri.parse(api.getPublicUrl(`c/${project}/+/${number}`))
 	);
 }

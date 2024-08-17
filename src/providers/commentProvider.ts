@@ -853,9 +853,8 @@ async function getThreadWebLink(thread: CommentThread): Promise<string | null> {
 		return null;
 	}
 
-	return api.getURL(
-		`c/${change.project}/+/${change.number}/comments/${comment.id}`,
-		false
+	return api.getPublicUrl(
+		`c/${change.project}/+/${change.number}/comments/${comment.id}`
 	);
 }
 

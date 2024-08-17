@@ -24,6 +24,6 @@ export async function openCurrentChangeOnline(
 		return;
 	}
 	await env.openExternal(
-		Uri.parse(api.getURL(`c/${change.project}/+/${change.number}`, false))
+		Uri.parse(api.getPublicUrl(`c/${change.project}/+/${change.number}`))
 	);
 }

@@ -32,13 +32,13 @@ import {
 } from '../../subscriptions/subscriptions';
 import { PatchsetDescription } from '../../../views/activityBar/changes/changeTreeView';
 import { DefaultChangeFilter, GerritChangeFilter, filterAnd } from './filters';
-import { optionalArrayEntry, optionalObjectProperty } from '../../util/util';
 import { ChangeField } from '../../subscriptions/changeSubscription';
 import { GerritComment, GerritDraftComment } from './gerritComment';
 import { GitReviewFile } from '../../credentials/gitReviewFile';
 import { GerritChangeMergeable } from './gerritChangeMergeable';
 import { FileMeta } from '../../../providers/fileProvider';
 import { GerritChangeDetail } from './gerritChangeDetail';
+import { optionalObjectProperty } from '../../util/util';
 import { getConfiguration } from '../../vscode/config';
 import { GerritFile, TextContent } from './gerritFile';
 import { READONLY_MODE } from '../../util/constants';
@@ -147,6 +147,19 @@ class UserCache {
 	}
 }
 
+type RequestBodyOptions = Omit<OptionsOfTextResponseBody, 'searchParams'>;
+
+interface RequestOptions {
+	path: string;
+	unauthenticated?: boolean;
+	method: 'GET' | 'POST' | 'PUT' | 'DELETE';
+	body?: RequestBodyOptions['body'];
+	searchParams?: Record<string, string | string[]>;
+	onError?:
+		| ((code: number | undefined, body: string) => void | Promise<void>)
+		| null;
+}
+
 export class GerritAPI {
 	private static _reviewerSuggestionCache: MultiLevelCacheContainer<
 		string,
@@ -165,9 +178,10 @@ export class GerritAPI {
 	public getProjects = createCacheSetter(
 		'api.getProjects',
 		async (): Promise<GerritProject[]> => {
-			const response = await this._tryRequest(this.getURL('projects/'), {
-				searchParams: new URLSearchParams([['d', '']]),
-				...this._get,
+			const response = await this._tryRequest({
+				path: 'projects/',
+				method: 'GET',
+				searchParams: { d: '' },
 			});
 
 			const json = this._handleResponse<GerritProjectsResponse>(response);
@@ -190,10 +204,10 @@ export class GerritAPI {
 	public getGroups = createCacheSetter(
 		'api.getGroups',
 		async (): Promise<GerritGroup[]> => {
-			const response = await this._tryRequest(
-				this.getURL('groups/'),
-				this._get
-			);
+			const response = await this._tryRequest({
+				path: 'groups/',
+				method: 'GET',
+			});
 
 			const json = this._handleResponse<GerritGroupsResponse>(response);
 			if (!json) {
@@ -211,13 +225,16 @@ export class GerritAPI {
 		'api.getGroups'
 	);
 
-	private get _cookieJar():
-		| (PromiseCookieJar & { cookieString: string })
-		| undefined {
+	private _getCookieJar(
+		options: RequestOptions
+	): (PromiseCookieJar & { cookieString: string }) | undefined {
 		// This is secretly a proxy... So we need to spread it to make it writable
 		const cookies = { ...(this._extraCookies ?? {}) };
-		if (this._cookie) {
-			cookies['GerritAccount'] = this._cookie;
+		if (
+			this._authCookie &&
+			(options.method === 'GET')
+		) {
+			cookies['GerritAccount'] = this._authCookie;
 		}
 
 		if (Object.entries(cookies).length === 0) {
@@ -236,43 +253,11 @@ export class GerritAPI {
 		};
 	}
 
-	private get _get(): OptionsOfTextResponseBody {
-		return {
-			method: 'GET',
-			headers: this._headers(false),
-			cookieJar: this._cookieJar,
-		};
-	}
-
-	private get _post(): OptionsOfTextResponseBody {
-		return {
-			method: 'POST',
-			headers: this._headers(true),
-			cookieJar: this._cookieJar,
-		};
-	}
-
-	private get _put(): OptionsOfTextResponseBody {
-		return {
-			method: 'PUT',
-			headers: this._headers(true),
-			cookieJar: this._cookieJar,
-		};
-	}
-
-	private get _delete(): OptionsOfTextResponseBody {
-		return {
-			method: 'DELETE',
-			headers: this._headers(false),
-			cookieJar: this._cookieJar,
-		};
-	}
-
 	public constructor(
 		private readonly _url: string | null,
 		private readonly _username: string | null,
 		private readonly _password: string | null,
-		private readonly _cookie: string | null,
+		private readonly _authCookie: string | null,
 		private readonly _extraCookies: Record<string, string> | null,
 		private readonly _gitReviewFile: GitReviewFile | null,
 		private readonly _allowFail: boolean = false
@@ -280,7 +265,7 @@ export class GerritAPI {
 
 	public static async performRequest(
 		url: string,
-		body?: OptionsOfTextResponseBody
+		body?: RequestBodyOptions
 	): Promise<ResponseWithBody<string>> {
 		return (await got(url, {
 			...body,
@@ -340,10 +325,7 @@ export class GerritAPI {
 		});
 	}
 
-	private _createRequestID(
-		url: string,
-		body?: OptionsOfTextResponseBody
-	): string {
+	private _createRequestID(url: string, body?: RequestBodyOptions): string {
 		return `${url}|${this._stringify(body)}`;
 	}
 
@@ -356,7 +338,7 @@ export class GerritAPI {
 	 */
 	private async _syncUpSameRequests(
 		url: string,
-		body?: OptionsOfTextResponseBody
+		body?: RequestBodyOptions
 	): Promise<ResponseWithBody<string>> {
 		// Non-get requests perform some remote action, we can't
 		// just assume that that action only needs to happen once
@@ -376,36 +358,88 @@ export class GerritAPI {
 		return response;
 	}
 
-	private _makeSearchParamsStringifiable(
-		params: URLSearchParams
-	): Record<string, string[]> {
-		const obj: Record<string, string[]> = {};
-		for (const key of params.keys()) {
-			obj[key] = params.getAll(key);
+	/**
+	 * Gets the path to given URL. Note that the trailing slash
+	 * is included.
+	 */
+	public getPublicUrl(path: string): string {
+		if (!this._url) {
+			return '';
 		}
-		return obj;
+		const trailingSlash = this._url.endsWith('/') ? '' : '/';
+		return this._url + trailingSlash + path;
+	}
+
+	private _getUrlAndParams(options: RequestOptions): {
+		url: string;
+		searchParams: RequestOptions['searchParams'];
+	} {
+		const searchParams = options.searchParams ?? {};
+		let url = '';
+		if (this._url) {
+			const trailingSlash = this._url.endsWith('/') ? '' : '/';
+			url = this._url + trailingSlash;
+			if (!options.unauthenticated) {
+				const authUrlPrefix = getConfiguration().get(
+					'gerrit.customAuthUrlPrefix',
+					'a/'
+				);
+				url += `${authUrlPrefix}${options.path}`;
+				if (
+					this._authCookie &&
+					(options.method !== 'GET')
+				) {
+					searchParams['access_token'] = this._authCookie;
+				}
+			} else {
+				url += options.path;
+			}
+			if (searchParams && Object.keys(searchParams).length) {
+				const query: string[] = [];
+				for (const key in searchParams) {
+					const value = searchParams[key];
+					if (Array.isArray(value)) {
+						query.push(
+							...value.map(
+								(v) => `${key}=${encodeURIComponent(v)}`
+							)
+						);
+					} else {
+						query.push(`${key}=${value}`);
+					}
+				}
+				url += `?${query.join('&')}`;
+			}
+		}
+		return {
+			url,
+			searchParams,
+		};
 	}
 
 	private async _tryRequest(
-		url: string,
-		body?: OptionsOfTextResponseBody,
-		onError?: (
-			code: number | undefined,
-			body: string
-		) => void | Promise<void>
+		options: RequestOptions
 	): Promise<(Response<string> & { strippedBody: string }) | null> {
-		log(`${body?.method || 'GET'} request to "${url}"`);
+		const { url, searchParams } = this._getUrlAndParams(options);
+		log(`${options.method} request to "${url}"`);
+
+		const body: RequestBodyOptions = {
+			method: options.method,
+			body: options.body,
+			cookieJar: this._getCookieJar(options),
+			headers: this._headers(
+				options.method === 'POST' || options.method === 'PUT'
+			),
+		};
+
 		if (shouldDebugRequests()) {
 			logDev({
 				...body,
-				searchParams:
-					body?.searchParams instanceof URLSearchParams
-						? this._makeSearchParamsStringifiable(body.searchParams)
-						: body?.searchParams,
+				searchParams: searchParams,
 				stack: new Error().stack!.split('\n'),
 			});
 		}
-		if (READONLY_MODE && body?.method !== 'GET') {
+		if (READONLY_MODE && options.method !== 'GET') {
 			void window.showErrorMessage(
 				'Canceled request trying to modify data in readonly mode'
 			);
@@ -428,8 +462,11 @@ export class GerritAPI {
 				err?.response?.toString(),
 				err?.response?.body.toString()
 			);
-			if (onError) {
-				await onError(err.response?.statusCode, err.response.body);
+			if (options.onError !== undefined) {
+				await options.onError?.(
+					err.response?.statusCode,
+					err.response.body
+				);
 			} else if (!this._allowFail) {
 				void window.showErrorMessage(
 					`Gerrit request to "${url}" failed. Please check your settings and/or connection`
@@ -491,10 +528,10 @@ export class GerritAPI {
 		changeID: string,
 		type: 'drafts' | 'comments'
 	): Promise<GerritCommentsResponse | null> {
-		const response = await this._tryRequest(
-			this.getURL(`changes/${changeID}/${type}/`),
-			this._get
-		);
+		const response = await this._tryRequest({
+			path: `changes/${changeID}/${type}/`,
+			method: 'GET',
+		});
 
 		return this._handleResponse<GerritCommentsResponse>(response);
 	}
@@ -503,21 +540,19 @@ export class GerritAPI {
 		changeID: string,
 		query?: string,
 		maxCount: number = 10,
-		...extra: [string, string][]
+		extra?: Record<string, string | string[]>
 	): Promise<(GerritUser | GerritGroup)[]> {
-		const response = await this._tryRequest(
-			this.getURL(`changes/${changeID}/suggest_reviewers/`),
-			{
-				...this._get,
-				searchParams: new URLSearchParams([
-					...optionalArrayEntry(!!query, [
-						['q', query] as [string, string],
-					]),
-					['n', String(maxCount)],
-					...extra,
-				]),
-			}
-		);
+		const response = await this._tryRequest({
+			path: `changes/${changeID}/suggest_reviewers/`,
+			method: 'GET',
+			searchParams: {
+				...optionalObjectProperty({
+					q: query,
+				}),
+				n: String(maxCount),
+				...extra,
+			},
+		});
 
 		const json =
 			this._handleResponse<GerritSuggestedReviewerResponse>(response);
@@ -625,48 +660,43 @@ export class GerritAPI {
 		authenticated: boolean;
 		runCurlCommand: () => void;
 	}> {
-		const versionUrl = this.getURL('config/server/version', false);
-		const versionResponse = await this._tryRequest(versionUrl, this._get);
-		const accessUrl = this.getURL('access', true);
-		const accessResponse = await this._tryRequest(accessUrl, this._get);
+		const versionConfig: RequestOptions = {
+			path: 'config/server/version',
+			method: 'GET',
+			onError: null,
+		};
+		const versionResponse = await this._tryRequest(versionConfig);
+		const selfConfig: RequestOptions = {
+			path: 'accounts/self',
+			method: 'GET',
+			onError: null,
+		};
+		const selfResponse = await this._tryRequest(selfConfig);
 
 		return {
 			exists: versionResponse?.statusCode === 200,
-			authenticated: accessResponse?.statusCode === 200,
+			authenticated: selfResponse?.statusCode === 200,
 			runCurlCommand: () => {
 				const terminal = window.createTerminal('cUrl');
 				const userArg =
 					this._username && this._password
 						? ` --user "${this._username}:${this._password}"`
 						: '';
-				const cookieString = this._cookieJar?.cookieString;
-				const cookieArg = cookieString
-					? ` --cookie "${cookieString}"`
-					: '';
+				let cookieArg = '';
+				const cookieJar = this._getCookieJar(selfConfig);
+				if (cookieJar?.cookieString) {
+					cookieArg = ` --cookie "${cookieJar.cookieString}"`;
+				}
+
+				const versionUrl = this._getUrlAndParams(versionConfig).url;
+				const selfUrl = this._getUrlAndParams(selfConfig).url;
 				terminal.sendText(
-					`echo "Unauthenticated: " && curl${cookieArg} "${versionUrl}" && echo -e "\\nAuthenticated:" && curl${userArg}${cookieArg} "${accessUrl}"`,
+					`echo "Unauthenticated: " && curl${cookieArg} "${versionUrl}" && echo -e "\\nAuthenticated:" && curl${userArg}${cookieArg} "${selfUrl}"`,
 					false
 				);
 				terminal.show();
 			},
 		};
-	}
-
-	/**
-	 * Gets the path to given URL. Note that the trailing slash
-	 * is included.
-	 */
-	public getURL(path: string, auth: boolean = true): string {
-		if (!this._url) {
-			return '';
-		}
-		const trailingSlash = this._url.endsWith('/') ? '' : '/';
-		const authUrlPrefix = getConfiguration().get(
-			'gerrit.customAuthUrlPrefix',
-			'a/'
-		);
-		const authStr = auth ? authUrlPrefix : '';
-		return `${this._url}${trailingSlash}${authStr}${path}`;
 	}
 
 	public getChange(
@@ -681,15 +711,13 @@ export class GerritAPI {
 				field,
 			},
 			async () => {
-				const response = await this._tryRequest(
-					this.getURL(`changes/${changeID}/detail/`),
-					{
-						...this._get,
-						searchParams: new URLSearchParams(
-							withValues.map((v) => ['o', v] as [string, string])
-						),
-					}
-				);
+				const response = await this._tryRequest({
+					path: `changes/${changeID}/detail/`,
+					method: 'GET',
+					searchParams: optionalObjectProperty({
+						o: withValues.length ? withValues : undefined,
+					}),
+				});
 
 				const json =
 					this._handleResponse<GerritChangeResponse>(response);
@@ -716,14 +744,24 @@ export class GerritAPI {
 			  ) => void | Promise<void>),
 		...withValues: GerritAPIWith[]
 	): Subscribable<GerritChange[]> {
-		const filterParams: [string, string][] = [];
 		const additionalFilter = this._applyAdditionalFilter();
-		for (const filter of filters) {
+
+		const queryParams: Record<string, string | string[]> = {};
+		queryParams['q'] = filters.map((filter) => {
 			const subFilters = filter.filter((subFilter) => {
 				return !subFilter.includes('is:ignored');
 			});
 
-			filterParams.push(['q', additionalFilter(subFilters.join(' '))]);
+			return additionalFilter(subFilters.join(' '));
+		});
+		if (withValues.length) {
+			queryParams['o'] = withValues;
+		}
+		if (typeof offsetParams?.count === 'number') {
+			queryParams['n'] = String(offsetParams.count);
+		}
+		if (typeof offsetParams?.offset === 'number') {
+			queryParams['S'] = String(offsetParams.offset);
 		}
 
 		return APISubscriptionManager.changesSubscriptions.createFetcher(
@@ -734,37 +772,12 @@ export class GerritAPI {
 				query: '',
 			},
 			async () => {
-				const response = await this._tryRequest(
-					this.getURL('changes/'),
-					{
-						...this._get,
-						searchParams: new URLSearchParams([
-							...filterParams,
-							...withValues.map(
-								(v) => ['o', v] as [string, string]
-							),
-							...optionalArrayEntry(
-								typeof offsetParams?.count === 'number',
-								() => [
-									['n', String(offsetParams!.count)] as [
-										string,
-										string,
-									],
-								]
-							),
-							...optionalArrayEntry(
-								typeof offsetParams?.offset === 'number',
-								() => [
-									['S', String(offsetParams!.offset)] as [
-										string,
-										string,
-									],
-								]
-							),
-						]),
-					},
-					onError
-				);
+				const response = await this._tryRequest({
+					path: 'changes/',
+					method: 'GET',
+					searchParams: queryParams,
+					onError,
+				});
 
 				const json =
 					this._handleResponse<GerritChangeResponse[]>(response);
@@ -794,9 +807,17 @@ export class GerritAPI {
 			  ) => void | Promise<void>),
 		...withValues: GerritAPIWith[]
 	): Subscribable<GerritChange[]> {
-		const filterParams: [string, string][] = [
-			['q', this._applyAdditionalFilter()(query)],
-		];
+		const queryParams: Record<string, string | string[]> = {};
+		queryParams['q'] = this._applyAdditionalFilter()(query);
+		if (withValues.length) {
+			queryParams['o'] = withValues;
+		}
+		if (typeof offsetParams?.count === 'number') {
+			queryParams['n'] = String(offsetParams.count);
+		}
+		if (typeof offsetParams?.offset === 'number') {
+			queryParams['S'] = String(offsetParams.offset);
+		}
 
 		return APISubscriptionManager.changesSubscriptions.createFetcher(
 			{
@@ -806,37 +827,12 @@ export class GerritAPI {
 				withValues,
 			},
 			async () => {
-				const response = await this._tryRequest(
-					this.getURL('changes/'),
-					{
-						...this._get,
-						searchParams: new URLSearchParams([
-							...filterParams,
-							...withValues.map(
-								(v) => ['o', v] as [string, string]
-							),
-							...optionalArrayEntry(
-								typeof offsetParams?.count === 'number',
-								() => [
-									['n', String(offsetParams!.count)] as [
-										string,
-										string,
-									],
-								]
-							),
-							...optionalArrayEntry(
-								typeof offsetParams?.offset === 'number',
-								() => [
-									['S', String(offsetParams!.offset)] as [
-										string,
-										string,
-									],
-								]
-							),
-						]),
-					},
-					onError
-				);
+				const response = await this._tryRequest({
+					path: 'changes/',
+					method: 'GET',
+					searchParams: queryParams,
+					onError,
+				});
 
 				const json =
 					this._handleResponse<GerritChangeResponse[]>(response);
@@ -935,22 +931,15 @@ export class GerritAPI {
 				baseRevision: baseRevision ?? null,
 			},
 			async () => {
-				const response = await this._tryRequest(
-					this.getURL(
-						`changes/${changeID}/revisions/${revision.id}/files`
-					),
-					{
-						...this._get,
-						searchParams: new URLSearchParams([
-							...optionalArrayEntry(!!baseRevision, () => [
-								['base', String(baseRevision!.number)] as [
-									string,
-									string,
-								],
-							]),
-						]),
-					}
-				);
+				const response = await this._tryRequest({
+					path: `changes/${changeID}/revisions/${revision.id}/files`,
+					method: 'GET',
+					searchParams: baseRevision
+						? {
+								base: String(baseRevision.id),
+							}
+						: undefined,
+				});
 
 				const json =
 					this._handleResponse<GerritFilesResponse>(response);
@@ -981,10 +970,10 @@ export class GerritAPI {
 	public async getTopic(
 		changeID: string
 	): Promise<GerritTopicResponse | null> {
-		const response = await this._tryRequest(
-			this.getURL(`changes/${changeID}/topic`),
-			this._get
-		);
+		const response = await this._tryRequest({
+			path: `changes/${changeID}/topic`,
+			method: 'GET',
+		});
 		return this._handleResponse<GerritTopicResponse>(response);
 	}
 
@@ -1013,14 +1002,12 @@ export class GerritAPI {
 			});
 		}
 
-		const response = await this._tryRequest(
-			this.getURL(
-				`projects/${encodeURIComponent(project)}/commits/${
-					commit.id
-				}/files/${encodeURIComponent(filePath)}/content`
-			),
-			this._get
-		);
+		const response = await this._tryRequest({
+			path: `projects/${encodeURIComponent(project)}/commits/${
+				commit.id
+			}/files/${encodeURIComponent(filePath)}/content`,
+			method: 'GET',
+		});
 
 		if (
 			!this._assertResponse(response) ||
@@ -1073,27 +1060,22 @@ export class GerritAPI {
 		lineOrRange?: number | GerritCommentRange;
 		replyTo?: string;
 	}): Promise<GerritDraftComment | null> {
-		const response = await this._tryRequest(
-			this.getURL(`changes/${changeID}/revisions/${revision}/drafts`),
-			{
-				...this._put,
-				body: JSON.stringify({
-					path: filePath,
-					line:
-						typeof lineOrRange === 'number'
-							? lineOrRange
-							: undefined,
-					range:
-						lineOrRange && typeof lineOrRange === 'object'
-							? lineOrRange
-							: undefined,
-					in_reply_to: replyTo,
-					message: content,
-					unresolved,
-					side,
-				}),
-			}
-		);
+		const response = await this._tryRequest({
+			path: `changes/${changeID}/revisions/${revision}/drafts`,
+			method: 'PUT',
+			body: JSON.stringify({
+				path: filePath,
+				line: typeof lineOrRange === 'number' ? lineOrRange : undefined,
+				range:
+					lineOrRange && typeof lineOrRange === 'object'
+						? lineOrRange
+						: undefined,
+				in_reply_to: replyTo,
+				message: content,
+				unresolved,
+				side,
+			}),
+		});
 
 		const json = this._handleResponse<GerritCommentResponse>(response);
 		if (!json) {
@@ -1118,18 +1100,16 @@ export class GerritAPI {
 		unresolved: boolean;
 		replyTo?: string;
 	}): Promise<GerritDraftComment | null> {
-		const response = await this._tryRequest(
-			this.getURL(`changes/${changeID}/revisions/${revision}/drafts`),
-			{
-				...this._put,
-				body: JSON.stringify({
-					path: filePath,
-					in_reply_to: replyTo,
-					message: content,
-					unresolved,
-				}),
-			}
-		);
+		const response = await this._tryRequest({
+			path: `changes/${changeID}/revisions/${revision}/drafts`,
+			method: 'PUT',
+			body: JSON.stringify({
+				path: filePath,
+				in_reply_to: replyTo,
+				message: content,
+				unresolved,
+			}),
+		});
 
 		const json = this._handleResponse<GerritCommentResponse>(response);
 		if (!json) {
@@ -1149,26 +1129,22 @@ export class GerritAPI {
 			unresolved?: boolean;
 		};
 	}): Promise<GerritDraftComment | null> {
-		const response = await this._tryRequest(
-			this.getURL(
-				`changes/${draft.changeID}/revisions/${draft.commitID}/drafts/${draft.id}`
-			),
-			{
-				...this._put,
-				body: JSON.stringify({
-					commit_id: draft.commitID,
-					id: draft.id,
-					line: draft.line,
-					range: draft.range,
-					path: draft.filePath,
-					updated: draft.updated.source,
-					message: changes.content,
-					unresolved: changes.unresolved,
-					patch_set: draft.patchSet,
-					__draft: true,
-				}),
-			}
-		);
+		const response = await this._tryRequest({
+			path: `changes/${draft.changeID}/revisions/${draft.commitID}/drafts/${draft.id}`,
+			method: 'PUT',
+			body: JSON.stringify({
+				commit_id: draft.commitID,
+				id: draft.id,
+				line: draft.line,
+				range: draft.range,
+				path: draft.filePath,
+				updated: draft.updated.source,
+				message: changes.content,
+				unresolved: changes.unresolved,
+				patch_set: draft.patchSet,
+				__draft: true,
+			}),
+		});
 
 		const json = this._handleResponse<GerritCommentResponse>(response);
 		if (!json) {
@@ -1181,12 +1157,10 @@ export class GerritAPI {
 	public async deleteDraftComment(
 		draft: GerritDraftComment
 	): Promise<boolean> {
-		const response = await this._tryRequest(
-			this.getURL(
-				`changes/${draft.changeID}/revisions/${draft.commitID}/drafts/${draft.id}`
-			),
-			this._delete
-		);
+		const response = await this._tryRequest({
+			path: `changes/${draft.changeID}/revisions/${draft.commitID}/drafts/${draft.id}`,
+			method: 'DELETE',
+		});
 
 		return (
 			this._assertResponse(response) &&
@@ -1195,10 +1169,10 @@ export class GerritAPI {
 	}
 
 	public async getSelf(): Promise<GerritUser | null> {
-		const response = await this._tryRequest(
-			this.getURL('accounts/self'),
-			this._get
-		);
+		const response = await this._tryRequest({
+			path: 'accounts/self',
+			method: 'GET',
+		});
 
 		const json = this._handleResponse<GerritDetailedUserResponse>(response);
 		if (!json) {
@@ -1212,13 +1186,14 @@ export class GerritAPI {
 		query: string,
 		maxCount: number = 10
 	): Promise<GerritUser[]> {
-		const response = await this._tryRequest(this.getURL('accounts/'), {
-			searchParams: new URLSearchParams([
-				['suggest', ''],
-				['q', query],
-				['n', maxCount.toString()],
-			]),
-			...this._get,
+		const response = await this._tryRequest({
+			path: 'accounts/',
+			method: 'GET',
+			searchParams: {
+				suggest: '',
+				q: query,
+				n: maxCount.toString(),
+			},
 		});
 
 		const json =
@@ -1247,10 +1222,10 @@ export class GerritAPI {
 	public async getChangeDetail(
 		changeID: string
 	): Promise<GerritChangeDetail | null> {
-		const response = await this._tryRequest(
-			this.getURL(`changes/${changeID}/detail/`),
-			this._get
-		);
+		const response = await this._tryRequest({
+			path: `changes/${changeID}/detail/`,
+			method: 'GET',
+		});
 
 		const json = this._handleResponse<GerritChangeDetailResponse>(response);
 		if (!json) {
@@ -1263,10 +1238,10 @@ export class GerritAPI {
 	public async getChangeMergable(
 		changeID: string
 	): Promise<GerritChangeMergeable | null> {
-		const response = await this._tryRequest(
-			this.getURL(`changes/${changeID}/revisions/current/mergeable`),
-			this._get
-		);
+		const response = await this._tryRequest({
+			path: `changes/${changeID}/revisions/current/mergeable`,
+			method: 'GET',
+		});
 
 		const json =
 			this._handleResponse<GerritMergeableInfoResponse>(response);
@@ -1308,7 +1283,9 @@ export class GerritAPI {
 			changeID,
 			query,
 			maxCount,
-			['reviewer-state', 'CC']
+			{
+				'reviewer-state': 'CC',
+			}
 		);
 		GerritAPI._ccSuggestionCache.set(changeID, query, suggestions);
 		return suggestions;
@@ -1344,55 +1321,47 @@ export class GerritAPI {
 			options.cc ?? []
 		);
 
-		const response = await this._tryRequest(
-			this.getURL(`changes/${changeID}/revisions/${revisionID}/review`),
-			{
-				...this._post,
-				body: JSON.stringify(
-					optionalObjectProperty({
-						labels: options.labels,
-						comments: options.message
-							? {
-									[PATCHSET_LEVEL_KEY]: [
-										{
-											message: options.message,
-											unresolved: !(
-												options.resolved ?? true
-											),
-										},
-									],
-								}
-							: undefined,
-						drafts: options.publishDrafts
-							? 'PUBLISH_ALL_REVISIONS'
-							: 'KEEP',
-						remove_from_attention_set: changes.removed.map(
-							(id) => ({
-								user: id,
-								reason: `${self.getName(
-									true
-								)} replied to the change`,
-							})
-						),
-						reviewers: [
-							...changes.removed.map((id) => ({
-								reviewer: id,
-								state: 'REMOVED',
-							})),
-							...changes.addedToCC.map((id) => ({
-								reviewer: id,
-								state: 'CC',
-							})),
-							...changes.addedToReviewers.map((id) => ({
-								reviewer: id,
-								state: 'REVIEWER',
-							})),
-						],
-						ready: detail.isWip,
-					})
-				),
-			}
-		);
+		const response = await this._tryRequest({
+			path: `changes/${changeID}/revisions/${revisionID}/review`,
+			method: 'POST',
+			body: JSON.stringify(
+				optionalObjectProperty({
+					labels: options.labels,
+					comments: options.message
+						? {
+								[PATCHSET_LEVEL_KEY]: [
+									{
+										message: options.message,
+										unresolved: !(options.resolved ?? true),
+									},
+								],
+							}
+						: undefined,
+					drafts: options.publishDrafts
+						? 'PUBLISH_ALL_REVISIONS'
+						: 'KEEP',
+					remove_from_attention_set: changes.removed.map((id) => ({
+						user: id,
+						reason: `${self.getName(true)} replied to the change`,
+					})),
+					reviewers: [
+						...changes.removed.map((id) => ({
+							reviewer: id,
+							state: 'REMOVED',
+						})),
+						...changes.addedToCC.map((id) => ({
+							reviewer: id,
+							state: 'CC',
+						})),
+						...changes.addedToReviewers.map((id) => ({
+							reviewer: id,
+							state: 'REVIEWER',
+						})),
+					],
+					ready: detail.isWip,
+				})
+			),
+		});
 
 		const json = this._handleResponse<Record<string, unknown>>(response);
 		if (!json) {
@@ -1403,13 +1372,11 @@ export class GerritAPI {
 	}
 
 	public async submit(changeID: string): Promise<boolean> {
-		const response = await this._tryRequest(
-			this.getURL(`changes/${changeID}/submit`),
-			{
-				...this._post,
-				body: JSON.stringify({}),
-			}
-		);
+		const response = await this._tryRequest({
+			path: `changes/${changeID}/submit`,
+			method: 'POST',
+			body: JSON.stringify({}),
+		});
 
 		const json = this._handleResponse<Record<string, unknown>>(response);
 		if (!json) {
@@ -1420,10 +1387,11 @@ export class GerritAPI {
 	}
 
 	public async getGerritVersion(): Promise<VersionNumber | null> {
-		const response = await this._tryRequest(
-			this.getURL('config/server/version', false),
-			this._get
-		);
+		const response = await this._tryRequest({
+			path: 'config/server/version',
+			unauthenticated: true,
+			method: 'GET',
+		});
 
 		if (!response || !this._assertRequestSucceeded(response)) {
 			return null;

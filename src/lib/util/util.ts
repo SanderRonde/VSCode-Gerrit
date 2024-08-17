@@ -88,10 +88,10 @@ export function optionalObjectProperty<
 >(
 	object: O
 ): {
-	[K in keyof O]: O[K] extends undefined ? never : O[K];
+	[K in keyof O]: NonNullable<O[K]>;
 } {
 	const newObj: Partial<{
-		[K in keyof O]: O[K] extends undefined ? never : O[K];
+		[K in keyof O]: NonNullable<O[K]>;
 	}> = {};
 	for (const key in object) {
 		if (object[key] !== undefined) {
@@ -100,7 +100,7 @@ export function optionalObjectProperty<
 		}
 	}
 	return newObj as {
-		[K in keyof O]: O[K] extends undefined ? never : O[K];
+		[K in keyof O]: NonNullable<O[K]>;
 	};
 }
 

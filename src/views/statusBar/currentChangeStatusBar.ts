@@ -28,7 +28,7 @@ async function getMainBranchName(gerritRepo: Repository): Promise<string> {
 		}
 	);
 	if (cmd.success && cmd.stdout) {
-		return cmd.stdout;
+		return cmd.stdout.trim();
 	}
 	return 'master';
 }

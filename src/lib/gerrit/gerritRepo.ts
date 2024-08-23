@@ -8,6 +8,7 @@ import { getGitReviewFile } from '../credentials/gitReviewFile';
 import { isGerritCommit } from '../git/commit';
 import { tryExecAsync } from '../git/gitCLI';
 import { GerritAPI } from './gerritAPI/api';
+import { getRemote } from '../git/git';
 import { wait } from '../util/util';
 import { Data } from '../util/data';
 import { log } from '../util/log';
@@ -113,11 +114,14 @@ function applyTrailingSlashFix(url: string): string {
 }
 
 function applySchemeFix(url: string): RemoteUrl {
-	if (!url.includes('://')) {
-		return `https://${url}` as RemoteUrl;
+	const schemeMatch = /^\w+:\/\//.exec(url);
+	if (schemeMatch) {
+		url = url.slice(schemeMatch[0].length);
 	}
-
-	return url as RemoteUrl;
+	if (url.endsWith('.git')) {
+		url = url.slice(0, -'.git'.length);
+	}
+	return `https://${url}` as RemoteUrl;
 }
 
 export async function gerritReposToRemotes(
@@ -129,7 +133,7 @@ export async function gerritReposToRemotes(
 		let host = gitReviewFile?.remote ?? gitReviewFile?.host;
 		if (!host) {
 			const { stdout, success } = await tryExecAsync(
-				'git config --get remote.origin.url',
+				`git config --get remote.${await getRemote(gerritRepo.rootPath, gitReviewFile)}.url`,
 				gerritRepo.rootPath
 			);
 			host = success ? stdout.trim() : gerritRepo.rootPath;

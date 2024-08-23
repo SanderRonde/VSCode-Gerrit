@@ -274,19 +274,37 @@ export async function ensureCleanWorkingTree(
 	return true;
 }
 
-export function getRemote(gitReviewFile: GitReviewFile | null): string {
-	return gitReviewFile
-		? gitReviewFile.remote ??
-				gitReviewFile.defaultremote ??
-				DEFAULT_GIT_REVIEW_FILE.remote
-		: 'origin';
+export async function getRemote(
+	uri: string,
+	gitReviewFile: GitReviewFile | null
+): Promise<string> {
+	const remoteOptions = [];
+	if (gitReviewFile?.remote) {
+		remoteOptions.push(gitReviewFile.remote);
+	}
+	if (gitReviewFile?.defaultremote) {
+		remoteOptions.push(gitReviewFile.defaultremote);
+	}
+	remoteOptions.push(DEFAULT_GIT_REVIEW_FILE.remote);
+	remoteOptions.push('origin');
+
+	const { success, stdout } = await tryExecAsync('git remote', uri);
+	if (success) {
+		const remotes = stdout.trim().split('\n');
+		for (const remote of remoteOptions) {
+			if (remotes.includes(remote)) {
+				return remote;
+			}
+		}
+	}
+	return remoteOptions[0];
 }
 
 export async function ensureMainBranchUpdated(
 	uri: string,
 	gitReviewFile: GitReviewFile | null
 ): Promise<string | false> {
-	const remote = getRemote(gitReviewFile);
+	const remote = await getRemote(uri, gitReviewFile);
 	{
 		const { success } = await tryExecAsync(
 			`git remote update ${remote}`,
@@ -408,7 +426,7 @@ export async function pushForReview(
 			});
 
 			const gitReviewFile = await getGitReviewFile(gerritRepo);
-			const remote = getRemote(gitReviewFile);
+			const remote = await getRemote(uri, gitReviewFile);
 			const { success: gitLogSuccess, stdout: gitLogStdout } =
 				await tryExecAsync(
 					`git log --color=always --decorate --oneline --no-show-signature HEAD --not --remotes=${remote}`,
@@ -568,7 +586,7 @@ async function checkoutRevision(
 ): Promise<boolean> {
 	const success = await (async () => {
 		const fetchResult = await tryExecAsync(
-			`git fetch ${getRemote(await getGitReviewFile(gerritRepo))} ${revision.fetch.ssh.ref}`,
+			`git fetch ${await getRemote(gerritRepo.rootPath, await getGitReviewFile(gerritRepo))} ${revision.fetch.ssh.ref}`,
 			gerritRepo.rootPath
 		);
 		if (!fetchResult.success) {
@@ -606,7 +624,7 @@ async function checkoutByNumbers(
 		}
 		const ref = `refs/changes/${checksumNumber}/${changeNumber}/${patchSet}`;
 		const fetchResult = await tryExecAsync(
-			`git fetch ${getRemote(await getGitReviewFile(gerritRepo))} ${ref}`,
+			`git fetch ${await getRemote(gerritRepo.rootPath, await getGitReviewFile(gerritRepo))} ${ref}`,
 			gerritRepo.rootPath
 		);
 		if (!fetchResult.success) {

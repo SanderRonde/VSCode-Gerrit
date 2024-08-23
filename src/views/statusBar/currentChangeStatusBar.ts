@@ -30,7 +30,10 @@ import { wait } from '../../lib/util/util';
 export async function getMainBranchName(
 	gerritRepo: GerritRepo
 ): Promise<string> {
-	const remote = getRemote(await getGitReviewFile(gerritRepo));
+	const remote = await getRemote(
+		gerritRepo.rootPath,
+		await getGitReviewFile(gerritRepo)
+	);
 	const cmd = await tryExecAsync(
 		`git symbolic-ref refs/remotes/${remote}/HEAD | sed 's@^refs/remotes/${remote}/@@'`,
 		gerritRepo.rootPath,

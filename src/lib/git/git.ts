@@ -296,6 +296,7 @@ export async function getRemote(
 				return remote;
 			}
 		}
+		return remotes[0];
 	}
 	return remoteOptions[0];
 }

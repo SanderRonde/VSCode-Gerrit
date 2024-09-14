@@ -35,10 +35,10 @@ import { DefaultChangeFilter, GerritChangeFilter, filterAnd } from './filters';
 import { optionalArrayEntry, optionalObjectProperty } from '../../util/util';
 import { ChangeField } from '../../subscriptions/changeSubscription';
 import { GerritComment, GerritDraftComment } from './gerritComment';
+import { GerritRemote, GerritRepo, RemoteUrl } from '../gerritRepo';
 import { GerritChangeMergeable } from './gerritChangeMergeable';
 import { FileMeta } from '../../../providers/fileProvider';
 import { GerritChangeDetail } from './gerritChangeDetail';
-import { GerritRemote, GerritRepo } from '../gerritRepo';
 import { getConfiguration } from '../../vscode/config';
 import { GerritFile, TextContent } from './gerritFile';
 import { READONLY_MODE } from '../../util/constants';
@@ -270,14 +270,47 @@ export class GerritAPI {
 	public constructor(
 		private readonly _gerritReposD: Data<GerritRepo[]>,
 		private readonly _gerritRemote: GerritRemote,
-		private readonly _url: string | null,
+		private readonly _url: RemoteUrl | null,
 		private readonly _username: string | null,
 		private readonly _password: string | null,
 		private readonly _cookie: string | null,
 		private readonly _extraCookies: Record<string, string> | null,
 		private readonly _projects: string[],
 		private readonly _allowFail: boolean = false
-	) {}
+	) {
+		logDev(
+			'Constructing GerritAPI',
+			'gerritReposD:',
+			_gerritReposD.get(),
+			'gerritRemote:',
+			_gerritRemote,
+			'url:',
+			_url,
+			'username:',
+			_username,
+			'password:',
+			_password,
+			'cookie:',
+			_cookie,
+			'extraCookies:',
+			_extraCookies,
+			'projects:',
+			_projects,
+			'allowFail:',
+			_allowFail
+		);
+	}
+
+	public static applySchemeFix(url: string): RemoteUrl {
+		const schemeMatch = /^\w+:\/\//.exec(url);
+		if (schemeMatch) {
+			url = url.slice(schemeMatch[0].length);
+		}
+		if (url.endsWith('.git')) {
+			url = url.slice(0, -'.git'.length);
+		}
+		return `https://${url}` as RemoteUrl;
+	}
 
 	public static async performRequest(
 		url: string,

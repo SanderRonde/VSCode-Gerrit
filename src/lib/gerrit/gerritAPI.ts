@@ -49,7 +49,7 @@ export async function checkConnection(
 		const api = new GerritAPI(
 			gerritReposD,
 			remote,
-			remote.host,
+			GerritAPI.applySchemeFix(remote.config.url),
 			remote.config.username ?? null,
 			remote.config.password ?? null,
 			remote.config.cookie ?? null,
@@ -117,7 +117,7 @@ async function createAPI(
 	const api = new GerritAPI(
 		gerritReposD,
 		remoteWithConfig,
-		remoteWithConfig.host,
+		GerritAPI.applySchemeFix(remoteWithConfig.config.url),
 		remoteWithConfig.config?.username ?? null,
 		remoteWithConfig.config?.password ?? null,
 		remoteWithConfig.config?.cookie ?? null,
@@ -219,7 +219,7 @@ export async function getAPIForSubscription(
 	return new GerritAPI(
 		gerritReposD,
 		remote,
-		remote.host,
+		GerritAPI.applySchemeFix(remote.config.url),
 		remote.config.username ?? null,
 		remote.config.password ?? null,
 		remote.config.cookie ?? null,

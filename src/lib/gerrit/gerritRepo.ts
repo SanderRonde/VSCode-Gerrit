@@ -85,7 +85,7 @@ export class GerritRemote {
 }
 
 export type HostUrl = string & {
-	__remoteUrl: never;
+	__hostUrl: never;
 };
 export type RemoteUrl = string & {
 	__remoteUrl: never;
@@ -106,37 +106,26 @@ export class GerritRemoteWithConfig extends GerritRemote {
 	}
 }
 
-function applyTrailingSlashFix(url: string): string {
+function applyTrailingSlashFix<U extends string>(url: U): U {
 	if (url.endsWith('/')) {
-		return url.substring(0, url.length - 1);
+		return url.substring(0, url.length - 1) as U;
 	}
 	return url;
-}
-
-function applySchemeFix(url: string): RemoteUrl {
-	const schemeMatch = /^\w+:\/\//.exec(url);
-	if (schemeMatch) {
-		url = url.slice(schemeMatch[0].length);
-	}
-	if (url.endsWith('.git')) {
-		url = url.slice(0, -'.git'.length);
-	}
-	return `https://${url}` as RemoteUrl;
 }
 
 export async function gerritReposToRemotes(
 	gerritRepos: GerritRepo[]
 ): Promise<GerritRemote[]> {
-	const remotesMap = new Map<string, GerritRepo[]>();
+	const remotesMap = new Map<HostUrl, GerritRepo[]>();
 	for (const gerritRepo of gerritRepos) {
 		const gitReviewFile = await getGitReviewFile(gerritRepo);
-		let host = gitReviewFile?.remote ?? gitReviewFile?.host;
+		let host = (gitReviewFile?.remote ?? gitReviewFile?.host) as HostUrl;
 		if (!host) {
 			const { stdout, success } = await tryExecAsync(
 				`git config --get remote.${await getRemote(gerritRepo.rootPath, gitReviewFile)}.url`,
 				gerritRepo.rootPath
 			);
-			host = success ? stdout.trim() : gerritRepo.rootPath;
+			host = (success ? stdout.trim() : gerritRepo.rootPath) as HostUrl;
 		}
 		remotesMap.set(host, [...(remotesMap.get(host) ?? []), gerritRepo]);
 	}
@@ -144,10 +133,7 @@ export async function gerritReposToRemotes(
 	const remotes = [];
 	for (const [host, gerritRepos] of remotesMap.entries()) {
 		remotes.push(
-			new GerritRemote(
-				applySchemeFix(applyTrailingSlashFix(host)),
-				new Data(gerritRepos)
-			)
+			new GerritRemote(applyTrailingSlashFix(host), new Data(gerritRepos))
 		);
 	}
 

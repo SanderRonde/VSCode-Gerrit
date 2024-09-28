@@ -24,6 +24,19 @@ export function joinSubscribables<S extends Subscribable<unknown>[], R>(
 			// @ts-ignore
 			return mapper(...values);
 		},
+		tryGetValue: async () => {
+			const values = await Promise.all(
+				subscribables.map((sub) => sub.tryGetValue())
+			);
+			for (const value of values) {
+				if (value === null) {
+					return null;
+				}
+			}
+			// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+			// @ts-ignore
+			return mapper(...values);
+		},
 		disposable: {
 			dispose: callDeref(weakUnsubscribe),
 		},

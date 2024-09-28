@@ -141,7 +141,7 @@ export async function quickCheckout(
 			});
 			const { success } = await tryExecAsync(
 				`git-review -d "${getChangeIDFromCheckoutString(
-					changeTreeView.changeID
+					changeTreeView.initialChange.changeID
 				)}"`,
 				{
 					cwd: gerritRepo.rootUri.fsPath,

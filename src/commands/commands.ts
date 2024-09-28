@@ -32,6 +32,10 @@ import {
 	quickCheckout,
 } from '../lib/git/quick-checkout';
 import {
+	FileTreeView,
+	MaybeDiffCommandArgs,
+} from '../views/activityBar/changes/changeTreeView/fileTreeView';
+import {
 	CurrentChangeStatusBarManager,
 	openChangeSelector,
 } from '../views/statusBar/currentChangeStatusBar';
@@ -42,7 +46,6 @@ import {
 import { CanFetchMoreTreeProvider } from '../views/activityBar/shared/canFetchMoreTreeProvider';
 import { fetchMoreTreeItemEntries } from '../views/activityBar/changes/fetchMoreTreeItem';
 import { openCurrentChangeOnline } from '../lib/commandHandlers/openCurrentChangeOnline';
-import { FileTreeView } from '../views/activityBar/changes/changeTreeView/fileTreeView';
 import { clearSearchResults, search } from '../views/activityBar/search/search';
 import { ChangeTreeView } from '../views/activityBar/changes/changeTreeView';
 import { QuickCheckoutTreeEntry } from '../views/activityBar/quickCheckout';
@@ -58,6 +61,7 @@ import { Repository } from '../types/vscode-extension-git';
 import { checkConnection } from '../lib/gerrit/gerritAPI';
 import { GerritExtensionCommands } from './command-names';
 import { openOnGitiles } from '../lib/gitiles/gitiles';
+import { commands as vscodeCommands } from 'vscode';
 import { commands, GerritCodicons } from './defs';
 import { tryExecAsync } from '../lib/git/gitCLI';
 
@@ -195,6 +199,28 @@ export function registerCommands(
 			(treeView: FileTreeView) => openOriginal(treeView)
 		)
 	);
+	context.subscriptions.push(
+		registerCommand(
+			GerritExtensionCommands.MAYBE_DIFF,
+			async (args: MaybeDiffCommandArgs) => {
+				// This step is relatively heavy, so we register a light
+				// command (the maybe-diff) that will execute the heavy
+				// command (the diff) when clicked.
+				const diffCommand = await FileTreeView.createDiffCommand(
+					args.gerritRepo,
+					args.file,
+					args.patchsetBase
+				);
+				if (diffCommand) {
+					await vscodeCommands.executeCommand(
+						diffCommand.command,
+						// eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+						...(diffCommand.arguments ?? [])
+					);
+				}
+			}
+		)
+	);
 
 	// Statusbar
 	context.subscriptions.push(
@@ -293,7 +319,12 @@ export function registerCommands(
 			GerritExtensionCommands.REBASE,
 			async (changeTreeView: ChangeTreeView) => {
 				const gitURI = gerritRepo.rootUri.fsPath;
-				if (!(await checkoutChange(gitURI, changeTreeView.changeID))) {
+				if (
+					!(await checkoutChange(
+						gitURI,
+						changeTreeView.initialChange.changeID
+					))
+				) {
 					return;
 				}
 
@@ -313,7 +344,12 @@ export function registerCommands(
 			GerritExtensionCommands.RECURSIVE_REBASE,
 			async (changeTreeView: ChangeTreeView) => {
 				const gitURI = gerritRepo.rootUri.fsPath;
-				if (!(await checkoutChange(gitURI, changeTreeView.changeID))) {
+				if (
+					!(await checkoutChange(
+						gitURI,
+						changeTreeView.initialChange.changeID
+					))
+				) {
 					return;
 				}
 

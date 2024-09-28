@@ -36,6 +36,10 @@
 				"title": "Change git repo"
 			},
 			{
+				"command": "gerrit.maybeDiff",
+				"title": "Maybe Diff"
+			},
+			{
 				"command": "gerrit.ackCommentThread",
 				"title": "Ack",
 				"icon": "$(record)"
@@ -368,6 +372,10 @@
 			"commandPalette": [
 				{
 					"command": "gerrit.changeGitRepo",
+					"when": "false"
+				},
+				{
+					"command": "gerrit.maybeDiff",
 					"when": "false"
 				},
 				{

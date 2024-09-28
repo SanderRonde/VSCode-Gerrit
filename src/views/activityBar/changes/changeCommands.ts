@@ -69,7 +69,7 @@ export async function checkoutBranch(
 ): Promise<void> {
 	await gitCheckoutRemote(
 		gerritRepo,
-		changeTreeView.changeID,
+		changeTreeView.initialChange.changeID,
 		undefined,
 		false
 	);

@@ -188,4 +188,32 @@ export class GerritFile extends DynamicallyFetchable {
 			content.buffer.equals(fileContent)
 		);
 	}
+
+	public toVirtualFile(
+		forSide: GerritCommentSide | 'BOTH',
+		baseRevision: PatchsetDescription | null,
+		context: string[],
+		revision: PatchsetDescription = this.currentRevision,
+		extra?: string
+	): Uri {
+		const meta = FileMeta.createFileMeta({
+			project: this.changeProject,
+			commit: revision,
+			filePath: this.filePath,
+			changeID: this.changeID,
+		});
+		return Uri.from({
+			scheme: GERRIT_FILE_SCHEME,
+			path: this.filePath,
+			query: FileMetaWithSideAndBase.fromFileMeta(
+				FileMeta.createFileMeta({
+					...meta,
+					context: [...meta.context, ...context],
+					extra,
+				}),
+				forSide,
+				baseRevision
+			).toString(),
+		});
+	}
 }

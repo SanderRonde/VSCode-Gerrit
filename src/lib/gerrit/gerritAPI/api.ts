@@ -348,6 +348,8 @@ export class GerritAPI {
 			return this._inFlightRequests.get(id)!;
 		}
 
+		log(`${body?.method || 'GET'} request to "${url}"`);
+
 		const req = GerritAPI.performRequest(url, body);
 		this._inFlightRequests.set(id, req);
 		const response = await req;
@@ -415,7 +417,6 @@ export class GerritAPI {
 		options: RequestOptions
 	): Promise<(Response<string> & { strippedBody: string }) | null> {
 		const { url, searchParams } = this._getUrlAndParams(options);
-		log(`${options.method} request to "${url ?? '<no-url>'}"`);
 
 		if (!url) {
 			log('No URL configured');

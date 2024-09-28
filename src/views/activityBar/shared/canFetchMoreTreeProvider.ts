@@ -69,8 +69,8 @@ export abstract class CanFetchMoreTreeProvider
 					this._changeToTreeView.set(
 						entry,
 						await ChangeTreeView.create(
+							entry,
 							this._gerritRepo,
-							entry.changeID,
 							parent
 						)
 					);

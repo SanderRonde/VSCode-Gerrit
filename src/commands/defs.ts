@@ -54,6 +54,10 @@ export const commands: {
 		title: 'Change git repo',
 		inCommandPalette: true,
 	},
+	'gerrit.maybeDiff': {
+		title: 'Maybe Diff',
+		inCommandPalette: false,
+	},
 	'gerrit.ackCommentThread': {
 		title: 'Ack',
 		icon: '$(record)',

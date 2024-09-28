@@ -342,6 +342,12 @@ export class FileTreeView implements TreeItemWithoutChildren {
 		// Check if we have any outstanding diff views and update them (if needed)
 		void this._checkForDiffUpdates();
 
+		const args: MaybeDiffCommandArgs = {
+			gerritReposD: this.gerritReposD,
+			gerritRepo: this.gerritRepo,
+			file: this.file,
+			patchsetBase: this.patchsetBase,
+		};
 		return {
 			label: this.filePath,
 			contextValue: this._getContextValue(),
@@ -349,14 +355,7 @@ export class FileTreeView implements TreeItemWithoutChildren {
 			iconPath: ThemeIcon.File,
 			command: {
 				command: GerritExtensionCommands.MAYBE_DIFF,
-				arguments: [
-					{
-						gerritReposD: this.gerritReposD,
-						gerritRepo: this.gerritRepo,
-						file: this.file,
-						patchsetBase: this.patchsetBase,
-					} satisfies MaybeDiffCommandArgs,
-				],
+				arguments: [args],
 				title: 'Open changed file',
 			},
 		};

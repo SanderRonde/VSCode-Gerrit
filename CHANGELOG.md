@@ -2,6 +2,10 @@
 
 All notable changes to the "gerrit" extension will be documented in this file.
 
+## 1.2.46
+
+-   Speed up change panel and expanding of changes in this panel significantly. Also perform less API requests in this panel.
+
 ## 1.2.45
 
 -   Store credentials in the keychain instead of the settings

@@ -76,6 +76,10 @@ export abstract class APISubSubscriptionManagerBase<V, C = string> {
 						await originalSubscription.getValue(forceUpdate)
 					);
 				},
+				tryGetValue: async () => {
+					const value = await originalSubscription.tryGetValue();
+					return value ? mapper(value) : null;
+				},
 				subscribe: (handler, options) => {
 					const mappedRef = new WeakRef((value: M): void =>
 						handler.deref()?.(mapper(value))
@@ -227,19 +231,28 @@ export abstract class APISubSubscriptionManagerBase<V, C = string> {
 					once: true,
 				});
 			},
+			tryGetValue: async () => {
+				this._ensureConfigDefined(config, getter);
+				const matches = this._getMatches(config);
+				for (const match of matches) {
+					if (match.state === FETCH_STATE.FETCHED) {
+						return match.value!;
+					}
+				}
+				for (const match of matches) {
+					if (match.state === FETCH_STATE.FETCHING) {
+						return match.value!;
+					}
+				}
+				return null;
+			},
 			getValue: async (forceUpdate) => {
 				this._ensureConfigDefined(config, getter);
 				const matches = this._getMatches(config);
 				if (!forceUpdate) {
-					for (const match of matches) {
-						if (match.state === FETCH_STATE.FETCHED) {
-							return match.value!;
-						}
-					}
-					for (const match of matches) {
-						if (match.state === FETCH_STATE.FETCHING) {
-							return match.value!;
-						}
+					const value = await subscription.tryGetValue();
+					if (value) {
+						return value;
 					}
 				}
 

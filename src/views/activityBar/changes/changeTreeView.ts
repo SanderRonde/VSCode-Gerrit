@@ -57,45 +57,48 @@ export class ChangeTreeView
 	implements TreeItemWithChildren
 {
 	public get change(): Promise<GerritChange | null> {
-		return this._subscription.getValue();
+		return (async () => {
+			return (
+				(await this._subscription.tryGetValue()) ?? this.initialChange
+			);
+		})();
 	}
 
 	private constructor(
-		public readonly gerritReposD: Data<GerritRepo[]>,
-		public readonly gerritRepo: GerritRepo,
-		public readonly changeID: string,
+		public readonly initialChange: GerritChange,
 		public readonly parent: ViewPanel | SearchResultsTreeProvider,
 		private readonly _subscription: Subscribable<GerritChange | null>,
 		private readonly _patchSetBase: PatchsetDescription | null = null,
 		private readonly _patchSetCurrent: PatchsetDescription | null = null
 	) {
-		super(`changeTreeView.${changeID}`);
+		super(`changeTreeView.${initialChange.changeID}`);
 	}
 
 	public static async create(
-		gerritReposD: Data<GerritRepo[]>,
-		gerritRepo: GerritRepo,
-		changeID: string,
+		initialChange: GerritChange,
 		parent: ViewPanel | SearchResultsTreeProvider
 	): Promise<ChangeTreeView> {
-		const api = await getAPIForSubscription(gerritReposD, gerritRepo);
-		const subscription = api.getChange(changeID, null, [
+		const api = await getAPIForSubscription(
+			initialChange.gerritReposD,
+			initialChange.gerritRepo
+		);
+		const subscription = api.getChange(initialChange.changeID, null, [
 			GerritAPIWith.DETAILED_ACCOUNTS,
 		]);
 
 		let patchsetBase = null;
 		let patchsetCurrent = null;
 		if (parent instanceof ViewPanel) {
-			const patchsets = parent.patchsetsForChange.get(changeID);
+			const patchsets = parent.patchsetsForChange.get(
+				initialChange.changeID
+			);
 			if (patchsets) {
 				patchsetBase = patchsets.patchSetBase;
 				patchsetCurrent = patchsets.patchSetCurrent;
 			}
 		}
 		const instance = new this(
-			gerritReposD,
-			gerritRepo,
-			changeID,
+			initialChange,
 			parent,
 			subscription,
 			patchsetBase,
@@ -300,9 +303,9 @@ export class ChangeTreeView
 		const currentChangeID = await getCurrentChangeIDCached();
 		if (
 			currentChangeID &&
-			currentChangeID.changeID === this.changeID &&
+			currentChangeID.changeID === this.initialChange.changeID &&
 			currentChangeID.gerritRepo.rootUri.toString() ===
-				this.gerritRepo.rootUri.toString()
+				this.initialChange.gerritRepo.rootUri.toString()
 		) {
 			values.push(TREE_ITEM_IS_CURRENT);
 		} else {
@@ -386,9 +389,9 @@ export class ChangeTreeView
 		reviewWebviewProvider: ReviewWebviewProvider
 	): Promise<void> {
 		await ChangeTreeView.openInReview(
-			this.gerritRepo,
+			this.initialChange.gerritRepo,
 			reviewWebviewProvider,
-			this.changeID
+			this.initialChange.changeID
 		);
 	}
 
@@ -432,21 +435,21 @@ export class ChangeTreeView
 		return [
 			...optionalArrayEntry(
 				await PatchSetLevelCommentsTreeView.isVisible(
-					this.gerritReposD,
+					this.initialChange.gerritReposD,
 					change
 				),
 				() =>
 					new PatchSetLevelCommentsTreeView(
 						change.changeID,
-						this.gerritReposD,
+						this.initialChange.gerritReposD,
 						change.gerritRepo,
 						change.number,
 						this.parent
 					)
 			),
 			...ChangeTreeView.getFilesAndFolders(
-				this.gerritReposD,
-				this.gerritRepo,
+				this.initialChange.gerritReposD,
+				this.initialChange.gerritRepo,
 				change,
 				collapsed,
 				this._patchSetBase
@@ -478,7 +481,7 @@ export class ChangeTreeView
 			return;
 		}
 
-		this.parent.patchsetsForChange.set(this.changeID, {
+		this.parent.patchsetsForChange.set(this.initialChange.changeID, {
 			patchSetBase:
 				result[0] === null
 					? null
@@ -506,7 +509,7 @@ export class ChangeTreeView
 			return;
 		}
 
-		this.parent.patchsetsForChange.delete(this.changeID);
+		this.parent.patchsetsForChange.delete(this.initialChange.changeID);
 		await this.parent.refresh();
 	}
 }

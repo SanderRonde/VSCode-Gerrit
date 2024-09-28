@@ -27,9 +27,11 @@ import {
 	GERRIT_FILE_SCHEME,
 } from '../../../../providers/fileProvider';
 import { GerritChange } from '../../../../lib/gerrit/gerritAPI/gerritChange';
+import { GerritExtensionCommands } from '../../../../commands/command-names';
 import { IterableWeakMap } from '../../../../lib/util/garbageCollection';
 import { getAPIForSubscription } from '../../../../lib/gerrit/gerritAPI';
 import { DocumentManager } from '../../../../providers/commentProvider';
+import { GerritAPIWith } from '../../../../lib/gerrit/gerritAPI/api';
 import { TreeItemWithoutChildren } from '../../shared/treeTypes';
 import { ternaryWithFallback } from '../../../../lib/util/util';
 import { GerritRepo } from '../../../../lib/gerrit/gerritRepo';
@@ -43,6 +45,13 @@ export interface DiffEditorMapEntry {
 	changeID: string;
 	file: GerritFile;
 	baseRevision: PatchsetDescription | null;
+}
+
+export interface MaybeDiffCommandArgs {
+	gerritReposD: Data<GerritRepo[]>;
+	gerritRepo: GerritRepo;
+	file: GerritFile;
+	patchsetBase: PatchsetDescription | null;
 }
 
 export class FileTreeView implements TreeItemWithoutChildren {
@@ -222,32 +231,27 @@ export class FileTreeView implements TreeItemWithoutChildren {
 	}
 
 	private async _getFileUri(file: GerritFile): Promise<Uri | null> {
-		const contents = await FileTreeView.getFileDiffContent(
-			file,
-			this.patchsetBase
-		);
-		if (!contents) {
+		if (file.status === GerritRevisionFileStatus.DELETED) {
+			const commit = await this.change.getCurrentCommit(
+				GerritAPIWith.CURRENT_FILES
+			);
+			if (commit) {
+				return file.toVirtualFile(
+					GerritCommentSide.RIGHT,
+					this.patchsetBase,
+					[OPEN_FILE_IS_CHANGE_DIFF],
+					this.patchsetBase ?? {
+						id: commit.parents[commit.parents.length - 1].commit,
+						number: 0,
+					}
+				);
+			}
 			return null;
 		}
 
-		const [oldContent, newContent] = contents;
-
-		if (newContent && !newContent.isEmpty()) {
-			return newContent.toVirtualFile(
-				GerritCommentSide.RIGHT,
-				this.patchsetBase,
-				[OPEN_FILE_IS_CHANGE_DIFF]
-			);
-		}
-		if (oldContent && !oldContent.isEmpty()) {
-			return oldContent.toVirtualFile(
-				GerritCommentSide.LEFT,
-				this.patchsetBase,
-				[OPEN_FILE_IS_CHANGE_DIFF]
-			);
-		}
-
-		return null;
+		return file.toVirtualFile(GerritCommentSide.RIGHT, this.patchsetBase, [
+			OPEN_FILE_IS_CHANGE_DIFF,
+		]);
 	}
 
 	private async _checkForDiffUpdates(): Promise<void> {
@@ -343,13 +347,18 @@ export class FileTreeView implements TreeItemWithoutChildren {
 			contextValue: this._getContextValue(),
 			resourceUri: (await this._getFileUri(this.file)) ?? undefined,
 			iconPath: ThemeIcon.File,
-			command:
-				(await FileTreeView.createDiffCommand(
-					this.gerritReposD,
-					this.gerritRepo,
-					this.file,
-					this.patchsetBase
-				)) ?? undefined,
+			command: {
+				command: GerritExtensionCommands.MAYBE_DIFF,
+				arguments: [
+					{
+						gerritReposD: this.gerritReposD,
+						gerritRepo: this.gerritRepo,
+						file: this.file,
+						patchsetBase: this.patchsetBase,
+					} satisfies MaybeDiffCommandArgs,
+				],
+				title: 'Open changed file',
+			},
 		};
 	}
 }

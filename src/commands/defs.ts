@@ -50,6 +50,10 @@ export type GerritCodicons = DefaultCodiconStrings | LocalIcons;
 export const commands: {
 	[K in GerritExtensionCommands]: CommandDefinition<GerritCodicons>;
 } = {
+	'gerrit.maybeDiff': {
+		title: 'Maybe Diff',
+		inCommandPalette: false,
+	},
 	'gerrit.ackCommentThread': {
 		title: 'Ack',
 		icon: '$(record)',

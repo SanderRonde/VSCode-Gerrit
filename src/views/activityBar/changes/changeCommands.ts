@@ -8,7 +8,6 @@ import {
 } from 'vscode';
 import { getAPIForRepo } from '../../../lib/gerrit/gerritAPI';
 import { getConfiguration } from '../../../lib/vscode/config';
-import { GerritRepo } from '../../../lib/gerrit/gerritRepo';
 import { EXTENSION_ID } from '../../../lib/util/constants';
 import { gitCheckoutRemote } from '../../../lib/git/git';
 import { ChangeTreeView } from './changeTreeView';
@@ -64,13 +63,12 @@ export function selectActiveView(): void {
 }
 
 export async function checkoutBranch(
-	gerritRepo: GerritRepo,
 	changeTreeView: ChangeTreeView
 ): Promise<void> {
 	await gitCheckoutRemote(
-		changeTreeView.gerritReposD,
-		gerritRepo,
-		changeTreeView.changeID,
+		changeTreeView.initialChange.gerritReposD,
+		changeTreeView.initialChange.gerritRepo,
+		changeTreeView.initialChange.changeID,
 		undefined,
 		false
 	);
@@ -80,8 +78,8 @@ export async function openChangeOnline(
 	changeTreeView: ChangeTreeView
 ): Promise<void> {
 	const api = await getAPIForRepo(
-		changeTreeView.gerritReposD,
-		changeTreeView.gerritRepo
+		changeTreeView.initialChange.gerritReposD,
+		changeTreeView.initialChange.gerritRepo
 	);
 	if (!api) {
 		void window.showErrorMessage(

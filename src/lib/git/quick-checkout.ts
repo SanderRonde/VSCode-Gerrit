@@ -140,9 +140,9 @@ export async function quickCheckout(
 				increment: 5,
 			});
 			const success = await checkoutChangeID(
-				changeTreeView.gerritReposD,
-				gerritRepo,
-				changeTreeView.changeID
+				changeTreeView.initialChange.gerritReposD,
+				changeTreeView.initialChange.gerritRepo,
+				changeTreeView.initialChange.changeID
 			);
 			if (!success) {
 				void window.showErrorMessage('Failed to checkout change');

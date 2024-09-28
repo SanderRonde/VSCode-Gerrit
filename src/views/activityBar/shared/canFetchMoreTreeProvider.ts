@@ -65,12 +65,7 @@ export abstract class CanFetchMoreTreeProvider
 				if (parent) {
 					this._changeToTreeView.set(
 						entry,
-						await ChangeTreeView.create(
-							entry.gerritReposD,
-							entry.gerritRepo,
-							entry.changeID,
-							parent
-						)
+						await ChangeTreeView.create(entry, parent)
 					);
 				} else {
 					continue;

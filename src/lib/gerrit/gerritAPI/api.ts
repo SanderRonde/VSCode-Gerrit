@@ -403,6 +403,19 @@ export class GerritAPI {
 			return this._inFlightRequests.get(id)!;
 		}
 
+		console.log(`${body?.method || 'GET'} request to "${url}"`);
+		log(`${body?.method || 'GET'} request to "${url}"`);
+		if (shouldDebugRequests()) {
+			logDev({
+				...body,
+				searchParams:
+					body?.searchParams instanceof URLSearchParams
+						? this._makeSearchParamsStringifiable(body.searchParams)
+						: body?.searchParams,
+				stack: new Error().stack!.split('\n'),
+			});
+		}
+
 		const req = GerritAPI.performRequest(url, body);
 		this._inFlightRequests.set(id, req);
 		const response = await req;
@@ -428,18 +441,6 @@ export class GerritAPI {
 			body: string
 		) => void | Promise<void>
 	): Promise<(Response<string> & { strippedBody: string }) | null> {
-		console.log(`${body?.method || 'GET'} request to "${url}"`);
-		log(`${body?.method || 'GET'} request to "${url}"`);
-		if (shouldDebugRequests()) {
-			logDev({
-				...body,
-				searchParams:
-					body?.searchParams instanceof URLSearchParams
-						? this._makeSearchParamsStringifiable(body.searchParams)
-						: body?.searchParams,
-				stack: new Error().stack!.split('\n'),
-			});
-		}
 		if (READONLY_MODE && body?.method !== 'GET') {
 			void window.showErrorMessage(
 				'Canceled request trying to modify data in readonly mode'

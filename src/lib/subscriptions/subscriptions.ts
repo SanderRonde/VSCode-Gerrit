@@ -27,6 +27,7 @@ export interface Subscribable<V> extends Disposable {
 		options?: SubscriptionOptions
 	) => void;
 	getValue: (forceUpdate?: boolean) => Promise<V>;
+	tryGetValue: () => Promise<V | null>;
 	unsubscribe: () => void;
 	disposable: Disposable;
 	invalidate: () => Promise<void>;
@@ -52,6 +53,7 @@ export class APISubscriptionManager {
 			subscribe: APISubscriptionManager.NO_OP,
 			subscribeOnce: APISubscriptionManager.NO_OP,
 			getValue: () => Promise.resolve(null),
+			tryGetValue: () => Promise.resolve(null),
 			unsubscribe: APISubscriptionManager.NO_OP,
 			disposable: { dispose: APISubscriptionManager.NO_OP },
 			dispose: APISubscriptionManager.NO_OP,

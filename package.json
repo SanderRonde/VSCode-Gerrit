@@ -32,6 +32,10 @@
 	"contributes": {
 		"commands": [
 			{
+				"command": "gerrit.maybeDiff",
+				"title": "Maybe Diff"
+			},
+			{
 				"command": "gerrit.ackCommentThread",
 				"title": "Ack",
 				"icon": "$(record)"
@@ -358,6 +362,10 @@
 		],
 		"menus": {
 			"commandPalette": [
+				{
+					"command": "gerrit.maybeDiff",
+					"when": "false"
+				},
 				{
 					"command": "gerrit.ackCommentThread",
 					"when": "false"

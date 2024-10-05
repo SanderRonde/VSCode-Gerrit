@@ -33,13 +33,13 @@ export interface ChangeIDWithRepo {
 export type CommentMap = Map<string, (GerritComment | GerritDraftComment)[]>;
 
 export class GerritChange extends DynamicallyFetchable {
-	/** Format: project~branch~I{40-hex-chars} */
+	/** Format: `project~branch~I{40-hex-chars}` or `project~{number}` */
 	public override changeID: string;
-	/** Format: project~branch~I{40-hex-chars} */
+	/** Format: `project~branch~I{40-hex-chars}` */
 	public id: string;
 	public project: string;
 	public branch: string;
-	/** Format: I{40-hex-chars} */
+	/** Format: `I{40-hex-chars}` */
 	public change_id: string;
 	public subject: string;
 	public status: GerritChangeStatus;

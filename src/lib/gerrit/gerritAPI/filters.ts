@@ -57,6 +57,16 @@ export function offset(amount: number): GerritChangeFilter {
 
 export function filterNumberOrChangeID(
 	numberOrChangeID: string | number
-): GerritChangeFilter {
-	return String(numberOrChangeID) as GerritChangeFilter;
+): GerritChangeFilter[] {
+	const projectWithIdRegexMatch =
+		typeof numberOrChangeID === 'string'
+			? /(.*)~(\d+)/.exec(numberOrChangeID)
+			: null;
+	if (projectWithIdRegexMatch) {
+		return [
+			`project:${projectWithIdRegexMatch[1]}`,
+			`change:${projectWithIdRegexMatch[2]}`,
+		] as GerritChangeFilter[];
+	}
+	return [String(numberOrChangeID) as GerritChangeFilter];
 }

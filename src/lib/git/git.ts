@@ -665,7 +665,7 @@ export async function checkoutChangeID(
 
 		const changes = await api
 			.getChanges(
-				[[filterNumberOrChangeID(numberOrChangeID)]],
+				[filterNumberOrChangeID(numberOrChangeID)],
 				undefined,
 				undefined,
 				GerritAPIWith.CURRENT_REVISION

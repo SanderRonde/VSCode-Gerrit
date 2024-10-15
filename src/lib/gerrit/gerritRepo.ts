@@ -4,6 +4,7 @@ import {
 	Repository,
 } from '../../types/vscode-extension-git';
 import { Disposable, ExtensionContext, extensions, Uri, window } from 'vscode';
+import { FileMeta, GERRIT_FILE_SCHEME } from '../../providers/fileProvider';
 import { getGitReviewFile } from '../credentials/gitReviewFile';
 import { isGerritCommit } from '../git/commit';
 import { tryExecAsync } from '../git/gitCLI';
@@ -262,9 +263,20 @@ export function getCurrentGerritRepoForUri(
 		return null;
 	}
 
+	if (uri.scheme === GERRIT_FILE_SCHEME) {
+		const meta = FileMeta.tryFrom(uri);
+		if (meta) {
+			for (const repo of gerritRepos) {
+				if (meta.repoUri === repo.rootUri.toString()) {
+					return repo;
+				}
+			}
+		}
+	}
+
 	for (const repo of gerritRepos) {
 		const root = repo.rootUri;
-		if (uri?.toString().startsWith(root.toString())) {
+		if (uri?.toString().startsWith(root.path)) {
 			return repo;
 		}
 	}

@@ -437,12 +437,19 @@ export async function gitReview(gerritRepo: Repository): Promise<void> {
 					{
 						cwd: uri,
 						timeout: 10000,
+						args: config.get('gerrit.pushForReviewArgs', []),
 					}
 				).then(({ success, stdout }) => {
 					if (success && !ignoreInitialResult) {
 						resolve({
 							success: true,
 							handled: true,
+							stdout,
+						});
+					} else {
+						resolve({
+							success: false,
+							handled: false,
 							stdout,
 						});
 					}

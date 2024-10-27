@@ -1374,6 +1374,17 @@
 					"title": "Add a custom prefix to use for authenticated links",
 					"description": "Changes the default authentication prefix from \"a/\" to a custom string. This should only be necessary if using a non-standard gerrit instance.",
 					"default": "a/"
+				},
+				"gerrit.pushForReviewArgs": {
+					"type": "array",
+					"title": "Arguments to pass to the git-review tool",
+					"description": "Arguments to pass to the git-review tool. See https://linux.die.net/man/1/git-review for more info",
+					"default": [],
+					"items": {
+						"type": "string",
+						"title": "Argument",
+						"description": "Argument to pass to git-review"
+					}
 				}
 			}
 		}

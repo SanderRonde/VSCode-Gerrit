@@ -1101,6 +1101,20 @@ export const config = {
 			default: 'a/',
 		},
 	},
+	'gerrit.pushForReviewArgs': {
+		jsonDefinition: {
+			type: 'array',
+			title: 'Arguments to pass to the git-review tool',
+			description:
+				'Arguments to pass to the git-review tool. See https://linux.die.net/man/1/git-review for more info',
+			default: [],
+			items: {
+				type: 'string',
+				title: 'Argument',
+				description: 'Argument to pass to git-review',
+			},
+		},
+	},
 } as const;
 
 export const commandDefinitions = GerritExtensionCommands;

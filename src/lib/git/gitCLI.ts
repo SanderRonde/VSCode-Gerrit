@@ -78,6 +78,7 @@ export function execAndMonitor(
 	) => void | Promise<void>,
 	options?: SpawnOptionsWithoutStdio & {
 		silent?: boolean;
+		args?: string[];
 	}
 ): Promise<{
 	success: boolean;
@@ -87,7 +88,7 @@ export function execAndMonitor(
 }> {
 	let stdout: string = '';
 	let stderr: string = '';
-	const process = spawn(cmd, options);
+	const process = spawn(cmd, options?.args, options);
 	process.stdout.on('data', (chunk: string | Buffer) => {
 		stdout += chunk.toString();
 		void onStdout(stdout, process);

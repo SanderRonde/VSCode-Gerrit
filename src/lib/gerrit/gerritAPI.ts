@@ -64,21 +64,35 @@ export async function checkConnection(): Promise<void> {
 		extraCookies ?? null,
 		gitReviewFile
 	);
-	const connection = await api.testConnection();
-	const showCurlButton = {
-		title: 'Show cURL command',
-		callback: connection.runCurlCommand,
-	};
-	if (!connection.exists) {
+	const connection = api.testConnection();
+	if (!(await connection.exists)) {
 		await showInvalidSettingsMessage(
 			'Connection to Gerrit failed, please check your settings and/or connection',
-			[showCurlButton]
+			[
+				{
+					title: 'Show cURL command',
+					callback: () =>
+						connection.runCurlCommand({
+							forExists: true,
+							forAuthenticated: false,
+						}),
+				},
+			]
 		);
 		return;
-	} else if (!connection.authenticated) {
+	} else if (!(await connection.authenticated)) {
 		await showInvalidSettingsMessage(
 			'Gerrit authentication failed, please check your credentials',
-			[showCurlButton]
+			[
+				{
+					title: 'Show cURL command',
+					callback: () =>
+						connection.runCurlCommand({
+							forExists: true,
+							forAuthenticated: true,
+						}),
+				},
+			]
 		);
 		return;
 	}

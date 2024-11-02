@@ -17,7 +17,6 @@ import { Repository } from '../../types/vscode-extension-git';
 import { GerritAPI } from '../gerrit/gerritAPI/api';
 import { getConfiguration } from '../vscode/config';
 import { GerritSecrets } from './secrets';
-import got from 'got/dist/source';
 
 function applyTrailingSlashFix(url: string): string {
 	if (url.endsWith('/')) {
@@ -82,15 +81,32 @@ async function enterBasicCredentials(gerritRepo: Repository): Promise<void> {
 		prompt: 'Enter the URL of your Gerrit server',
 		value: initialURLValue ?? undefined,
 		validate: async (url: string) => {
-			try {
-				await got(url);
-				return { isValid: true };
-			} catch (e) {
+			const api = new GerritAPI(
+				url,
+				null,
+				null,
+				null,
+				extraCookies ?? null,
+				await getGitReviewFile(gerritRepo)
+			);
+			const connection = api.testConnection();
+			const viewCurlCmd = {
+				button: VIEW_CURL_CMD_BUTTON,
+				callback: () =>
+					connection.runCurlCommand({
+						forExists: true,
+						forAuthenticated: false,
+					}),
+			};
+			if (!(await connection.exists)) {
 				return {
 					isValid: false,
-					message: `Failed to reach URL: "${e as string}""`,
+					message: 'Failed to reach URL',
+					buttons: [viewCurlCmd],
 				};
 			}
+
+			return { isValid: true };
 		},
 	});
 	const usernameStep = new MultiStepEntry({
@@ -149,18 +165,22 @@ async function enterBasicCredentials(gerritRepo: Repository): Promise<void> {
 				extraCookies ?? null,
 				await getGitReviewFile(gerritRepo)
 			);
-			const connection = await api.testConnection();
+			const connection = api.testConnection();
 			const viewCurlCmd = {
 				button: VIEW_CURL_CMD_BUTTON,
-				callback: connection.runCurlCommand,
+				callback: () =>
+					connection.runCurlCommand({
+						forExists: true,
+						forAuthenticated: true,
+					}),
 			};
-			if (!connection.exists) {
+			if (!(await connection.exists)) {
 				return {
 					isValid: false,
 					message: 'Connection failed, invalid URL',
 					buttons: [viewCurlCmd],
 				};
-			} else if (!connection.authenticated) {
+			} else if (!(await connection.authenticated)) {
 				return {
 					isValid: false,
 					message: 'Authentication failed, invalid credentials',
@@ -217,15 +237,32 @@ async function enterCookieCredentials(gerritRepo: Repository): Promise<void> {
 		prompt: 'Enter the URL of your Gerrit server',
 		value: initialURLValue ?? undefined,
 		validate: async (url: string) => {
-			try {
-				await got(url);
-				return { isValid: true };
-			} catch (e) {
+			const api = new GerritAPI(
+				url,
+				null,
+				null,
+				null,
+				extraCookies ?? null,
+				await getGitReviewFile(gerritRepo)
+			);
+			const connection = api.testConnection();
+			const viewCurlCmd = {
+				button: VIEW_CURL_CMD_BUTTON,
+				callback: () =>
+					connection.runCurlCommand({
+						forExists: true,
+						forAuthenticated: false,
+					}),
+			};
+			if (!(await connection.exists)) {
 				return {
 					isValid: false,
-					message: `Failed to reach URL: "${e as string}""`,
+					message: 'Failed to reach URL',
+					buttons: [viewCurlCmd],
 				};
 			}
+
+			return { isValid: true };
 		},
 	});
 	const cookieStep = new MultiStepEntry({
@@ -257,18 +294,22 @@ async function enterCookieCredentials(gerritRepo: Repository): Promise<void> {
 				extraCookies ?? null,
 				await getGitReviewFile(gerritRepo)
 			);
-			const connection = await api.testConnection();
+			const connection = api.testConnection();
 			const viewCurlCmd = {
 				button: VIEW_CURL_CMD_BUTTON,
-				callback: connection.runCurlCommand,
+				callback: () =>
+					connection.runCurlCommand({
+						forExists: true,
+						forAuthenticated: true,
+					}),
 			};
-			if (!connection.exists) {
+			if (!(await connection.exists)) {
 				return {
 					isValid: false,
 					message: 'Connection failed, invalid URL',
 					buttons: [viewCurlCmd],
 				};
-			} else if (!connection.authenticated) {
+			} else if (!(await connection.authenticated)) {
 				return {
 					isValid: false,
 					message: 'Authentication failed, invalid cookie,',

@@ -655,28 +655,43 @@ export class GerritAPI {
 		};
 	}
 
-	public async testConnection(): Promise<{
-		exists: boolean;
-		authenticated: boolean;
-		runCurlCommand: () => void;
-	}> {
+	public testConnection(): {
+		exists: Promise<boolean>;
+		authenticated: Promise<boolean>;
+		runCurlCommand: (config: {
+			forExists: boolean;
+			forAuthenticated: boolean;
+		}) => void;
+	} {
 		const versionConfig: RequestOptions = {
 			path: 'config/server/version',
 			method: 'GET',
 			onError: null,
+			unauthenticated: true,
 		};
-		const versionResponse = await this._tryRequest(versionConfig);
 		const selfConfig: RequestOptions = {
 			path: 'accounts/self',
 			method: 'GET',
 			onError: null,
 		};
-		const selfResponse = await this._tryRequest(selfConfig);
 
+		// eslint-disable-next-line @typescript-eslint/no-this-alias
+		const self = this;
 		return {
-			exists: versionResponse?.statusCode === 200,
-			authenticated: selfResponse?.statusCode === 200,
-			runCurlCommand: () => {
+			get exists() {
+				return self
+					._tryRequest(versionConfig)
+					.then((r) => r?.statusCode === 200);
+			},
+			get authenticated() {
+				return self
+					._tryRequest(selfConfig)
+					.then((r) => r?.statusCode === 200);
+			},
+			runCurlCommand: (config: {
+				forExists: boolean;
+				forAuthenticated: boolean;
+			}) => {
 				const terminal = window.createTerminal('cUrl');
 				const userArg =
 					this._username && this._password
@@ -692,10 +707,16 @@ export class GerritAPI {
 					this._getUrlAndParams(versionConfig).url ?? '<no-url>';
 				const selfUrl =
 					this._getUrlAndParams(selfConfig).url ?? '<no-url>';
-				terminal.sendText(
-					`echo "Unauthenticated: " && curl${cookieArg} "${versionUrl}" && echo -e "\\nAuthenticated:" && curl${userArg}${cookieArg} "${selfUrl}"`,
-					false
-				);
+				const unauthenticatedCmd = `echo "Unauthenticated: " && curl${cookieArg} "${versionUrl}"`;
+				const authenticatedCmd = `echo "Authenticated: " && curl${userArg}${cookieArg} "${selfUrl}"`;
+				const cmd = [];
+				if (config.forExists) {
+					cmd.push(unauthenticatedCmd);
+				}
+				if (config.forAuthenticated) {
+					cmd.push(authenticatedCmd);
+				}
+				terminal.sendText(cmd.join(' && echo -e "\\n" && '), false);
 				terminal.show();
 			},
 		};

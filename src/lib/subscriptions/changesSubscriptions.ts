@@ -22,6 +22,9 @@ export class ChangesSubscriptionsManager extends APISubSubscriptionManagerBase<
 	GerritChange[],
 	ChangesSubscriptionsManagerConfig
 > {
+	// Re-fetch empty change every 2.5 minutes when requested
+	protected override refetchIntervalOnNull = 1000 * 60 * 2.5;
+
 	private _sortFilters(
 		filters: (DefaultChangeFilter | GerritChangeFilter)[][]
 	): (DefaultChangeFilter | GerritChangeFilter)[][] {

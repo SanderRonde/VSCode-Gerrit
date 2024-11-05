@@ -19,6 +19,9 @@ interface ChangeSubscriptionsManagerConfig {
 export class GenericChangeSubscriptionsManager<
 	T,
 > extends APISubSubscriptionManagerBase<T, ChangeSubscriptionsManagerConfig> {
+	// Re-fetch empty change every 2.5 minutes when requested
+	protected override refetchIntervalOnNull = 1000 * 60 * 2.5;
+
 	protected override _getMatches(
 		config: WithMatchAny<ChangeSubscriptionsManagerConfig>
 	): APISubscriptionManagerEntry<ChangeSubscriptionsManagerConfig, T>[] {

@@ -306,8 +306,7 @@ export class CurrentChangeStatusBarManager implements Disposable {
 		subscription.subscribeOnce(
 			new WeakRef(async () => {
 				await this.onCommitUpdate(lastCommit);
-			}),
-			{ onSame: true }
+			})
 		);
 		const change = await subscription.getValue();
 

@@ -17,6 +17,7 @@ export class FilesSubscriptionsManager extends APISubSubscriptionManagerBase<
 	Record<string, GerritFile>,
 	ChangeSubscriptionsManagerConfig
 > {
+	protected override refetchIntervalOnNull = null;
 	protected override _getMatches(
 		config: WithMatchAny<ChangeSubscriptionsManagerConfig>
 	): APISubscriptionManagerEntry<

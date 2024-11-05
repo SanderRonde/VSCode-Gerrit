@@ -10,6 +10,7 @@ export class QuickCheckoutSubscriptionsManager extends APISubSubscriptionManager
 	QuickCheckoutApplyInfo[],
 	Record<string, unknown>
 > {
+	protected override refetchIntervalOnNull = null;
 	protected override _getMatches(
 		config: WithMatchAny<Record<string, unknown>>
 	): APISubscriptionManagerEntry<

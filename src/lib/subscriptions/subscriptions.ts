@@ -12,7 +12,6 @@ import { Disposable } from 'vscode';
 
 interface SubscriptionOptions {
 	onInitial?: boolean;
-	onSame?: boolean;
 }
 
 export interface Subscribable<V> extends Disposable {
@@ -27,7 +26,10 @@ export interface Subscribable<V> extends Disposable {
 		options?: SubscriptionOptions
 	) => void;
 	getValue: (forceUpdate?: boolean) => Promise<V>;
-	tryGetValue: () => Promise<V | null>;
+	tryGetValue: () => Promise<
+		| { isSet: true; value: V; lastGetAt: number }
+		| { isSet: false; value: null }
+	>;
 	unsubscribe: () => void;
 	disposable: Disposable;
 	invalidate: () => Promise<void>;
@@ -55,7 +57,12 @@ export class APISubscriptionManager {
 			subscribe: APISubscriptionManager.NO_OP,
 			subscribeOnce: APISubscriptionManager.NO_OP,
 			getValue: () => Promise.resolve(null),
-			tryGetValue: () => Promise.resolve(null),
+			tryGetValue: () =>
+				Promise.resolve({
+					isSet: true,
+					value: null,
+					lastGetAt: Date.now(),
+				}),
 			unsubscribe: APISubscriptionManager.NO_OP,
 			disposable: { dispose: APISubscriptionManager.NO_OP },
 			dispose: APISubscriptionManager.NO_OP,

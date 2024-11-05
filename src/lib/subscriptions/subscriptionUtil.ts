@@ -25,17 +25,30 @@ export function joinSubscribables<S extends Subscribable<unknown>[], R>(
 			return mapper(...values);
 		},
 		tryGetValue: async () => {
-			const values = await Promise.all(
+			const subscriptionValues = await Promise.all(
 				subscribables.map((sub) => sub.tryGetValue())
 			);
-			for (const value of values) {
-				if (value === null) {
-					return null;
+
+			const results = [];
+			let lastGetAt = 0;
+			for (const subscriptionValue of subscriptionValues) {
+				if (!subscriptionValue.isSet) {
+					return {
+						isSet: false,
+						value: null,
+					};
 				}
+				results.push(subscriptionValue.value);
+				lastGetAt = Math.max(lastGetAt, subscriptionValue.lastGetAt);
 			}
-			// eslint-disable-next-line @typescript-eslint/ban-ts-comment
-			// @ts-ignore
-			return mapper(...values);
+
+			return {
+				isSet: true,
+				lastGetAt,
+				// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+				// @ts-ignore
+				value: mapper(...results),
+			};
 		},
 		disposable: {
 			dispose: callDeref(weakUnsubscribe),

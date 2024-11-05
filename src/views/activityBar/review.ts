@@ -166,8 +166,10 @@ class ReviewWebviewProvider implements WebviewViewProvider, Disposable {
 
 		[changeSubscription, draftCommentSubscription].map((s) =>
 			s.subscribeOnce(
-				new WeakRef(async () => {
-					await this.updateAllStates();
+				new WeakRef(async (value: unknown | null) => {
+					if (value) {
+						await this.updateAllStates();
+					}
 				})
 			)
 		);

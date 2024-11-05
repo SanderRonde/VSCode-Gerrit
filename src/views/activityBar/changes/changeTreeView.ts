@@ -58,7 +58,8 @@ export class ChangeTreeView
 	public get change(): Promise<GerritChange | null> {
 		return (async () => {
 			return (
-				(await this._subscription.tryGetValue()) ?? this.initialChange
+				(await this._subscription.tryGetValue())?.value ??
+				this.initialChange
 			);
 		})();
 	}

@@ -22,7 +22,7 @@ import { APISubscriptionManager } from '../subscriptions/subscriptions';
 import { PERIODICAL_GIT_FETCH_INTERVAL } from '../util/constants';
 import { MATCH_ANY } from '../subscriptions/baseSubscriptions';
 import { Repository } from '../../types/vscode-extension-git';
-import { createAwaitingInterval } from '../util/util';
+import { createAwaitingInterval, wait } from '../util/util';
 import { getConfiguration } from '../vscode/config';
 import { VersionNumber } from '../util/version';
 import { getCurrentChangeID } from './commit';
@@ -469,6 +469,13 @@ export async function gitReview(gerritRepo: Repository): Promise<void> {
 			changeID,
 			field: MATCH_ANY,
 			withValues: MATCH_ANY,
+		});
+		void wait(5000).then(async () => {
+			await APISubscriptionManager.changeSubscriptions.invalidate({
+				changeID,
+				field: MATCH_ANY,
+				withValues: MATCH_ANY,
+			});
 		});
 	}
 

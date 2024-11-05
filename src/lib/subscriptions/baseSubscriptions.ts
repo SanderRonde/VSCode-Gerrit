@@ -4,6 +4,7 @@ import {
 	registerDisposer,
 } from '../util/garbageCollection';
 import { Subscribable } from './subscriptions';
+import { logDev } from '../util/log';
 
 enum FETCH_STATE {
 	INITIAL,
@@ -19,13 +20,13 @@ export interface APISubscriptionManagerEntry<C, V> {
 		Set<{
 			once: boolean;
 			onInitial: boolean;
-			onSame: boolean;
 			listener: WeakRef<(value: V) => void>;
 		}>
 	>;
 	value: Promise<V> | null;
 	state: FETCH_STATE;
 	config: C;
+	lastGetAt: number;
 }
 
 export const MATCH_ANY = Symbol('any');
@@ -59,8 +60,18 @@ export abstract class APISubSubscriptionManagerBase<V, C = string> {
 					);
 				},
 				tryGetValue: async () => {
-					const value = await originalSubscription.tryGetValue();
-					return value ? mapper(value) : null;
+					const result = await originalSubscription.tryGetValue();
+					if (result.isSet) {
+						return {
+							isSet: true,
+							value: mapper(result.value),
+							lastGetAt: result.lastGetAt,
+						};
+					}
+					return {
+						isSet: false,
+						value: null,
+					};
 				},
 				subscribe: (handler, options) => {
 					const mappedRef = new WeakRef((value: M): void =>
@@ -95,6 +106,7 @@ export abstract class APISubSubscriptionManagerBase<V, C = string> {
 			state: FETCH_STATE.INITIAL,
 			getter,
 			config,
+			lastGetAt: 0,
 		});
 	}
 
@@ -121,6 +133,7 @@ export abstract class APISubSubscriptionManagerBase<V, C = string> {
 		const prevState = match.state;
 		match.state = FETCH_STATE.FETCHING;
 		match.value = getter();
+		match.lastGetAt = Date.now();
 		const resolved = await match.value;
 		match.state = FETCH_STATE.FETCHED;
 		match.value = Promise.resolve(resolved);
@@ -132,10 +145,7 @@ export abstract class APISubSubscriptionManagerBase<V, C = string> {
 						prevState !== FETCH_STATE.INITIAL ||
 						listenerDescriber.onInitial
 					) {
-						if (
-							listenerDescriber.onSame ||
-							(await prevValue) !== (await match.value)
-						) {
+						if ((await prevValue) !== (await match.value)) {
 							listenerDescriber.listener.deref()?.(resolved);
 							if (listenerDescriber.once) {
 								listeners.delete(listenerDescriber);
@@ -152,6 +162,8 @@ export abstract class APISubSubscriptionManagerBase<V, C = string> {
 	protected abstract _getMatches(
 		config: WithMatchAny<C>
 	): APISubscriptionManagerEntry<C, V>[];
+
+	protected abstract refetchIntervalOnNull: number | null;
 
 	public createFetcher(config: C, getter: () => Promise<V>): Subscribable<V> {
 		const id = this._lastID++;
@@ -185,11 +197,9 @@ export abstract class APISubSubscriptionManagerBase<V, C = string> {
 				{
 					onInitial = false,
 					once = false,
-					onSame = false,
 				}: {
 					once?: boolean;
 					onInitial?: boolean;
-					onSame?: boolean;
 				} = {}
 			) => {
 				if (unsubscribed) {
@@ -204,7 +214,6 @@ export abstract class APISubSubscriptionManagerBase<V, C = string> {
 					listener: handler,
 					once,
 					onInitial,
-					onSame,
 				});
 			},
 			subscribeOnce(handler, options) {
@@ -218,26 +227,56 @@ export abstract class APISubSubscriptionManagerBase<V, C = string> {
 				const matches = this._getMatches(config);
 				for (const match of matches) {
 					if (match.state === FETCH_STATE.FETCHED) {
-						return match.value!;
+						return {
+							isSet: true,
+							value: (await match.value) as V,
+							lastGetAt: match.lastGetAt,
+						};
 					}
 				}
 				for (const match of matches) {
 					if (match.state === FETCH_STATE.FETCHING) {
-						return match.value!;
+						return {
+							isSet: true,
+							value: (await match.value) as V,
+							lastGetAt: match.lastGetAt,
+						};
 					}
 				}
-				return null;
+				return {
+					isSet: false,
+					value: null,
+				};
 			},
 			getValue: async (forceUpdate) => {
 				this._ensureConfigDefined(config, getter);
 				const matches = this._getMatches(config);
+
 				if (!forceUpdate) {
-					const value = await subscription.tryGetValue();
-					if (value) {
-						return value;
+					const result = await subscription.tryGetValue();
+					if (result.isSet) {
+						// If value is not set and we have a refetch interval,
+						// then consider refetching if we've passed the re-fetch time.
+						// Otherwise just return the current value.
+						if (
+							!(
+								!result.value &&
+								this.refetchIntervalOnNull &&
+								Date.now() >
+									result.lastGetAt +
+										this.refetchIntervalOnNull
+							)
+						) {
+							return result.value;
+						}
 					}
 				}
 
+				// TODO: this shouldn't be possible?
+				logDev('No matches found for getValue', {
+					config,
+					matches,
+				});
 				if (matches.length === 0) {
 					return getter();
 				}

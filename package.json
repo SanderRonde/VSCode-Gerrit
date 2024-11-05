@@ -2,7 +2,7 @@
 	"name": "vscode--gerrit",
 	"displayName": "Gerrit",
 	"description": "VSCode gerrit integration",
-	"version": "1.2.48",
+	"version": "1.2.49",
 	"engines": {
 		"vscode": "^1.74.0",
 		"node": ">=14.16.0"

@@ -2,6 +2,10 @@
 
 All notable changes to the "gerrit" extension will be documented in this file.
 
+## 1.2.48
+
+-   Fix issue where the extension would cause a 404 HTTP request to be sent about once a second while the local change wasn't pushed yet.
+
 ## 1.2.47
 
 -   Add support for custom arguments to the `git-review` command

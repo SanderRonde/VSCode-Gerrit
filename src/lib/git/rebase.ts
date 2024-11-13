@@ -93,6 +93,17 @@ export async function rebase(
 		callback: () => void | Promise<void>;
 	}[]
 ): Promise<boolean> {
+	const hasUpstream = await tryExecAsync(
+		'git rev-parse --abbrev-ref --symbolic-full-name @{u}',
+		{
+			cwd: uri,
+		}
+	);
+	if (!hasUpstream.success) {
+		// No upstream, no point rebasing
+		return false;
+	}
+
 	const rebaseCommand = 'git pull --rebase';
 	const { success } = await tryExecAsync(rebaseCommand, {
 		cwd: uri,

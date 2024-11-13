@@ -2,9 +2,17 @@
 
 All notable changes to the "gerrit" extension will be documented in this file.
 
-## 1.2.48
+## 1.2.50
+
+-   Fix issue where rebasing would fail if the current branch had no upstream
+
+## 1.2.49
 
 -   Fix issue where the extension would cause a 404 HTTP request to be sent about once a second while the local change wasn't pushed yet.
+
+## 1.2.48
+
+-   Don't test access to irrelevant URLs when setting up credentials
 
 ## 1.2.47
 

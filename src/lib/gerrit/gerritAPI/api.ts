@@ -679,9 +679,17 @@ export class GerritAPI {
 		const self = this;
 		return {
 			get exists() {
-				return self
-					._tryRequest(versionConfig)
-					.then((r) => r?.statusCode === 200);
+				return self._tryRequest(versionConfig).then((r) => {
+					if (r?.statusCode === 200) {
+						return true;
+					}
+					return self
+						._tryRequest({
+							...versionConfig,
+							unauthenticated: false,
+						})
+						.then((r) => r?.statusCode === 200);
+				});
 			},
 			get authenticated() {
 				return self
@@ -1410,16 +1418,26 @@ export class GerritAPI {
 	}
 
 	public async getGerritVersion(): Promise<VersionNumber | null> {
-		const response = await this._tryRequest({
+		const config = {
 			path: 'config/server/version',
 			unauthenticated: true,
 			method: 'GET',
-		});
+		} as const;
+		let response = await this._tryRequest(config);
 
-		if (!response || !this._assertRequestSucceeded(response)) {
-			return null;
+		if (response && this._assertRequestSucceeded(response)) {
+			return VersionNumber.from(response.strippedBody);
 		}
 
-		return VersionNumber.from(response.strippedBody);
+		response = await this._tryRequest({
+			...config,
+			unauthenticated: false,
+		});
+
+		if (response && this._assertRequestSucceeded(response)) {
+			return VersionNumber.from(response.strippedBody);
+		}
+
+		return null;
 	}
 }

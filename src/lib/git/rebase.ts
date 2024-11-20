@@ -102,7 +102,7 @@ export async function rebase(
 	);
 	if (!hasUpstream.success) {
 		// No upstream, no point rebasing
-		return false;
+		return true;
 	}
 
 	const rebaseCommand = 'git pull --rebase';

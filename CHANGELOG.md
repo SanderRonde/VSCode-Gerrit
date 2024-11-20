@@ -2,6 +2,10 @@
 
 All notable changes to the "gerrit" extension will be documented in this file.
 
+## 1.2.52
+
+-   Further fix issue where rebasing would fail if the current branch had no upstream
+
 ## 1.2.51
 
 -   Account for Gerrit setups where `/config/server/version` is not available without authentication by falling back to an authenticated request.

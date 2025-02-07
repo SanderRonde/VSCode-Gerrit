@@ -37,6 +37,7 @@ export const StateButton: React.FC<StateButtonProps> = (props) => {
 	const [state, setState] = React.useState<StateButtonState>(
 		props.currentState
 	);
+	const [isHovered, setIsHovered] = React.useState(false);
 
 	const onClick = React.useCallback(() => {
 		if (state === StateButtonState.LOADING) {
@@ -52,23 +53,14 @@ export const StateButton: React.FC<StateButtonProps> = (props) => {
 			case StateButtonState.DEFAULT:
 				return props.children;
 			case StateButtonState.LOADING:
-				return (
-					<span slot="end">
-						<ProgressRing />
-					</span>
-				);
+				return <ProgressRing />;
 			case StateButtonState.SUCCESS:
-				return (
-					<span slot="end" className="codicon codicon-check"></span>
-				);
+				return <span className="codicon codicon-check"></span>;
 			case StateButtonState.FAILURE:
 				return (
 					<>
 						<div style={styles.paddingRight}>Failed</div>
-						<span
-							slot="end"
-							className="codicon codicon-error"
-						></span>
+						<span className="codicon codicon-error"></span>
 					</>
 				);
 		}
@@ -86,18 +78,50 @@ export const StateButton: React.FC<StateButtonProps> = (props) => {
 		}
 	}, [currentState, onStateUpdate]);
 
+	const style = React.useMemo(() => {
+		if (isHovered) {
+			return {
+				...styles.vscodeButton,
+				...styles.buttonHover,
+			};
+		}
+		return styles.vscodeButton;
+	}, [isHovered]);
 	return (
-		<vscode-button
+		<button
 			disabled={state === StateButtonState.LOADING ? true : undefined}
 			title={props.title}
 			onClick={onClick}
+			onMouseEnter={() => setIsHovered(true)}
+			onMouseLeave={() => setIsHovered(false)}
+			style={style}
 		>
 			{getContent()}
-		</vscode-button>
+		</button>
 	);
 };
 
 const styles = createStyles({
+	vscodeButton: {
+		outline: 'none',
+		fontFamily: '"Segoe WPC", "Segoe UI", sans-serif',
+		fontWeight: 'normal',
+		fontSize: 'var(--type-ramp-base-font-size)',
+		lineHeight: 'var(--type-ramp-base-line-height)',
+		color: '#cccccc',
+		background: '#0078d4',
+		borderRadius: '2px',
+		fill: 'currentColor',
+		cursor: 'pointer',
+		border: '1px solid rgba(255, 255, 255, 0.07)',
+		display: 'flex',
+		flexDirection: 'row',
+		justifyContent: 'center',
+		padding: '10px 10px',
+	},
+	buttonHover: {
+		background: '#026ec1',
+	},
 	progress: {
 		width: '20px',
 		height: '20px',

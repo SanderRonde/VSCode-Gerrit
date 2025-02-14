@@ -2,6 +2,10 @@
 
 All notable changes to the "gerrit" extension will be documented in this file.
 
+## 1.2.53
+
+-   Fix clickable area of buttons in review panel
+
 ## 1.2.52
 
 -   Further fix issue where rebasing would fail if the current branch had no upstream

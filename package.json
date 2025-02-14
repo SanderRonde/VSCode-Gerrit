@@ -11,6 +11,15 @@
 	"categories": [
 		"SCM Providers"
 	],
+	"keywords": [
+		"gerrit",
+		"code-review",
+		"git",
+		"scm",
+		"collaboration",
+		"review",
+		"version-control"
+	],
 	"icon": "src/images/gerrit.png",
 	"repository": {
 		"type": "git",

@@ -394,7 +394,6 @@ export async function gitReview(gerritRepo: Repository): Promise<void> {
 				stdout: string;
 				handled: boolean;
 			}>((resolve) => {
-				let ignoreInitialResult = false;
 				void execAndMonitor(
 					'git-review',
 					async (stdout, proc) => {
@@ -403,10 +402,13 @@ export async function gitReview(gerritRepo: Repository): Promise<void> {
 								'You are about to submit multiple commits.'
 							)
 						) {
-							return;
+							return resolve({
+								success: true,
+								stdout: '',
+								handled: true,
+							});
 						}
 
-						ignoreInitialResult = true;
 						proc.kill();
 						const YES_OPTION = 'Yes';
 						const CANCEL_OPTION = 'Cancel';
@@ -440,7 +442,7 @@ export async function gitReview(gerritRepo: Repository): Promise<void> {
 						args: config.get('gerrit.pushForReviewArgs', []),
 					}
 				).then(({ success, stdout }) => {
-					if (success && !ignoreInitialResult) {
+					if (success) {
 						resolve({
 							success: true,
 							handled: true,

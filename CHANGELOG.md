@@ -2,6 +2,10 @@
 
 All notable changes to the "gerrit" extension will be documented in this file.
 
+## 1.2.54
+
+-   Fix bug where an error message would be shown when submitting multiple changes
+
 ## 1.2.53
 
 -   Fix clickable area of buttons in review panel

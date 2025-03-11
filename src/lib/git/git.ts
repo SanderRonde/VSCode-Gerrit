@@ -404,7 +404,7 @@ export async function gitReview(gerritRepo: Repository): Promise<void> {
 						) {
 							return resolve({
 								success: true,
-								stdout: '',
+								stdout: stdout,
 								handled: true,
 							});
 						}

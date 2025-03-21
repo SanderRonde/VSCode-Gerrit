@@ -54,7 +54,7 @@ async function inferHostAndProject(
 
 	const remoteUrl = stdout2.trim();
 	const urlRegex =
-		/(?:ssh|http|https):\/\/(?:[^@]+@)?([^:/]+)(?::(\d+))?\/(.+)\.git/;
+		/(?:ssh|http|https):\/\/(?:[^@]+@)?([^:/]+)(?::(\d+))?\/(.+?)(?:\.git)?$/;
 	const match = urlRegex.exec(remoteUrl);
 	if (match) {
 		const [, host, port, project] = match;

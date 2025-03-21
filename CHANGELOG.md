@@ -2,6 +2,10 @@
 
 All notable changes to the "gerrit" extension will be documented in this file.
 
+## 1.2.56
+
+-   Infer host and remote from git remote when .gitreview file is not available
+
 ## 1.2.55
 
 -   Fix issue where the "open on remote" option would not be shown in the notification after pushing a change

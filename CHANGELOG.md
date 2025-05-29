@@ -2,6 +2,10 @@
 
 All notable changes to the "gerrit" extension will be documented in this file.
 
+## 1.2.57
+
+-   Ensure custom arguments to `git-review` are passed to the `git-review` command when multiple changes
+
 ## 1.2.56
 
 -   Infer host and remote from git remote when .gitreview file is not available

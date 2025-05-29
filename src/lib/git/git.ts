@@ -394,6 +394,10 @@ export async function gitReview(gerritRepo: Repository): Promise<void> {
 				stdout: string;
 				handled: boolean;
 			}>((resolve) => {
+				const pushForReviewArgs = config.get(
+					'gerrit.pushForReviewArgs',
+					[]
+				);
 				void execAndMonitor(
 					'git-review',
 					async (stdout, proc) => {
@@ -419,10 +423,13 @@ export async function gitReview(gerritRepo: Repository): Promise<void> {
 						);
 
 						if (choice === YES_OPTION) {
-							const result = await tryExecAsync('git-review -y', {
-								cwd: uri,
-								timeout: 10000,
-							});
+							const result = await tryExecAsync(
+								`git-review -y ${pushForReviewArgs.join(' ')}`,
+								{
+									cwd: uri,
+									timeout: 10000,
+								}
+							);
 							resolve({
 								success: result.success,
 								stdout: result.stdout,
@@ -439,7 +446,7 @@ export async function gitReview(gerritRepo: Repository): Promise<void> {
 					{
 						cwd: uri,
 						timeout: 10000,
-						args: config.get('gerrit.pushForReviewArgs', []),
+						args: pushForReviewArgs,
 					}
 				).then(({ success, stdout }) => {
 					if (success) {

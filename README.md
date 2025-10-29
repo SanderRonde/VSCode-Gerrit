@@ -10,8 +10,8 @@ To set up the extension, you'll need to set up authentication. This can be done 
 
 -   `gerrit.auth.username` - This is your username on gerrit. You can find this next to the `Username` field under "HTTP Credentials".
 -   `gerrit.auth.url` - This is automatically inferred from your `.gitreview` file (if you have one). If you don't have one or it doesn't work, set this URL to the HTTP URL of your gerrit instance. This will be the URL your visit in the browser.
--   `password` (encrypted secret) - This is your HTTP password. You can generate one by clicking "Generate new password" on Gerrit and copying it.
--   `cookie` (encrypted secret) - This is your authentication cookie. Use this if your administrator has disabled the use of HTTP credentials. You can find it by going to gerrit in your browser, opening the developer tools, and finding the value of the cookie named `GerritAccount`.
+-   `gerrit.auth.password` (encrypted secret) - This is your HTTP password. You can generate one by clicking "Generate new password" on Gerrit and copying it.
+-   `gerrit.auth.extraCookies` (encrypted secret) - This is your authentication cookie. Use this if your administrator has disabled the use of HTTP credentials. You can find it by going to gerrit in your browser, opening the developer tools, and finding the value of the cookie named `GerritAccount`.
 
 Additionally the extension requires the python package [git-review](https://pypi.org/project/git-review/) to be installed.
 

@@ -281,6 +281,11 @@ export const commands: {
 		title: 'Open line on Gitiles (permalink)',
 		inCommandPalette: true,
 	},
+	'gerrit.cherryPick': {
+		title: 'Cherry-pick to another branch',
+		inCommandPalette: false,
+		icon: '$(git-pull-request-create)',
+	},
 };
 
 export const views: {
@@ -539,16 +544,23 @@ export const views: {
 					viewItemContains(TREE_ITEM_IS_NOT_CURRENT)
 				),
 			},
-			{
-				command: GerritExtensionCommands.RECURSIVE_REBASE_CURRENT,
-				when: and(
-					IS_GERRIT_CHANGE_EXPLORER_VIEW,
-					viewItemContains(TREE_ITEM_TYPE_CHANGE),
-					viewItemContains(TREE_ITEM_IS_CURRENT)
-				),
-			},
-		],
-		quickCheckout: [
+		{
+			command: GerritExtensionCommands.RECURSIVE_REBASE_CURRENT,
+			when: and(
+				IS_GERRIT_CHANGE_EXPLORER_VIEW,
+				viewItemContains(TREE_ITEM_TYPE_CHANGE),
+				viewItemContains(TREE_ITEM_IS_CURRENT)
+			),
+		},
+		{
+			command: GerritExtensionCommands.CHERRY_PICK,
+			when: and(
+				IS_GERRIT_CHANGE_EXPLORER_VIEW,
+				viewItemContains(TREE_ITEM_TYPE_CHANGE)
+			),
+		},
+	],
+	quickCheckout: [
 			{
 				command: GerritExtensionCommands.QUICK_CHECKOUT_APPLY,
 				when: and(

@@ -55,10 +55,11 @@ import { getChangeIDFromCheckoutString, gitReview } from '../lib/git/git';
 import { createAutoRegisterCommand } from 'vscode-generate-package-json';
 import { enterCredentials } from '../lib/credentials/enterCredentials';
 import { rebaseOntoParent, recursiveRebase } from '../lib/git/rebase';
-import { CommentThread, ExtensionContext, Uri, window } from 'vscode';
+import { CommentThread, ExtensionContext, Uri, window, env } from 'vscode';
 import { focusChange } from '../lib/commandHandlers/focusChange';
+import { GerritAPIWith } from '../lib/gerrit/gerritAPI/api';
 import { Repository } from '../types/vscode-extension-git';
-import { checkConnection } from '../lib/gerrit/gerritAPI';
+import { checkConnection, getAPI } from '../lib/gerrit/gerritAPI';
 import { GerritExtensionCommands } from './command-names';
 import { openOnGitiles } from '../lib/gitiles/gitiles';
 import { commands as vscodeCommands } from 'vscode';
@@ -77,6 +78,126 @@ async function checkoutChange(uri: string, changeID: string): Promise<boolean> {
 		return false;
 	}
 	return true;
+}
+
+async function cherryPickChange(
+	changeTreeView: ChangeTreeView
+): Promise<void> {
+	const api = await getAPI();
+	if (!api) {
+		void window.showErrorMessage(
+			'Failed to connect to Gerrit API. Please check your credentials.'
+		);
+		return;
+	}
+
+	const change = await changeTreeView.change;
+	if (!change) {
+		void window.showErrorMessage('Failed to get change information');
+		return;
+	}
+
+	// Get the current revision
+	const currentRevision = await change.currentRevision(
+		GerritAPIWith.CURRENT_REVISION
+	);
+	if (!currentRevision) {
+		void window.showErrorMessage('Failed to get current revision');
+		return;
+	}
+
+	// Ask user for destination branch
+	const destinationBranch = await window.showInputBox({
+		prompt: 'Enter the destination branch for cherry-pick',
+		placeHolder: 'e.g., stable-1.0, release/v2.0',
+		validateInput: (value) => {
+			if (!value || value.trim() === '') {
+				return 'Branch name cannot be empty';
+			}
+			return null;
+		},
+	});
+
+	if (!destinationBranch) {
+		return; // User cancelled
+	}
+
+	// Get current commit message to use as default
+	const currentCommit = await change.getCurrentCommit(
+		GerritAPIWith.CURRENT_COMMIT
+	);
+	const defaultMessage = currentCommit?.message ?? change.subject;
+
+	// Ask user if they want to modify the commit message
+	const messageChoice = await window.showQuickPick(
+		[
+			{
+				label: 'Use original commit message',
+				description: 'Keep the existing commit message',
+				useOriginal: true,
+			},
+			{
+				label: 'Edit commit message',
+				description: 'Modify the commit message for the cherry-pick',
+				useOriginal: false,
+			},
+		],
+		{
+			placeHolder: 'Choose how to handle the commit message',
+		}
+	);
+
+	if (!messageChoice) {
+		return; // User cancelled
+	}
+
+	let commitMessage: string | undefined;
+	if (!messageChoice.useOriginal) {
+		commitMessage = await window.showInputBox({
+			prompt: 'Enter the commit message for the cherry-pick',
+			value: defaultMessage,
+			valueSelection: [0, defaultMessage.indexOf('\n') > 0 ? defaultMessage.indexOf('\n') : defaultMessage.length],
+		});
+
+		if (commitMessage === undefined) {
+			return; // User cancelled
+		}
+	}
+
+	// Perform the cherry-pick
+	const result = await window.withProgress(
+		{
+			location: { viewId: 'gerrit:changeExplorer' },
+			title: `Cherry-picking to ${destinationBranch}...`,
+		},
+		async () => {
+			return await api.cherryPick(
+				change.changeID,
+				currentRevision.id,
+				{
+					destination: destinationBranch.trim(),
+					message: commitMessage,
+				}
+			);
+		}
+	);
+
+	if (result) {
+		const openOnline = 'Open Online';
+		const response = await window.showInformationMessage(
+			`Successfully cherry-picked change to ${destinationBranch}. New change: #${result.number}`,
+			openOnline
+		);
+
+		if (response === openOnline) {
+			const url = api.getPublicUrl(`c/${result.project}/+/${result.number}`);
+			await env.openExternal(Uri.parse(url));
+		}
+	} else {
+		void window.showErrorMessage(
+			`Failed to cherry-pick change to ${destinationBranch}. Please check if the branch exists and you have permissions.`
+		);
+	}
 }
 
 export function registerCommands(
@@ -367,6 +488,14 @@ export function registerCommands(
 	context.subscriptions.push(
 		registerCommand(GerritExtensionCommands.PUSH_FOR_REVIEW, () =>
 			gitReview(gerritRepo)
+		)
+	);
+
+	// Cherry-pick
+	context.subscriptions.push(
+		registerCommand(
+			GerritExtensionCommands.CHERRY_PICK,
+			(changeTreeView: ChangeTreeView) => cherryPickChange(changeTreeView)
 		)
 	);
 

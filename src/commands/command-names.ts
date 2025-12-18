@@ -49,4 +49,5 @@ export enum GerritExtensionCommands {
 	OPEN_LINE_ON_GITILES_PERMALINK = 'gerrit.openLineOnGitilesPermalink',
 	OPEN_FILE_ON_GITILES = 'gerrit.openFileOnGitiles',
 	MAYBE_DIFF = 'gerrit.maybeDiff',
+	CHERRY_PICK = 'gerrit.cherryPick',
 }

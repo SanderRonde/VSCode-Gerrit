@@ -267,3 +267,12 @@ export interface GerritMergeableInfoResponse {
 	conflicts?: string[];
 	mergeable_into?: string;
 }
+
+export interface GerritCherryPickInput {
+	message?: string;
+	destination: string;
+	notify?: 'NONE' | 'OWNER' | 'OWNER_REVIEWERS' | 'ALL';
+	keep_reviewers?: boolean;
+	allow_conflicts?: boolean;
+	topic?: string;
+}

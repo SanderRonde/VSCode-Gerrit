@@ -265,6 +265,11 @@
 				"title": "Open line on Gitiles (permalink)"
 			},
 			{
+				"command": "gerrit.cherryPick",
+				"title": "Cherry-pick to another branch",
+				"icon": "$(git-pull-request-create)"
+			},
+			{
 				"command": "cmd.gerrit.changeGitRepo",
 				"title": "Gerrit: Change git repo"
 			},
@@ -576,6 +581,10 @@
 					"when": "false"
 				},
 				{
+					"command": "gerrit.cherryPick",
+					"when": "false"
+				},
+				{
 					"command": "cmd.gerrit.changeGitRepo",
 					"when": "true"
 				},
@@ -834,6 +843,11 @@
 					"command": "gerrit.recursiveRebaseCurrent",
 					"when": "view == gerrit:changeExplorer && viewItem =~ /gerritchange/ && viewItem =~ /yesCurrent/",
 					"group": "achange@7"
+				},
+				{
+					"command": "gerrit.cherryPick",
+					"when": "view == gerrit:changeExplorer && viewItem =~ /gerritchange/",
+					"group": "achange@8"
 				},
 				{
 					"command": "gerrit.applyQuickCheckout",

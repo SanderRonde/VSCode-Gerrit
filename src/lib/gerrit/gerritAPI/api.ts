@@ -1,6 +1,7 @@
 import {
 	GerritChangeDetailResponse,
 	GerritChangeResponse,
+	GerritCherryPickInput,
 	GerritCommentRange,
 	GerritCommentResponse,
 	GerritCommentSide,
@@ -1415,6 +1416,25 @@ export class GerritAPI {
 		}
 
 		return json.status === 'MERGED';
+	}
+
+	public async cherryPick(
+		changeID: string,
+		revisionID: string,
+		input: GerritCherryPickInput
+	): Promise<GerritChange | null> {
+		const response = await this._tryRequest({
+			path: `changes/${changeID}/revisions/${revisionID}/cherrypick`,
+			method: 'POST',
+			body: JSON.stringify(input),
+		});
+
+		const json = this._handleResponse<GerritChangeResponse>(response);
+		if (!json) {
+			return null;
+		}
+
+		return new GerritChange(json, false);
 	}
 
 	public async getGerritVersion(): Promise<VersionNumber | null> {

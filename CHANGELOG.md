@@ -2,6 +2,10 @@
 
 All notable changes to the "gerrit" extension will be documented in this file.
 
+## 1.2.58
+
+-   Add commands to mark files as reviewed or unreviewed and visually indicate the reviewed status of files in the change explorer
+
 ## 1.2.57
 
 -   Ensure custom arguments to `git-review` are passed to the `git-review` command when multiple changes

@@ -340,6 +340,7 @@ export class GerritAPI {
 		// Non-get requests perform some remote action, we can't
 		// just assume that that action only needs to happen once
 		if (body && body.method !== 'GET') {
+			log(`${body.method ?? 'GET'} request to "${url}"`);
 			return GerritAPI.performRequest(url, body);
 		}
 
@@ -947,6 +948,69 @@ export class GerritAPI {
 				return map;
 			}
 		);
+	}
+
+	public getFileReviewStatus(
+		changeID: string,
+		revision: PatchsetDescription
+	): Subscribable<Record<string, boolean>> {
+		return APISubscriptionManager.fileReviewStatusSubscriptions.createFetcher(
+			{
+				changeID: changeID,
+				revision,
+				baseRevision: null,
+			},
+			async () => {
+				const response = await this._tryRequest({
+					path: `changes/${changeID}/revisions/${revision.id}/files`,
+					method: 'GET',
+					searchParams: {
+						// Mutually exclusive with baseRevision and others so this needs
+						// its own request
+						reviewed: 'true',
+					},
+				});
+
+				const json = this._handleResponse<string[]>(response);
+				if (!json) {
+					return {};
+				}
+
+				const byPath: Record<string, boolean> = {};
+				for (const path of json) {
+					byPath[path] = true;
+				}
+
+				return byPath;
+			}
+		);
+	}
+
+	public async setFileReviewed(
+		changeID: string,
+		revision: PatchsetDescription,
+		path: string,
+		reviewed: boolean
+	): Promise<void> {
+		if (reviewed) {
+			await this._tryRequest({
+				method: 'PUT',
+				path: `changes/${changeID}/revisions/${revision.id}/files/${encodeURIComponent(path)}/reviewed`,
+				body: JSON.stringify({
+					reviewed,
+				}),
+			});
+		} else {
+			await this._tryRequest({
+				method: 'DELETE',
+				path: `changes/${changeID}/revisions/${revision.id}/files/${encodeURIComponent(path)}/reviewed`,
+			});
+		}
+		await APISubscriptionManager.fileReviewStatusSubscriptions.invalidate({
+			changeID: changeID,
+			revision,
+			baseRevision: null,
+		});
 	}
 
 	public getFiles(

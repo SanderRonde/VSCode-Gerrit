@@ -139,6 +139,32 @@ export class GerritRevision extends DynamicallyFetchable {
 		}
 	}
 
+	public async setFileReviewed(
+		path: string,
+		reviewed: boolean
+	): Promise<void> {
+		const api = await getAPIForSubscription();
+		await api.setFileReviewed(
+			this.changeID,
+			{
+				id: this.revisionID,
+				number: this.number,
+			},
+			path,
+			reviewed
+		);
+	}
+
+	public async getFileReviewStatus(): Promise<
+		Subscribable<Record<string, boolean>>
+	> {
+		const api = await getAPIForSubscription();
+		return api.getFileReviewStatus(this.changeID, {
+			id: this.revisionID,
+			number: this.number,
+		});
+	}
+
 	public detailedUploader(
 		...additionalWith: GerritAPIWith[]
 	): Promise<GerritDetailedUserResponse | null> {

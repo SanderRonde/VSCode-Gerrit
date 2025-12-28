@@ -6,6 +6,7 @@ import {
 	startListeningForStreamEvents,
 	testEnableStreamEvents,
 } from './lib/stream-events/stream-events';
+import { getReviewedStatusDecorationProvider } from './providers/reviewedStatusDecorationProvider';
 import { FileModificationStatusProvider } from './providers/fileModificationStatusProvider';
 import { showQuickCheckoutStatusBarIcons } from './views/statusBar/quickCheckoutStatusBar';
 import { getOrCreateQuickCheckoutTreeProvider } from './views/activityBar/quickCheckout';
@@ -168,6 +169,13 @@ export async function activate(context: ExtensionContext): Promise<void> {
 	// Register comment decoration provider (comment bubbles)
 	context.subscriptions.push(
 		window.registerFileDecorationProvider(getCommentDecorationProvider())
+	);
+
+	// Register reviewed status decoration provider (eye icons)
+	context.subscriptions.push(
+		window.registerFileDecorationProvider(
+			getReviewedStatusDecorationProvider()
+		)
 	);
 
 	// Register filetype decoration provider

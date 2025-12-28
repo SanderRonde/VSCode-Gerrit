@@ -162,6 +162,14 @@
 				"title": "Open Modified File"
 			},
 			{
+				"command": "gerrit.markReviewed",
+				"title": "Mark file as reviewed"
+			},
+			{
+				"command": "gerrit.markUnreviewed",
+				"title": "Mark file as unreviewed"
+			},
+			{
 				"command": "gerrit.openOnline",
 				"title": "Open file on Gerrit"
 			},
@@ -484,6 +492,14 @@
 					"when": "false"
 				},
 				{
+					"command": "gerrit.markReviewed",
+					"when": "false"
+				},
+				{
+					"command": "gerrit.markUnreviewed",
+					"when": "false"
+				},
+				{
 					"command": "gerrit.openOnline",
 					"when": "false"
 				},
@@ -784,6 +800,16 @@
 					"command": "gerrit.openOriginal",
 					"when": "view == gerrit:changeExplorer && viewItem =~ /filechange/ && viewItem =~ /modified/",
 					"group": "openFile@3"
+				},
+				{
+					"command": "gerrit.markReviewed",
+					"when": "view == gerrit:changeExplorer && viewItem =~ /filechange/",
+					"group": "openFile@4"
+				},
+				{
+					"command": "gerrit.markUnreviewed",
+					"when": "view == gerrit:changeExplorer && viewItem =~ /filechange/",
+					"group": "openFile@5"
 				},
 				{
 					"command": "gerrit.openInReview",

@@ -5,7 +5,6 @@ import {
 	WithMatchAny,
 } from './baseSubscriptions';
 import { PatchsetDescription } from '../../views/activityBar/changes/changeTreeView';
-import { GerritFile } from '../gerrit/gerritAPI/gerritFile';
 
 interface ChangeSubscriptionsManagerConfig {
 	changeID: string;
@@ -13,17 +12,14 @@ interface ChangeSubscriptionsManagerConfig {
 	baseRevision: PatchsetDescription | null;
 }
 
-export class FilesSubscriptionsManager extends APISubSubscriptionManagerBase<
-	Record<string, GerritFile>,
+export class FilesSubscriptionsManager<V> extends APISubSubscriptionManagerBase<
+	V,
 	ChangeSubscriptionsManagerConfig
 > {
 	protected override refetchIntervalOnNull = null;
 	protected override _getMatches(
 		config: WithMatchAny<ChangeSubscriptionsManagerConfig>
-	): APISubscriptionManagerEntry<
-		ChangeSubscriptionsManagerConfig,
-		Record<string, GerritFile>
-	>[] {
+	): APISubscriptionManagerEntry<ChangeSubscriptionsManagerConfig, V>[] {
 		const allEntries = this._subscriptions.entries();
 		if (config === MATCH_ANY) {
 			return allEntries.map((e) => e[1]);

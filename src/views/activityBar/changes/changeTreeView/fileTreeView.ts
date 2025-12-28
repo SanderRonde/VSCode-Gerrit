@@ -60,6 +60,7 @@ export class FileTreeView implements TreeItemWithoutChildren {
 
 	public constructor(
 		private readonly _gerritRepo: Repository,
+		/** Note that this is only relative to the current folder, not the root */
 		public filePath: string,
 		public change: GerritChange,
 		public file: GerritFile,

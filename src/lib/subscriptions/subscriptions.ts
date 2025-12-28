@@ -8,6 +8,7 @@ import { ChangesSubscriptionsManager } from './changesSubscriptions';
 import { APISubSubscriptionManagerBase } from './baseSubscriptions';
 import { GerritChange } from '../gerrit/gerritAPI/gerritChange';
 import { FilesSubscriptionsManager } from './filesSubscription';
+import { GerritFile } from '../gerrit/gerritAPI/gerritFile';
 import { Disposable } from 'vscode';
 
 interface SubscriptionOptions {
@@ -48,7 +49,12 @@ export class APISubscriptionManager {
 			Map<string, GerritDraftComment[]>
 		>();
 	public static changesSubscriptions = new ChangesSubscriptionsManager();
-	public static filesSubscriptions = new FilesSubscriptionsManager();
+	public static filesSubscriptions = new FilesSubscriptionsManager<
+		Record<string, GerritFile>
+	>();
+	public static fileReviewStatusSubscriptions = new FilesSubscriptionsManager<
+		Record<string, boolean>
+	>();
 	public static quickCheckoutSubscriptions =
 		new QuickCheckoutSubscriptionsManager();
 	public static readonly NO_OP = (): void => {};

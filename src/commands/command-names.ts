@@ -13,6 +13,8 @@ export enum GerritExtensionCommands {
 	FILE_OPEN_ONLINE = 'gerrit.openOnline',
 	FILE_OPEN_MODIFIED = 'gerrit.openModified',
 	FILE_OPEN_ORIGINAL = 'gerrit.openOriginal',
+	FILE_MARK_REVIEWED = 'gerrit.markReviewed',
+	FILE_MARK_UNREVIEWED = 'gerrit.markUnreviewed',
 	FETCH_MORE = 'gerrit.fetchMore',
 	OPEN_CHANGE_SELECTOR = 'gerrit.openChangeSelector',
 	// Duplicate so we can have multiple names in the command palette

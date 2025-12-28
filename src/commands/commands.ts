@@ -56,6 +56,7 @@ import { createAutoRegisterCommand } from 'vscode-generate-package-json';
 import { enterCredentials } from '../lib/credentials/enterCredentials';
 import { rebaseOntoParent, recursiveRebase } from '../lib/git/rebase';
 import { CommentThread, ExtensionContext, Uri, window } from 'vscode';
+import { GerritChange } from '../lib/gerrit/gerritAPI/gerritChange';
 import { focusChange } from '../lib/commandHandlers/focusChange';
 import { Repository } from '../types/vscode-extension-git';
 import { checkConnection } from '../lib/gerrit/gerritAPI';
@@ -195,6 +196,52 @@ export function registerCommands(
 	);
 	context.subscriptions.push(
 		registerCommand(
+			GerritExtensionCommands.FILE_MARK_REVIEWED,
+			async (treeView: FileTreeView) => {
+				const change = await GerritChange.getChangeOnce(
+					treeView.file.changeID
+				);
+				if (!change) {
+					return;
+				}
+				const currentRevisions = await change.currentRevisions();
+				if (!currentRevisions) {
+					return;
+				}
+				const revision =
+					currentRevisions[treeView.file.currentRevision.id];
+				if (!revision) {
+					return;
+				}
+				await revision.setFileReviewed(treeView.file.filePath, true);
+			}
+		)
+	);
+	context.subscriptions.push(
+		registerCommand(
+			GerritExtensionCommands.FILE_MARK_UNREVIEWED,
+			async (treeView: FileTreeView) => {
+				const change = await GerritChange.getChangeOnce(
+					treeView.file.changeID
+				);
+				if (!change) {
+					return;
+				}
+				const currentRevisions = await change.currentRevisions();
+				if (!currentRevisions) {
+					return;
+				}
+				const revision =
+					currentRevisions[treeView.file.currentRevision.id];
+				if (!revision) {
+					return;
+				}
+				await revision.setFileReviewed(treeView.file.filePath, false);
+			}
+		)
+	);
+	context.subscriptions.push(
+		registerCommand(
 			GerritExtensionCommands.FILE_OPEN_ORIGINAL,
 			(treeView: FileTreeView) => openOriginal(treeView)
 		)
@@ -218,6 +265,25 @@ export function registerCommands(
 						...(diffCommand.arguments ?? [])
 					);
 				}
+
+				await (async () => {
+					const change = await GerritChange.getChangeOnce(
+						args.file.changeID
+					);
+					if (!change) {
+						return;
+					}
+					const currentRevisions = await change.currentRevisions();
+					if (!currentRevisions) {
+						return;
+					}
+					const revision =
+						currentRevisions[args.file.currentRevision.id];
+					if (!revision) {
+						return;
+					}
+					await revision.setFileReviewed(args.file.filePath, true);
+				})();
 			}
 		)
 	);

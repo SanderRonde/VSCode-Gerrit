@@ -177,6 +177,14 @@ export const commands: {
 		title: 'Open Modified File',
 		inCommandPalette: false,
 	},
+	'gerrit.markReviewed': {
+		title: 'Mark file as reviewed',
+		inCommandPalette: false,
+	},
+	'gerrit.markUnreviewed': {
+		title: 'Mark file as unreviewed',
+		inCommandPalette: false,
+	},
 	'gerrit.openOnline': {
 		title: 'Open file on Gerrit',
 		inCommandPalette: false,
@@ -466,6 +474,20 @@ export const views: {
 					IS_GERRIT_CHANGE_EXPLORER_VIEW,
 					viewItemContains(TREE_ITEM_TYPE_FILE),
 					viewItemContains(TREE_ITEM_WAS_MODIFIED)
+				),
+			},
+			{
+				command: GerritExtensionCommands.FILE_MARK_REVIEWED,
+				when: and(
+					IS_GERRIT_CHANGE_EXPLORER_VIEW,
+					viewItemContains(TREE_ITEM_TYPE_FILE)
+				),
+			},
+			{
+				command: GerritExtensionCommands.FILE_MARK_UNREVIEWED,
+				when: and(
+					IS_GERRIT_CHANGE_EXPLORER_VIEW,
+					viewItemContains(TREE_ITEM_TYPE_FILE)
 				),
 			},
 		],

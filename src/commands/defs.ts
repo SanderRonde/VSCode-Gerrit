@@ -745,6 +745,22 @@ export const config = {
 			description: 'Gerrit login username',
 		},
 	},
+	'gerrit.auth.password': {
+		jsonDefinition: {
+			type: 'string',
+			title: 'Gerrit HTTP password',
+			description:
+				'Not recommended: stored in plain text in settings. Prefer the command "Gerrit: Enter credentials" so the password is stored securely. This setting is still supported for scenarios where the command is not practical (e.g. devcontainers).',
+		},
+	},
+	'gerrit.auth.cookie': {
+		jsonDefinition: {
+			type: 'string',
+			title: 'Gerrit access token (or authentication cookie)',
+			description:
+				'Not recommended: stored in plain text in settings. Prefer the command "Gerrit: Enter credentials" so the value is stored securely. This can be the access token from Gerrit Settings → HTTP Credentials or the GerritAccount cookie. This setting is still supported for scenarios where the command is not practical (e.g. devcontainers).',
+		},
+	},
 	'gerrit.extraCookies': {
 		jsonDefinition: {
 			type: 'object',

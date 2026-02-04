@@ -268,9 +268,9 @@ async function enterCookieCredentials(gerritRepo: Repository): Promise<void> {
 	const cookieStep = new MultiStepEntry({
 		placeHolder: '34-char-long alphanumeric string',
 		prompt: (stepper) =>
-			`Enter your Gerrit authentication cookie (go to ${
+			`Enter your Gerrit access token (or the GerritAccount cookie value: go to ${
 				stepper.values[0] ?? 'www.yourgerrithost.com'
-			} and copy the value of the GerritAccount cookie)`,
+			} and copy the GerritAccount cookie from your browser)`,
 		value: async (stepper) =>
 			(await GerritSecrets.getForUrlOrWorkspace(
 				'cookie',
@@ -312,7 +312,8 @@ async function enterCookieCredentials(gerritRepo: Repository): Promise<void> {
 			} else if (!(await connection.authenticated)) {
 				return {
 					isValid: false,
-					message: 'Authentication failed, invalid cookie,',
+					message:
+						'Authentication failed, invalid access token or cookie.',
 					buttons: [viewCurlCmd],
 				};
 			}
@@ -352,7 +353,9 @@ export async function enterCredentials(gerritRepo: Repository): Promise<void> {
 				label: 'Enter username and password',
 			},
 			{
-				label: 'Enter cookie',
+				label: 'Access token (or cookie)',
+				description:
+					'Same value as GerritAccount cookie or from Gerrit Settings → HTTP Credentials',
 			},
 		] as const,
 		{

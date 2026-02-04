@@ -49,12 +49,16 @@ export function initConfigListener(): void {
 	});
 }
 
-/** @deprecated */
+/**
+ * Configuration that includes auth settings stored in plain text (not recommended).
+ * Prefer "Gerrit: Enter credentials" for secure storage; these settings are still
+ * supported for cases like devcontainers where the command is not practical.
+ */
 export function getConfigurationWithLegacy(): TypedWorkspaceConfiguration<
 	ConfigSettings & {
-		/** @deprecated */
+		/** Not recommended: stored in plain text. Prefer the credentials command for secure storage. */
 		'gerrit.auth.password'?: string;
-		/** @deprecated */
+		/** Not recommended: stored in plain text. Prefer the credentials command for secure storage. */
 		'gerrit.auth.cookie'?: string;
 	}
 > {

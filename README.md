@@ -10,8 +10,11 @@ To set up the extension, you'll need to set up authentication. This can be done 
 
 -   `gerrit.auth.username` - This is your username on gerrit. You can find this next to the `Username` field under "HTTP Credentials".
 -   `gerrit.auth.url` - This is automatically inferred from your `.gitreview` file (if you have one). If you don't have one or it doesn't work, set this URL to the HTTP URL of your gerrit instance. This will be the URL your visit in the browser.
--   `gerrit.auth.password` (encrypted secret) - This is your HTTP password. You can generate one by clicking "Generate new password" on Gerrit and copying it.
--   `gerrit.auth.extraCookies` (encrypted secret) - This is your authentication cookie. Use this if your administrator has disabled the use of HTTP credentials. You can find it by going to gerrit in your browser, opening the developer tools, and finding the value of the cookie named `GerritAccount`.
+-   `gerrit.auth.password` - Your HTTP password (stored as an encrypted secret when entered via the command). You can generate one by clicking "Generate new password" on Gerrit and copying it.
+-   Authentication cookie - Use this if your administrator has disabled HTTP credentials. Enter it via the command (stored securely) or set `gerrit.auth.cookie` in settings. You can find it by going to gerrit in your browser, opening the developer tools, and copying the value of the cookie named `GerritAccount`.
+-   `gerrit.auth.extraCookies` - Other cookies besides the authentication cookie to send on every request.
+
+You can also set `gerrit.auth.password` and `gerrit.auth.cookie` in settings; these are not recommended because they are stored in plain text. Prefer "Gerrit: Enter credentials" for secure storage. Using the settings is still supported for cases like devcontainers.
 
 Additionally the extension requires the python package [git-review](https://pypi.org/project/git-review/) to be installed.
 

@@ -799,7 +799,6 @@ async function showCompletionActions(
 
   const actions: string[] = [];
   if (count > 0) {
-    actions.push('Review Comments');
     actions.push('Comments Overview');
   }
   actions.push('Open in Gerrit');
@@ -808,11 +807,25 @@ async function showCompletionActions(
     msg, ...actions
   );
 
-  if (result === 'Review Comments') {
-    await browseDrafts(
-      drafts, gerritRepo, changeNumber
+  if (result === 'Comments Overview') {
+    // Warm the comments cache under the full
+    // changeID key so updatePanel can skip the
+    // API call.
+    const change = await GerritChange.getChangeOnce(
+      changeNumber,
+      [
+        GerritAPIWith.ALL_REVISIONS,
+        GerritAPIWith.ALL_FILES,
+      ]
     );
-  } else if (result === 'Comments Overview') {
+    if (change) {
+      const sub =
+        await GerritChange.getAllComments(
+          change.changeID
+        );
+      await sub.getValue(true);
+    }
+
     await showCommentsOverview(
       changeNumber, gerritRepo
     );

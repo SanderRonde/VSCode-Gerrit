@@ -9,6 +9,7 @@ export interface OverviewComment {
   isDraft: boolean;
   unresolved: boolean;
   codeSnippet?: string;
+  patchSet?: number;
 }
 
 export interface FileGroup {
@@ -24,13 +25,21 @@ export function escapeHtml(text: string): string {
     .replace(/"/g, '&quot;');
 }
 
-function renderFileGroup(group: FileGroup): string {
+function renderFileGroup(
+  group: FileGroup,
+  clickable: boolean = true
+): string {
   const commentRows = group.comments.map((c) => {
     const badge = c.isDraft
       ? '<span class="badge draft">Draft</span>'
       : c.unresolved
         ? '<span class="badge unresolved">'
         + 'Unresolved</span>'
+        : '';
+    const psBadge =
+      !clickable && typeof c.patchSet === 'number'
+        ? `<span class="badge older-ps">`
+        + `PS ${c.patchSet}</span>`
         : '';
     const msgPreview =
       escapeHtml(c.message).substring(0, 300);
@@ -41,16 +50,25 @@ function renderFileGroup(group: FileGroup): string {
       }</pre>`
       : '';
 
+    const rowClass = clickable
+      ? 'comment-row'
+      : 'comment-row older-patchset';
+    const onclick = clickable
+      ? ' onclick="navigate(this)"'
+      : '';
+
     return `
-<div class="comment-row"
+<div class="${rowClass}"
 	data-file="${escapeHtml(c.filePath)}"
 	data-line="${c.line ?? ''}"
-	onclick="navigate(this)">
+	data-patchset="${c.patchSet ?? ''}"
+	${onclick}>
 	<div class="comment-header">
 		<span class="location">
 			Line ${c.line ?? 'file-level'}
 		</span>
 		${badge}
+		${psBadge}
 		<span class="meta">
 			${author} &middot; ${time}
 		</span>
@@ -81,7 +99,8 @@ function renderFileGroup(group: FileGroup): string {
 export function buildHTML(
   changeNumber: string,
   draftGroups: FileGroup[],
-  unresolvedGroups: FileGroup[]
+  unresolvedGroups: FileGroup[],
+  olderPatchsetGroups: FileGroup[]
 ): string {
   const draftCount = draftGroups.reduce(
     (s, g) => s + g.comments.length, 0
@@ -89,6 +108,26 @@ export function buildHTML(
   const unresolvedCount = unresolvedGroups.reduce(
     (s, g) => s + g.comments.length, 0
   );
+  const olderCount = olderPatchsetGroups.reduce(
+    (s, g) => s + g.comments.length, 0
+  );
+
+  const olderSection =
+    olderPatchsetGroups.length > 0
+      ? `
+<div class="section older-patchset-section">
+	<h2>
+		<span class="codicon codicon-history"></span>
+		Older Patchset Comments (${olderCount})
+	</h2>
+	<div class="older-patchset-note">
+		These comments are from an older patchset
+		and cannot be navigated to.
+	</div>
+	${olderPatchsetGroups.map(
+        (g) => renderFileGroup(g, false)
+      ).join('')}
+</div>` : '';
 
   const draftsSection = draftGroups.length > 0
     ? `
@@ -97,7 +136,9 @@ export function buildHTML(
 		<span class="codicon codicon-edit"></span>
 		Draft Comments (${draftCount})
 	</h2>
-	${draftGroups.map(renderFileGroup).join('')}
+	${draftGroups.map(
+      (g) => renderFileGroup(g)
+    ).join('')}
 </div>` : '';
 
   const unresolvedSection =
@@ -108,11 +149,14 @@ export function buildHTML(
 		<span class="codicon codicon-warning"></span>
 		Unresolved Comments (${unresolvedCount})
 	</h2>
-	${unresolvedGroups.map(renderFileGroup).join('')}
+	${unresolvedGroups.map(
+        (g) => renderFileGroup(g)
+      ).join('')}
 </div>` : '';
 
   const empty = !draftGroups.length
-    && !unresolvedGroups.length;
+    && !unresolvedGroups.length
+    && !olderPatchsetGroups.length;
 
   return `<!DOCTYPE html>
 <html>
@@ -130,16 +174,19 @@ ${OVERVIEW_CSS}
 ${empty
       ? '<div class="empty">No draft or '
       + 'unresolved comments found.</div>'
-      : draftsSection + unresolvedSection
+      : olderSection + draftsSection + unresolvedSection
     }
 <script>
 const vscode = acquireVsCodeApi();
 function navigate(el) {
+	if (!el) return;
 	vscode.postMessage({
 		command: 'navigate',
 		filePath: el.dataset.file,
 		line: el.dataset.line
-			? parseInt(el.dataset.line) : undefined
+			? parseInt(el.dataset.line) : undefined,
+		patchSet: el.dataset.patchset
+			? parseInt(el.dataset.patchset) : undefined
 	});
 }
 </script>

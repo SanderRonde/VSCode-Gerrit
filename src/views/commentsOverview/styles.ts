@@ -102,4 +102,25 @@ h2 {
 	text-align: center;
 	padding: 40px;
 	opacity: 0.6;
+}
+.comment-row.older-patchset {
+	cursor: default;
+	opacity: 0.6;
+}
+.comment-row.older-patchset:hover {
+	background: inherit;
+}
+.badge.older-ps {
+	background: var(--vscode-descriptionForeground);
+	color: var(--vscode-editor-background);
+}
+.older-patchset-note {
+	font-size: 11px;
+	opacity: 0.7;
+	padding: 4px 10px 8px;
+	font-style: italic;
+}
+.older-patchset-section {
+	border-left: 3px solid var(--vscode-editorWarning-foreground);
+	padding-left: 8px;
 }`;

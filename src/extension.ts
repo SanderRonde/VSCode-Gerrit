@@ -75,6 +75,26 @@ export async function activate(context: ExtensionContext): Promise<void> {
 	GerritSecrets.secretStorage = context.secrets;
 	await setAPIGitReviewFile(gerritRepo);
 
+	// Set AI Review enabled context
+	const aiReviewEnabled = getConfiguration().get(
+		'gerrit.aiReview.enabled',
+		false
+	);
+	await setContextProp('gerrit:aiReview.enabled', aiReviewEnabled);
+
+	// Watch for config changes to update AI Review enabled context
+	context.subscriptions.push(
+		workspace.onDidChangeConfiguration((e) => {
+			if (e.affectsConfiguration('gerrit.aiReview.enabled')) {
+				const enabled = getConfiguration().get(
+					'gerrit.aiReview.enabled',
+					false
+				);
+				void setContextProp('gerrit:aiReview.enabled', enabled);
+			}
+		})
+	);
+
 	// Register commands
 	const statusBar = new CurrentChangeStatusBarManager();
 	context.subscriptions.push(statusBar);

@@ -292,7 +292,7 @@ export const commands: {
   'gerrit.aiReview': {
     title: 'AI Review Change',
     icon: '$(lightbulb)',
-    inCommandPalette: contextProp('gerrit:connected'),
+    inCommandPalette: false,
   },
   'gerrit.enableAiReview': {
     title: 'Enable AI Review',
@@ -306,6 +306,11 @@ export const commands: {
     title: 'Comments Overview',
     icon: '$(comment-discussion)',
     inCommandPalette: contextProp('gerrit:connected'),
+  },
+  'gerrit.acceptSuggestion': {
+    title: 'Accept Suggestion',
+    icon: '$(lightbulb)',
+    inCommandPalette: false,
   },
 };
 
@@ -430,6 +435,13 @@ export const views: {
           commentContains(COMMENT_IS_DELETABLE)
         ),
       },
+      {
+        command: GerritExtensionCommands.ACCEPT_SUGGESTION,
+        when: and(
+          IS_GERRTIT_COMMENT_CONTROLLER,
+          commentContains(COMMENT_QUICK_ACTIONS_POSSIBLE)
+        ),
+      },
     ],
   },
   'view/item/context': {
@@ -443,6 +455,13 @@ export const views: {
       },
       {
         command: GerritExtensionCommands.QUICK_CHECKOUT,
+        when: and(
+          IS_GERRIT_CHANGE_EXPLORER_VIEW,
+          viewItemContains(TREE_ITEM_TYPE_CHANGE)
+        ),
+      },
+      {
+        command: GerritExtensionCommands.AI_REVIEW,
         when: and(
           IS_GERRIT_CHANGE_EXPLORER_VIEW,
           viewItemContains(TREE_ITEM_TYPE_CHANGE)

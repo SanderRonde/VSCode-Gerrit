@@ -10,6 +10,7 @@ export interface OverviewComment {
   unresolved: boolean;
   codeSnippet?: string;
   patchSet?: number;
+  commentId?: string;
 }
 
 export interface FileGroup {
@@ -27,7 +28,8 @@ export function escapeHtml(text: string): string {
 
 function renderFileGroup(
   group: FileGroup,
-  clickable: boolean = true
+  clickable: boolean = true,
+  showCheckboxes: boolean = false
 ): string {
   const commentRows = group.comments.map((c) => {
     const badge = c.isDraft
@@ -145,14 +147,18 @@ export function buildHTML(
     unresolvedGroups.length > 0
       ? `
 <div class="section">
-	<h2>
-		<span class="codicon codicon-warning"></span>
-		Unresolved Comments (${unresolvedCount})
-	</h2>
-	${unresolvedGroups.map(
-        (g) => renderFileGroup(g)
-      ).join('')}
-</div>` : '';
+  <div class="section-header-row">
+    <h2>
+      <span class="codicon codicon-warning"></span>
+      Unresolved Comments (${unresolvedCount})
+    </h2>
+    <button class="accept-btn" onclick="acceptSelected()">
+      Accept Selected Suggestions
+    </button>
+  </div>
+  ${unresolvedGroups.map((g) => renderFileGroup(g, true, true)).join('')}
+</div>`
+      : '';
 
   const empty = !draftGroups.length
     && !unresolvedGroups.length
@@ -179,15 +185,39 @@ ${empty
 <script>
 const vscode = acquireVsCodeApi();
 function navigate(el) {
-	if (!el) return;
-	vscode.postMessage({
-		command: 'navigate',
-		filePath: el.dataset.file,
-		line: el.dataset.line
-			? parseInt(el.dataset.line) : undefined,
-		patchSet: el.dataset.patchset
-			? parseInt(el.dataset.patchset) : undefined
-	});
+  if (!el) return;
+  vscode.postMessage({
+    command: 'navigate',
+    filePath: el.dataset.file,
+    line: el.dataset.line
+      ? parseInt(el.dataset.line) : undefined,
+    patchSet: el.dataset.patchset
+      ? parseInt(el.dataset.patchset) : undefined
+  });
+}
+function acceptSelected() {
+  const checks = document.querySelectorAll(
+    '.comment-check:checked'
+  );
+  if (!checks.length) {
+    return;
+  }
+  const comments = Array.from(checks).map(
+    function(cb) {
+      return {
+        filePath: cb.dataset.file,
+        line: cb.dataset.line
+          ? parseInt(cb.dataset.line)
+          : undefined,
+        message: cb.dataset.message || '',
+        commentId: cb.dataset.commentId || ''
+      };
+    }
+  );
+  vscode.postMessage({
+    command: 'acceptSuggestions',
+    comments: comments
+  });
 }
 </script>
 </body>

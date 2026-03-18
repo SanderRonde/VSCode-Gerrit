@@ -123,4 +123,35 @@ h2 {
 .older-patchset-section {
 	border-left: 3px solid var(--vscode-editorWarning-foreground);
 	padding-left: 8px;
+}
+.section-header-row {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 12px;
+}
+.section-header-row h2 {
+	margin: 16px 0 8px 0;
+}
+.accept-btn {
+	font-size: 11px;
+	padding: 4px 12px;
+	border: none;
+	border-radius: 3px;
+	cursor: pointer;
+	background: var(--vscode-button-background);
+	color: var(--vscode-button-foreground);
+	font-weight: 600;
+	white-space: nowrap;
+}
+.accept-btn:hover {
+	background: var(--vscode-button-hoverBackground);
+}
+.comment-check {
+	appearance: auto;
+	width: 14px;
+	height: 14px;
+	accent-color: var(--vscode-focusBorder);
+	cursor: pointer;
+	flex-shrink: 0;
 }`;

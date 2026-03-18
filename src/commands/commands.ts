@@ -43,32 +43,45 @@ import {
   nextUnresolvedComment,
   previousUnresolvedComment,
 } from '../providers/comments/commentCommands';
+import {
+  getChangeIDFromCheckoutString,
+  gitReview,
+  gitFetchAndCheckoutChange,
+} from '../lib/git/git';
 import { CanFetchMoreTreeProvider } from '../views/activityBar/shared/canFetchMoreTreeProvider';
+import {
+  CommentThread,
+  ExtensionContext,
+  Uri,
+  window,
+  ProgressLocation,
+} from 'vscode';
 import { fetchMoreTreeItemEntries } from '../views/activityBar/changes/fetchMoreTreeItem';
 import { openCurrentChangeOnline } from '../lib/commandHandlers/openCurrentChangeOnline';
+import {
+  showCommentsOverview,
+  setExtensionPath,
+} from '../views/commentsOverview';
 import { clearSearchResults, search } from '../views/activityBar/search/search';
 import { ChangeTreeView } from '../views/activityBar/changes/changeTreeView';
 import { QuickCheckoutTreeEntry } from '../views/activityBar/quickCheckout';
 import { listenForStreamEvents } from '../lib/stream-events/stream-events';
 import { GerritCommentBase } from '../lib/gerrit/gerritAPI/gerritComment';
-import { getChangeIDFromCheckoutString, gitReview, gitFetchAndCheckoutChange } from '../lib/git/git';
 import { createAutoRegisterCommand } from 'vscode-generate-package-json';
 import { enterCredentials } from '../lib/credentials/enterCredentials';
 import { rebaseOntoParent, recursiveRebase } from '../lib/git/rebase';
-import { CommentThread, ExtensionContext, Uri, window, ProgressLocation } from 'vscode';
 import { GerritChange } from '../lib/gerrit/gerritAPI/gerritChange';
+import { runAIReview } from '../lib/ai-review/reviewOrchestrator';
 import { focusChange } from '../lib/commandHandlers/focusChange';
+import { enableAiReview } from '../lib/ai-review/enableAiReview';
+import { acceptSuggestion } from '../lib/ai-review/commentFixer';
+import { selectAiModel } from '../lib/ai-review/modelSelector';
 import { Repository } from '../types/vscode-extension-git';
 import { checkConnection } from '../lib/gerrit/gerritAPI';
 import { GerritExtensionCommands } from './command-names';
 import { openOnGitiles } from '../lib/gitiles/gitiles';
 import { commands as vscodeCommands } from 'vscode';
 import { commands, GerritCodicons } from './defs';
-import { tryExecAsync } from '../lib/git/gitCLI';
-import { runAIReview } from '../lib/ai-review/reviewOrchestrator';
-import { enableAiReview } from '../lib/ai-review/enableAiReview';
-import { selectAiModel } from '../lib/ai-review/modelSelector';
-import { showCommentsOverview } from '../views/commentsOverview';
 
 async function checkoutChange(
   uri: string,
@@ -117,6 +130,7 @@ export function registerCommands(
   gerritRepo: Repository,
   context: ExtensionContext
 ): void {
+  setExtensionPath(context.extensionPath);
   const registerCommand = createAutoRegisterCommand<GerritCodicons>(commands);
 
   // Credentials/connection
@@ -604,6 +618,14 @@ export function registerCommands(
           changeTreeView.initialChange.number.toString(),
           gerritRepo
         )
+    )
+  );
+
+  context.subscriptions.push(
+    registerCommand(
+      GerritExtensionCommands.ACCEPT_SUGGESTION,
+      (comment: GerritCommentBase) =>
+        acceptSuggestion(comment, gerritRepo, context.extensionPath)
     )
   );
 }

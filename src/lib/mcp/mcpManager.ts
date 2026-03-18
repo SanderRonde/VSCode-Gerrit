@@ -1,4 +1,4 @@
-import { workspace, Uri } from 'vscode';
+import { workspace } from 'vscode';
 import { log } from '../util/log';
 import * as path from 'path';
 import * as fs from 'fs';

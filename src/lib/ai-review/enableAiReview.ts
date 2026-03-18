@@ -1,22 +1,11 @@
-import {
-  window,
-  workspace,
-  ExtensionContext,
-} from 'vscode';
-import { getConfiguration } from '../vscode/config';
-import { selectAiModel } from './modelSelector';
-import {
-  writeMcpConfig,
-  GerritCredentials,
-} from '../mcp/mcpManager';
-import {
-  getGerritURLFromReviewFile,
-} from '../credentials/enterCredentials';
-import {
-  getGitReviewFileCached,
-} from '../credentials/gitReviewFile';
+import { getGerritURLFromReviewFile } from '../credentials/enterCredentials';
+import { getGitReviewFileCached } from '../credentials/gitReviewFile';
+import { writeMcpConfig, GerritCredentials } from '../mcp/mcpManager';
+import { window, workspace, ExtensionContext } from 'vscode';
 import { GerritSecrets } from '../credentials/secrets';
+import { getConfiguration } from '../vscode/config';
 import { getGerritRepo } from '../gerrit/gerrit';
+import { selectAiModel } from './modelSelector';
 import { tryExecAsync } from '../git/gitCLI';
 import { log } from '../util/log';
 

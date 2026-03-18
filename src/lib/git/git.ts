@@ -11,24 +11,20 @@ import {
 	ConfigurationTarget,
 	ProgressLocation,
 } from 'vscode';
-import {
-	getLastCommits,
-	GitCommit,
-	tryExecAsync,
-} from './gitCLI';
 import { ChangeTreeView } from '../../views/activityBar/changes/changeTreeView';
 import { APISubscriptionManager } from '../subscriptions/subscriptions';
+import { getLastCommits, GitCommit, tryExecAsync } from './gitCLI';
 import { PERIODICAL_GIT_FETCH_INTERVAL } from '../util/constants';
 import { MATCH_ANY } from '../subscriptions/baseSubscriptions';
 import { Repository } from '../../types/vscode-extension-git';
+import { getCurrentChangeID, isGerritCommit } from './commit';
 import { createAwaitingInterval, wait } from '../util/util';
+import { GerritAPIWith } from '../gerrit/gerritAPI/api';
 import { getConfiguration } from '../vscode/config';
 import { VersionNumber } from '../util/version';
-import { getCurrentChangeID, isGerritCommit } from './commit';
+import { getAPI } from '../gerrit/gerritAPI';
 import { log } from '../util/log';
 import { rebase } from './rebase';
-import { getAPI } from '../gerrit/gerritAPI';
-import { GerritAPIWith } from '../gerrit/gerritAPI/api';
 
 export async function onChangeLastCommit(
 	gerritRepo: Repository,

@@ -5,53 +5,27 @@ import {
   Selection,
   Position,
   ProgressLocation,
-  ConfigurationTarget,
   ExtensionContext,
   commands as vscodeCommands,
 } from 'vscode';
+import { FileTreeView } from '../../views/activityBar/changes/changeTreeView/fileTreeView';
+import { ChangeTreeView } from '../../views/activityBar/changes/changeTreeView';
+import { getGerritURLFromReviewFile } from '../credentials/enterCredentials';
+import { log, getOutputChannel, showOutputChannel } from '../util/log';
+import { getGitReviewFileCached } from '../credentials/gitReviewFile';
+import { writeMcpConfig, GerritCredentials } from '../mcp/mcpManager';
+import { showCommentsOverview } from '../../views/commentsOverview';
+import { GerritChange } from '../gerrit/gerritAPI/gerritChange';
 import { Repository } from '../../types/vscode-extension-git';
+import { GerritAPIWith } from '../gerrit/gerritAPI/api';
+import { GerritSecrets } from '../credentials/secrets';
+import { gitFetchAndCheckoutChange } from '../git/git';
+import { quickCheckout } from '../git/quick-checkout';
 import { getConfiguration } from '../vscode/config';
 import { writePromptFile } from './promptBuilder';
 import { getDefaultModel } from './modelSelector';
-import { spawn } from 'child_process';
-import {
-  writeMcpConfig,
-  GerritCredentials,
-} from '../mcp/mcpManager';
-import {
-  quickCheckout,
-} from '../git/quick-checkout';
-import {
-  gitFetchAndCheckoutChange,
-} from '../git/git';
-import {
-  ChangeTreeView,
-} from '../../views/activityBar/changes/changeTreeView';
-import {
-  FileTreeView,
-} from '../../views/activityBar/changes/changeTreeView/fileTreeView';
-import {
-  GerritChange,
-} from '../gerrit/gerritAPI/gerritChange';
-import {
-  GerritAPIWith,
-} from '../gerrit/gerritAPI/api';
-import {
-  getGerritURLFromReviewFile,
-} from '../credentials/enterCredentials';
-import {
-  getGitReviewFileCached,
-} from '../credentials/gitReviewFile';
-import { GerritSecrets } from '../credentials/secrets';
 import { getAPI } from '../gerrit/gerritAPI';
-import {
-  log,
-  getOutputChannel,
-  showOutputChannel,
-} from '../util/log';
-import {
-  showCommentsOverview,
-} from '../../views/commentsOverview';
+import { spawn } from 'child_process';
 import * as fs from 'fs';
 
 type CheckoutBehavior = 'ask' | 'always' | 'never';

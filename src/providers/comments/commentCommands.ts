@@ -674,7 +674,7 @@ export async function nextUnresolvedComment(
 		const nextFile =
 			allFilePaths.length === 1
 				? allFilePaths[0]
-				: allFilePaths[fileIndex + 1] ?? allFilePaths[0];
+				: (allFilePaths[fileIndex + 1] ?? allFilePaths[0]);
 		return {
 			filePath: nextFile,
 			commentIndex: COMMENT_POSITION.START,
@@ -740,8 +740,8 @@ export async function previousUnresolvedComment(
 		const nextFile =
 			allFilePaths.length === 1
 				? allFilePaths[0]
-				: allFilePaths[fileIndex - 1] ??
-					allFilePaths[allFilePaths.length - 1];
+				: (allFilePaths[fileIndex - 1] ??
+					allFilePaths[allFilePaths.length - 1]);
 		return {
 			filePath: nextFile,
 			commentIndex: COMMENT_POSITION.END,

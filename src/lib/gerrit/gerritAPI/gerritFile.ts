@@ -114,7 +114,7 @@ export class GerritFile extends DynamicallyFetchable {
 		useOldPath = false
 	): Promise<TextContent | null> {
 		const filePath = useOldPath
-			? this.oldPath ?? this.filePath
+			? (this.oldPath ?? this.filePath)
 			: this.filePath;
 		const api = await getAPI();
 		if (!api) {

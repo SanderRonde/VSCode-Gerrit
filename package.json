@@ -291,6 +291,11 @@
 				"icon": "$(comment-discussion)"
 			},
 			{
+				"command": "gerrit.acceptSuggestion",
+				"title": "Accept Suggestion",
+				"icon": "$(lightbulb)"
+			},
+			{
 				"command": "cmd.gerrit.changeGitRepo",
 				"title": "Gerrit: Change git repo"
 			},
@@ -385,17 +390,17 @@
 				"title": "Gerrit: Open line on Gitiles (permalink)"
 			},
 			{
-				"command": "cmd.gerrit.aiReview",
-				"title": "Gerrit: AI Review Change",
-				"icon": "$(lightbulb)"
-			},
-			{
 				"command": "cmd.gerrit.enableAiReview",
 				"title": "Gerrit: Enable AI Review"
 			},
 			{
 				"command": "cmd.gerrit.selectAiModel",
 				"title": "Gerrit: Select AI Review Model"
+			},
+			{
+				"command": "cmd.gerrit.commentsOverview",
+				"title": "Gerrit: Comments Overview",
+				"icon": "$(comment-discussion)"
 			}
 		],
 		"keybindings": [
@@ -639,6 +644,10 @@
 					"when": "false"
 				},
 				{
+					"command": "gerrit.acceptSuggestion",
+					"when": "false"
+				},
+				{
 					"command": "cmd.gerrit.changeGitRepo",
 					"when": "true"
 				},
@@ -719,15 +728,15 @@
 					"when": "true"
 				},
 				{
-					"command": "cmd.gerrit.aiReview",
-					"when": "true"
-				},
-				{
 					"command": "cmd.gerrit.enableAiReview",
 					"when": "true"
 				},
 				{
 					"command": "cmd.gerrit.selectAiModel",
+					"when": "true"
+				},
+				{
+					"command": "cmd.gerrit.commentsOverview",
 					"when": "true"
 				}
 			],
@@ -817,6 +826,11 @@
 					"command": "gerrit.deleteComment",
 					"when": "commentController == gerrit && comment =~ /deletable/",
 					"group": "inline@4"
+				},
+				{
+					"command": "gerrit.acceptSuggestion",
+					"when": "commentController == gerrit && comment =~ /quickActionable/",
+					"group": "inline@5"
 				}
 			],
 			"view/item/context": [
@@ -831,12 +845,12 @@
 					"group": "inline@2"
 				},
 				{
-					"command": "gerrit.checkoutBranch",
+					"command": "gerrit.aiReview",
 					"when": "view == gerrit:changeExplorer && viewItem =~ /gerritchange/",
 					"group": "inline@3"
 				},
 				{
-					"command": "gerrit.aiReview",
+					"command": "gerrit.checkoutBranch",
 					"when": "view == gerrit:changeExplorer && viewItem =~ /gerritchange/",
 					"group": "inline@4"
 				},
@@ -1491,8 +1505,8 @@
 				},
 				"gerrit.aiReview.enabled": {
 					"type": "boolean",
-					"title": "Enable AI Review feature",
-					"description": "Enable AI-powered code review using Cursor CLI",
+					"title": "Enable AI Review",
+					"description": "Enable AI-powered code reviews using Cursor agent",
 					"default": false
 				},
 				"gerrit.aiReview.checkoutBehavior": {
@@ -1502,21 +1516,21 @@
 						"always",
 						"never"
 					],
-					"title": "Checkout behavior for AI Review",
-					"description": "Whether to checkout the change locally before running AI review. \"ask\" prompts each time, \"always\" checks out automatically, \"never\" uses Gerrit context only.",
+					"title": "AI Review Checkout Behavior",
+					"description": "Whether to checkout changes before AI review for better context",
 					"default": "ask"
 				},
 				"gerrit.aiReview.defaultModel": {
 					"type": "string",
-					"title": "Default AI model for reviews",
-					"description": "Default Cursor model to use for AI reviews (e.g. claude-4.6-sonnet). Leave empty for auto.",
+					"title": "Default AI Review Model",
+					"description": "Default AI model to use for reviews (e.g., claude-4.6-opus, gpt-4o). Leave empty for auto-selection.",
 					"default": ""
 				},
 				"gerrit.aiReview.customPromptFile": {
 					"type": "string",
-					"title": "Custom review prompt file",
-					"description": "Path to a Markdown file with additional review instructions. Relative to workspace root.",
-					"default": ".gerrit-review-prompt.md"
+					"title": "Custom AI Review Prompt File",
+					"description": "Path to a custom Markdown file with additional review guidelines (relative to workspace root)",
+					"default": ".gerrit-ai-prompt.md"
 				}
 			}
 		}
@@ -1544,8 +1558,10 @@
 		"build:review:css": "npm run copy -- src/views/activityBar/review/css/index.css out/review/index.css",
 		"build:main": "esbuild --minify --bundle --outfile=out/extension.js src/extension.ts --platform=node --external:vscode",
 		"build:debug:main": "esbuild --bundle --outfile=out/extension.js src/extension.ts --platform=node --external:vscode --define:process.env.DEV_OVERRIDE=true",
-		"build": "rimraf ./out && npm run build:main && npm run build:review:js && npm run build:review:css && npm run build:review:codicons:css && npm run build:review:codicons:ttf",
-		"build:debug": "rimraf ./out && npm run build:debug:main && npm run build:debug:review:js && npm run build:review:css && npm run build:review:codicons:css && npm run build:review:codicons:ttf",
+		"build:mcp": "esbuild --bundle --outfile=out/lib/mcp/gerritMcpServer.js src/lib/mcp/gerritMcpServer.ts --platform=node --external:vscode",
+		"build:debug:mcp": "esbuild --bundle --outfile=out/lib/mcp/gerritMcpServer.js src/lib/mcp/gerritMcpServer.ts --platform=node --external:vscode",
+		"build": "rimraf ./out && npm run build:main && npm run build:mcp && npm run build:review:js && npm run build:review:css && npm run build:review:codicons:css && npm run build:review:codicons:ttf",
+		"build:debug": "rimraf ./out && npm run build:debug:main && npm run build:debug:mcp && npm run build:debug:review:js && npm run build:review:css && npm run build:review:codicons:css && npm run build:review:codicons:ttf",
 		"pretest": "npm run compile && npm run lint",
 		"lint": "eslint src --ext ts",
 		"format-staged": "(git diff --ignore-submodules --quiet && npm run format) || pretty-quick src/",

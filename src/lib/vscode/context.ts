@@ -9,6 +9,7 @@ export interface ContextProps {
 	'gerrit:hasCommentFeature': boolean;
 	'gerrit.streamEvents': boolean;
 	'gerrit:currentChangeNumber': number | null;
+	'gerrit:aiReview.enabled': boolean;
 }
 
 const contextProps: ContextProps = {
@@ -20,6 +21,7 @@ const contextProps: ContextProps = {
 	'gerrit:hasCommentFeature': false,
 	'gerrit.streamEvents': false,
 	'gerrit:currentChangeNumber': null,
+	'gerrit:aiReview.enabled': false,
 };
 
 export async function setContextProp<K extends keyof ContextProps>(

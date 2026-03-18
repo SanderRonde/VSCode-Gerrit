@@ -7,42 +7,37 @@ import {
   WebviewPanel,
   CommentThreadCollapsibleState,
 } from 'vscode';
-import { Repository } from '../../types/vscode-extension-git';
 import {
-  GerritChange,
-  CommentMap,
-} from '../../lib/gerrit/gerritAPI/gerritChange';
-import {
-  GerritAPIWith,
-} from '../../lib/gerrit/gerritAPI/api';
-import {
-  FileTreeView,
-} from '../activityBar/changes/changeTreeView/fileTreeView';
+  acceptMultipleSuggestions,
+  SuggestionComment,
+} from '../../lib/ai-review/commentFixer';
 import {
   GerritComment,
   GerritDraftComment,
 } from '../../lib/gerrit/gerritAPI/gerritComment';
 import {
-  GerritFile,
-} from '../../lib/gerrit/gerritAPI/gerritFile';
+  GerritChange,
+  CommentMap,
+} from '../../lib/gerrit/gerritAPI/gerritChange';
+import { FileTreeView } from '../activityBar/changes/changeTreeView/fileTreeView';
+import { GerritFile } from '../../lib/gerrit/gerritAPI/gerritFile';
+import { getAPIForSubscription } from '../../lib/gerrit/gerritAPI';
+import { CommentManager } from '../../providers/commentProvider';
+import { GerritAPIWith } from '../../lib/gerrit/gerritAPI/api';
+import { buildHTML, OverviewComment, FileGroup } from './html';
+import { Repository } from '../../types/vscode-extension-git';
 import { log } from '../../lib/util/log';
-import {
-  buildHTML,
-  OverviewComment,
-  FileGroup,
-} from './html';
-import {
-  CommentManager,
-} from '../../providers/commentProvider';
-import {
-  getAPIForSubscription,
-} from '../../lib/gerrit/gerritAPI';
 
 let activePanel: WebviewPanel | null = null;
 let activeChangeNumber: string = '';
 let activeGerritRepo: Repository | null = null;
 let activeChange: GerritChange | null = null;
 let activePatchSetNumber: number = 0;
+let activeExtensionPath: string = '';
+
+export function setExtensionPath(path: string): void {
+  activeExtensionPath = path;
+}
 
 export async function showCommentsOverview(
   changeNumber: string,
@@ -53,9 +48,7 @@ export async function showCommentsOverview(
 
   if (activePanel) {
     activePanel.reveal(ViewColumn.One);
-    await updatePanel(
-      activePanel, changeNumber, gerritRepo
-    );
+    await updatePanel(activePanel, changeNumber, gerritRepo);
     return;
   }
 
@@ -81,24 +74,43 @@ export async function showCommentsOverview(
       filePath?: string;
       line?: number;
       patchSet?: number;
+      comments?: Array<{
+        filePath: string;
+        line?: number;
+        message: string;
+        commentId: string;
+      }>;
     }) => {
-      if (
-        msg.command === 'navigate'
-        && activeGerritRepo
-      ) {
+      if (msg.command === 'navigate' && activeGerritRepo) {
         await navigateToComment(
           msg.filePath ?? '',
           msg.line,
           msg.patchSet,
           activeGerritRepo
         );
+      } else if (
+        msg.command === 'acceptSuggestions' &&
+        msg.comments &&
+        activeGerritRepo
+      ) {
+        const items: SuggestionComment[] = msg.comments.map((c) => ({
+          filePath: c.filePath,
+          line: c.line,
+          message: c.message,
+          commentId: c.commentId,
+          changeID: activeChange?.changeID,
+        }));
+        await acceptMultipleSuggestions(
+          items,
+          activeGerritRepo,
+          activeExtensionPath,
+          activeChangeNumber
+        );
       }
     }
   );
 
-  await updatePanel(
-    panel, changeNumber, gerritRepo
-  );
+  await updatePanel(panel, changeNumber, gerritRepo);
 }
 
 async function updatePanel(
@@ -155,20 +167,14 @@ async function updatePanel(
     );
   }
 
-  const fileContents =
-    await fetchFileContents(
-      change, commentsMap, gerritRepo
-    );
-
-  const {
-    draftGroups,
-    unresolvedGroups,
-    olderPatchsetGroups,
-  } = groupComments(
+  const fileContents = await fetchFileContents(
+    change,
     commentsMap,
-    fileContents,
-    activePatchSetNumber
+    gerritRepo
   );
+
+  const { draftGroups, unresolvedGroups, olderPatchsetGroups } =
+    groupComments(commentsMap, fileContents, activePatchSetNumber);
 
   panel.webview.html = buildHTML(
     changeNumber,
@@ -580,7 +586,7 @@ async function navigateToComment(
 
     await vscodeCommands.executeCommand(
       diffCmd.command,
-      ...diffCmd.arguments
+      ...(diffCmd.arguments as unknown[])
     );
 
     // Immediately navigate to the line so the

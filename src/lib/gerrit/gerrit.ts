@@ -14,6 +14,7 @@ import {
 } from '../../types/vscode-extension-git';
 import { getConfiguration } from '../vscode/config';
 import { isGerritCommit } from '../git/commit';
+import { GitCommit } from '../git/gitCLI';
 import { wait } from '../util/util';
 import { log } from '../util/log';
 
@@ -21,54 +22,77 @@ async function tryGetGitAPI(): Promise<false | API> {
 	for (let i = 0; i < 1000 * 60; await wait(1000), i += 1000) {
 		try {
 			const extension =
-				extensions.getExtension<GitExtension>('vscode.git');
+				extensions.getExtension<GitExtension>(
+					'vscode.git'
+				);
 			if (!extension) {
 				continue;
 			}
 
+			if (!extension.isActive) {
+				await extension.activate();
+			}
+
 			return extension.exports.getAPI(1);
 		} catch (e) {
-			log('Failed to get git API, retrying in 1 second');
+			log(
+				'Failed to get git API, retrying in 1 second'
+			);
 			continue;
 		}
 	}
 
 	log(
-		'Failed to get git API after 60 seconds, it looks like VSCode has disconnected from the host'
+		'Failed to get git API after 60 seconds, ' +
+			'it looks like VSCode has disconnected ' +
+			'from the host'
 	);
 
 	return false;
 }
 
-async function getGerritRepos(silent: boolean = true): Promise<Repository[]> {
+async function getGerritRepos(
+	silent: boolean = true
+): Promise<Repository[]> {
 	const gitAPI = await tryGetGitAPI();
 	if (!gitAPI) {
 		return [];
 	}
-	return await Promise.all(
-		gitAPI.repositories.filter(async (repo) => {
-			// Get the last X commits and check there's it's a gerrit one
-			const lastCommit = await repo.log({ maxEntries: 50 });
+	const gerritRepos: Repository[] = [];
+	for (const repo of gitAPI.repositories) {
+		try {
+			const commits = await repo.log({
+				maxEntries: 50,
+			});
 
-			if (lastCommit.length === 0) {
+			if (commits.length === 0) {
 				if (!silent) {
 					log('No commits found, skipping repo.');
 				}
-				return false;
+				continue;
 			}
 
-			if (lastCommit.some((c) => !isGerritCommit(c))) {
+			const hasGerritCommit = commits.some((c) =>
+				isGerritCommit(c as unknown as GitCommit)
+			);
+			if (!hasGerritCommit) {
 				if (!silent) {
 					log(
-						'No gerrit commits found in last 50 commits, skipping repo.'
+						'No gerrit commits found in ' +
+							'last 50 commits, skipping repo.'
 					);
 				}
-				return false;
+				continue;
 			}
 
-			return true;
-		})
-	);
+			gerritRepos.push(repo);
+		} catch (e) {
+			if (!silent) {
+				log(`Error checking repo: ${e}`);
+			}
+		}
+	}
+	return gerritRepos;
 }
 
 export async function pickGitRepo(): Promise<Repository | null> {

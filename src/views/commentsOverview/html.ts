@@ -29,7 +29,7 @@ export function escapeHtml(text: string): string {
 function renderFileGroup(
   group: FileGroup,
   clickable: boolean = true,
-  showCheckboxes: boolean = false
+  _showCheckboxes: boolean = false
 ): string {
   const commentRows = group.comments.map((c) => {
     const badge = c.isDraft

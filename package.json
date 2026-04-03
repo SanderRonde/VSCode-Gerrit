@@ -1057,8 +1057,7 @@
 					"id": "gerrit:changeExplorer",
 					"name": "Changes",
 					"type": "tree",
-					"visibility": "visible",
-					"when": "gerrit:isUsingGerrit"
+					"visibility": "visible"
 				},
 				{
 					"id": "gerrit:searchResults",
@@ -1084,6 +1083,16 @@
 			]
 		},
 		"viewsWelcome": [
+			{
+				"view": "gerrit:changeExplorer",
+				"contents": "Detecting Gerrit repository...",
+				"when": "!gerrit:isUsingGerrit && !gerrit:noGerritRepo"
+			},
+			{
+				"view": "gerrit:changeExplorer",
+				"contents": "No Gerrit repository detected in this workspace.\n\n[Enter Credentials](command:cmd.gerrit.enterCredentials)\n[Check Connection](command:cmd.gerrit.checkConnection)",
+				"when": "gerrit:noGerritRepo"
+			},
 			{
 				"view": "gerrit:quickCheckout",
 				"contents": "No quick checkout stashes found, create one by right-clicking a change and selecting \"Quick-Checkout\""

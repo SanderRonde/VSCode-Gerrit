@@ -28,8 +28,7 @@ export function escapeHtml(text: string): string {
 
 function renderFileGroup(
   group: FileGroup,
-  clickable: boolean = true,
-  showCheckboxes: boolean = false
+  clickable: boolean = true
 ): string {
   const commentRows = group.comments.map((c) => {
     const badge = c.isDraft
@@ -156,7 +155,7 @@ export function buildHTML(
       Accept Selected Suggestions
     </button>
   </div>
-  ${unresolvedGroups.map((g) => renderFileGroup(g, true, true)).join('')}
+  ${unresolvedGroups.map((g) => renderFileGroup(g, true)).join('')}
 </div>`
       : '';
 

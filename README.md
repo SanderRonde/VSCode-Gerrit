@@ -18,6 +18,27 @@ You can also set `gerrit.auth.password` and `gerrit.auth.cookie` in settings; th
 
 Additionally the extension requires the python package [git-review](https://pypi.org/project/git-review/) to be installed.
 
+### AI Review Setup
+
+The AI Review feature requires:
+
+-   **Node.js >= 18** — the extension host and Gerrit MCP server both need Node 18+.
+-   **Cursor Agent CLI** (`agent`) — install it by running:
+
+    ```bash
+    curl https://cursor.com/install -fsS | bash
+    ```
+
+    Verify with `agent --version`. See the [Cursor CLI docs](https://cursor.com/docs/cli/installation) for details.
+
+Once installed, run **Gerrit: Enable AI Review** from the command palette. This will:
+
+1.  Let you pick an AI model and checkout behavior.
+2.  Write a `.cursor/mcp.json` with the `gerrit-review` MCP server configuration.
+3.  Auto-enable the MCP server via `agent mcp enable gerrit-review`.
+
+After setup, use **Gerrit: AI Review Change** (or the lightbulb icon in the Change Explorer) to run an AI-powered review on any Gerrit change.
+
 ## Features
 
 ### Changes panel

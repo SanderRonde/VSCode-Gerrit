@@ -18,6 +18,7 @@
 		"../.vscode-test",
 		"../submodules",
 		"views/activityBar/review/html/src",
-		"views/activityBar/review/html/dist"
+		"views/activityBar/review/html/dist",
+		"test"
 	]
 }

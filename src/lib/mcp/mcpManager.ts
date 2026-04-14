@@ -72,7 +72,7 @@ export async function writeMcpConfig(
   }
 
   config.mcpServers[MCP_SERVER_NAME] = {
-    command: 'node',
+    command: process.execPath,
     args: [serverScript],
     env,
   };

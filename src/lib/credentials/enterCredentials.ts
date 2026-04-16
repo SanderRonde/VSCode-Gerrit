@@ -347,27 +347,5 @@ async function enterCookieCredentials(gerritRepo: Repository): Promise<void> {
 }
 
 export async function enterCredentials(gerritRepo: Repository): Promise<void> {
-	const choice = await window.showQuickPick(
-		[
-			{
-				label: 'Enter username and password',
-			},
-			{
-				label: 'Access token (or cookie)',
-				description:
-					'Same value as GerritAccount cookie or from Gerrit Settings → HTTP Credentials',
-			},
-		] as const,
-		{
-			ignoreFocusOut: true,
-			placeHolder: 'How do you want to authenticate?',
-			title: 'Gerrit Authentication',
-		}
-	);
-
-	if (choice?.label === 'Enter username and password') {
-		await enterBasicCredentials(gerritRepo);
-	} else {
-		await enterCookieCredentials(gerritRepo);
-	}
+	await enterBasicCredentials(gerritRepo);
 }

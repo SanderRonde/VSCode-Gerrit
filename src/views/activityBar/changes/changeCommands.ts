@@ -69,7 +69,8 @@ export async function checkoutBranch(
 	changeTreeView: ChangeTreeView
 ): Promise<void> {
 	const change = await changeTreeView.change;
-	const changeNumber = change?.number ?? changeTreeView.initialChange.changeID;
+	const changeNumber =
+		change?.number ?? changeTreeView.initialChange.changeID;
 
 	await window.withProgress(
 		{

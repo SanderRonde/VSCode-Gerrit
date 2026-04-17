@@ -353,11 +353,11 @@ export async function gitFetchAndCheckoutChange(
 
 		try {
 			// Import GerritChange to use getChangeOnce
-			const { GerritChange } = await import('../gerrit/gerritAPI/gerritChange');
-			const change = await GerritChange.getChangeOnce(
-				changeNum,
-				[GerritAPIWith.CURRENT_REVISION]
-			);
+			const { GerritChange } =
+				await import('../gerrit/gerritAPI/gerritChange');
+			const change = await GerritChange.getChangeOnce(changeNum, [
+				GerritAPIWith.CURRENT_REVISION,
+			]);
 			if (!change) {
 				return {
 					success: false,
@@ -393,10 +393,9 @@ export async function gitFetchAndCheckoutChange(
 	log(`Fetching change ${changeNum} patchset ${patchSetNum} from ${remote}`);
 
 	// Fetch the change
-	const fetchResult = await tryExecAsync(
-		`git fetch ${remote} ${refspec}`,
-		{ cwd }
-	);
+	const fetchResult = await tryExecAsync(`git fetch ${remote} ${refspec}`, {
+		cwd,
+	});
 
 	if (!fetchResult.success) {
 		log(`Failed to fetch change: ${fetchResult.stderr}`);
@@ -404,10 +403,9 @@ export async function gitFetchAndCheckoutChange(
 	}
 
 	// Checkout FETCH_HEAD (the fetched change)
-	const checkoutResult = await tryExecAsync(
-		'git checkout FETCH_HEAD',
-		{ cwd }
-	);
+	const checkoutResult = await tryExecAsync('git checkout FETCH_HEAD', {
+		cwd,
+	});
 
 	if (!checkoutResult.success) {
 		log(`Failed to checkout change: ${checkoutResult.stderr}`);

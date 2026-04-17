@@ -344,91 +344,73 @@ async function promptAgentLogin(
   return false;
 }
 
-async function pickCheckoutBehavior(): Promise<
-  CheckoutBehavior | undefined
-> {
-  const items = [
-    {
-      label: 'Ask each time',
-      description:
-        'Prompt before each review whether '
-        + 'to checkout the change',
-      value: 'ask' as CheckoutBehavior,
-    },
-    {
-      label: 'Always checkout',
-      description:
-        'Automatically checkout for full '
-        + 'repo context',
-      value: 'always' as CheckoutBehavior,
-    },
-    {
-      label: 'Never checkout',
-      description:
-        'Review using Gerrit context only '
-        + '(no local checkout)',
-      value: 'never' as CheckoutBehavior,
-    },
-  ];
+async function pickCheckoutBehavior(): Promise<CheckoutBehavior | undefined> {
+	const items = [
+		{
+			label: 'Ask each time',
+			description:
+				'Prompt before each review whether ' + 'to checkout the change',
+			value: 'ask' as CheckoutBehavior,
+		},
+		{
+			label: 'Always checkout',
+			description: 'Automatically checkout for full ' + 'repo context',
+			value: 'always' as CheckoutBehavior,
+		},
+		{
+			label: 'Never checkout',
+			description:
+				'Review using Gerrit context only ' + '(no local checkout)',
+			value: 'never' as CheckoutBehavior,
+		},
+	];
 
-  const selected = await window.showQuickPick(
-    items, {
-    placeHolder:
-      'How should AI Review handle '
-      + 'change checkout?',
-    title: 'Gerrit: Checkout Behavior',
-  }
-  );
+	const selected = await window.showQuickPick(items, {
+		placeHolder: 'How should AI Review handle ' + 'change checkout?',
+		title: 'Gerrit: Checkout Behavior',
+	});
 
-  return selected?.value;
+	return selected?.value;
 }
 
 async function extractCredentials(
-  context: ExtensionContext
+	context: ExtensionContext
 ): Promise<GerritCredentials | null> {
-  const config = getConfiguration();
-  const gerritRepo = await getGerritRepo(context);
-  const gitReviewFile = gerritRepo
-    ? await getGitReviewFileCached(gerritRepo)
-    : null;
+	const config = getConfiguration();
+	const gerritRepo = await getGerritRepo(context);
+	const gitReviewFile = gerritRepo
+		? await getGitReviewFileCached(gerritRepo)
+		: null;
 
-  const url = getGerritURLFromReviewFile(
-    gitReviewFile
-  );
-  if (!url) {
-    return null;
-  }
+	const url = getGerritURLFromReviewFile(gitReviewFile);
+	if (!url) {
+		return null;
+	}
 
-  const username =
-    config.get('gerrit.auth.username') ?? '';
-  const password =
-    await GerritSecrets.getForUrlOrWorkspace(
-      'password',
-      url,
-      workspace.workspaceFolders?.[0]?.uri
-    );
-  const cookie =
-    await GerritSecrets.getForUrlOrWorkspace(
-      'cookie',
-      url,
-      workspace.workspaceFolders?.[0]?.uri
-    );
-  const authPrefix = config.get(
-    'gerrit.customAuthUrlPrefix',
-    'a/'
-  );
+	const username = config.get('gerrit.auth.username') ?? '';
+	const password = await GerritSecrets.getForUrlOrWorkspace(
+		'password',
+		url,
+		workspace.workspaceFolders?.[0]?.uri
+	);
+	const cookie = await GerritSecrets.getForUrlOrWorkspace(
+		'cookie',
+		url,
+		workspace.workspaceFolders?.[0]?.uri
+	);
+	const authPrefix = config.get('gerrit.customAuthUrlPrefix', 'a/');
 
-  if (!username && !password && !cookie) {
-    return null;
-  }
+	if (!username && !password && !cookie) {
+		return null;
+	}
 
-  return {
-    url,
-    username,
-    password: password ?? '',
-    authCookie: cookie ?? undefined,
-    authPrefix,
-  };
+	return {
+		url,
+		username,
+		password: password ?? '',
+		authCookie: cookie ?? undefined,
+		authPrefix,
+	};
 }
 
 async function enableMcpServer(

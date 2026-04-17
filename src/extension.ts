@@ -60,17 +60,17 @@ export async function activate(context: ExtensionContext): Promise<void> {
 		registerCommand(GerritExtensionCommands.CHANGE_GIT_REPO, pickGitRepo)
 	);
 
-	// Check if we're even using gerrit
-	const gerritRepo = await getGerritRepo(context);
-
 	// Add config listener
 	initConfigListener();
 
-	// Set context to show/hide icon
-	await setContextProp('gerrit:isUsingGerrit', !!gerritRepo);
+	// Check if we're even using gerrit
+	const gerritRepo = await getGerritRepo(context);
+
 	if (!gerritRepo) {
+		await setContextProp('gerrit:noGerritRepo', true);
 		return;
 	}
+	await setContextProp('gerrit:isUsingGerrit', true);
 
 	GerritSecrets.secretStorage = context.secrets;
 	await setAPIGitReviewFile(gerritRepo);

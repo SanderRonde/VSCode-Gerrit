@@ -136,23 +136,23 @@ export async function quickCheckout(
 				return;
 			}
 
-		progress.report({
-			message: 'Checking out change',
-			increment: 5,
-		});
-		const changeNum = getChangeIDFromCheckoutString(
-			changeTreeView.initialChange.changeID
-		);
-		const result = await gitFetchAndCheckoutChange(
-			changeNum,
-			'latest',
-			'origin',
-			gerritRepo.rootUri.fsPath
-		);
-		if (!result.success) {
-			void window.showErrorMessage('Failed to checkout change');
-			return;
-		}
+			progress.report({
+				message: 'Checking out change',
+				increment: 5,
+			});
+			const changeNum = getChangeIDFromCheckoutString(
+				changeTreeView.initialChange.changeID
+			);
+			const result = await gitFetchAndCheckoutChange(
+				changeNum,
+				'latest',
+				'origin',
+				gerritRepo.rootUri.fsPath
+			);
+			if (!result.success) {
+				void window.showErrorMessage('Failed to checkout change');
+				return;
+			}
 
 			progress.report({
 				message: 'Done',

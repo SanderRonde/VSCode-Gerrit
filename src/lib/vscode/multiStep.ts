@@ -137,8 +137,10 @@ export class MultiStepper {
 		}
 		const step = this._steps[stepIndex];
 		const stepButtons = step.settings.buttons
-			? (await MultiStepEntry.getGettable(this, step.settings.buttons)) ??
-				[]
+			? ((await MultiStepEntry.getGettable(
+					this,
+					step.settings.buttons
+				)) ?? [])
 			: [];
 		if (step.settings.buttons) {
 			for (const { button, callback } of stepButtons) {

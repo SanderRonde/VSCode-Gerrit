@@ -14,18 +14,18 @@ export function logDev(...data: unknown[]): void {
 }
 
 export function log(...data: string[]): void {
-  if (channel) {
-    channel.appendLine(data.join(' '));
-  }
-  logDev('LOG:', ...data);
+	if (channel) {
+		channel.appendLine(data.join(' '));
+	}
+	logDev('LOG:', ...data);
 }
 
 export function getOutputChannel(): OutputChannel | null {
-  return channel ?? null;
+	return channel ?? null;
 }
 
 export function showOutputChannel(): void {
-  if (channel) {
-    channel.show(true);
-  }
+	if (channel) {
+		channel.show(true);
+	}
 }

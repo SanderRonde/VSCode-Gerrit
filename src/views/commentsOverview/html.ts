@@ -1,64 +1,61 @@
 import { OVERVIEW_CSS } from './styles';
 
 export interface OverviewComment {
-  filePath: string;
-  line?: number;
-  message: string;
-  authorName: string;
-  updatedStr: string;
-  isDraft: boolean;
-  unresolved: boolean;
-  codeSnippet?: string;
-  patchSet?: number;
-  commentId?: string;
+	filePath: string;
+	line?: number;
+	message: string;
+	authorName: string;
+	updatedStr: string;
+	isDraft: boolean;
+	unresolved: boolean;
+	codeSnippet?: string;
+	patchSet?: number;
+	commentId?: string;
 }
 
 export interface FileGroup {
-  filePath: string;
-  comments: OverviewComment[];
+	filePath: string;
+	comments: OverviewComment[];
 }
 
 export function escapeHtml(text: string): string {
-  return text
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;');
+	return text
+		.replace(/&/g, '&amp;')
+		.replace(/</g, '&lt;')
+		.replace(/>/g, '&gt;')
+		.replace(/"/g, '&quot;');
 }
 
 function renderFileGroup(
-  group: FileGroup,
-  clickable: boolean = true
+	group: FileGroup,
+	clickable: boolean = true,
+	_showCheckboxes: boolean = false
 ): string {
-  const commentRows = group.comments.map((c) => {
-    const badge = c.isDraft
-      ? '<span class="badge draft">Draft</span>'
-      : c.unresolved
-        ? '<span class="badge unresolved">'
-        + 'Unresolved</span>'
-        : '';
-    const psBadge =
-      !clickable && typeof c.patchSet === 'number'
-        ? `<span class="badge older-ps">`
-        + `PS ${c.patchSet}</span>`
-        : '';
-    const msgPreview =
-      escapeHtml(c.message).substring(0, 300);
-    const author = escapeHtml(c.authorName);
-    const time = c.updatedStr;
-    const snippetHtml = c.codeSnippet
-      ? `<pre class="code-snippet">${escapeHtml(c.codeSnippet)
-      }</pre>`
-      : '';
+	const commentRows = group.comments
+		.map((c) => {
+			const badge = c.isDraft
+				? '<span class="badge draft">Draft</span>'
+				: c.unresolved
+					? '<span class="badge unresolved">' + 'Unresolved</span>'
+					: '';
+			const psBadge =
+				!clickable && typeof c.patchSet === 'number'
+					? '<span class="badge older-ps">' +
+						`PS ${c.patchSet}</span>`
+					: '';
+			const msgPreview = escapeHtml(c.message).substring(0, 300);
+			const author = escapeHtml(c.authorName);
+			const time = c.updatedStr;
+			const snippetHtml = c.codeSnippet
+				? `<pre class="code-snippet">${escapeHtml(c.codeSnippet)}</pre>`
+				: '';
 
-    const rowClass = clickable
-      ? 'comment-row'
-      : 'comment-row older-patchset';
-    const onclick = clickable
-      ? ' onclick="navigate(this)"'
-      : '';
+			const rowClass = clickable
+				? 'comment-row'
+				: 'comment-row older-patchset';
+			const onclick = clickable ? ' onclick="navigate(this)"' : '';
 
-    return `
+			return `
 <div class="${rowClass}"
 	data-file="${escapeHtml(c.filePath)}"
 	data-line="${c.line ?? ''}"
@@ -77,14 +74,15 @@ function renderFileGroup(
 	${snippetHtml}
 	<div class="comment-body">${msgPreview}</div>
 </div>`;
-  }).join('');
+		})
+		.join('');
 
-  const displayPath =
-    group.filePath === '/PATCHSET_LEVEL'
-      ? 'Patchset Level'
-      : group.filePath;
+	const displayPath =
+		group.filePath === '/PATCHSET_LEVEL'
+			? 'Patchset Level'
+			: group.filePath;
 
-  return `
+	return `
 <div class="file-group">
 	<div class="file-header">
 		<span class="codicon codicon-file"></span>
@@ -98,24 +96,24 @@ function renderFileGroup(
 }
 
 export function buildHTML(
-  changeNumber: string,
-  draftGroups: FileGroup[],
-  unresolvedGroups: FileGroup[],
-  olderPatchsetGroups: FileGroup[]
+	changeNumber: string,
+	draftGroups: FileGroup[],
+	unresolvedGroups: FileGroup[],
+	olderPatchsetGroups: FileGroup[]
 ): string {
-  const draftCount = draftGroups.reduce(
-    (s, g) => s + g.comments.length, 0
-  );
-  const unresolvedCount = unresolvedGroups.reduce(
-    (s, g) => s + g.comments.length, 0
-  );
-  const olderCount = olderPatchsetGroups.reduce(
-    (s, g) => s + g.comments.length, 0
-  );
+	const draftCount = draftGroups.reduce((s, g) => s + g.comments.length, 0);
+	const unresolvedCount = unresolvedGroups.reduce(
+		(s, g) => s + g.comments.length,
+		0
+	);
+	const olderCount = olderPatchsetGroups.reduce(
+		(s, g) => s + g.comments.length,
+		0
+	);
 
-  const olderSection =
-    olderPatchsetGroups.length > 0
-      ? `
+	const olderSection =
+		olderPatchsetGroups.length > 0
+			? `
 <div class="section older-patchset-section">
 	<h2>
 		<span class="codicon codicon-history"></span>
@@ -125,26 +123,25 @@ export function buildHTML(
 		These comments are from an older patchset
 		and cannot be navigated to.
 	</div>
-	${olderPatchsetGroups.map(
-        (g) => renderFileGroup(g, false)
-      ).join('')}
-</div>` : '';
+	${olderPatchsetGroups.map((g) => renderFileGroup(g, false)).join('')}
+</div>`
+			: '';
 
-  const draftsSection = draftGroups.length > 0
-    ? `
+	const draftsSection =
+		draftGroups.length > 0
+			? `
 <div class="section">
 	<h2>
 		<span class="codicon codicon-edit"></span>
 		Draft Comments (${draftCount})
 	</h2>
-	${draftGroups.map(
-      (g) => renderFileGroup(g)
-    ).join('')}
-</div>` : '';
+	${draftGroups.map((g) => renderFileGroup(g)).join('')}
+</div>`
+			: '';
 
-  const unresolvedSection =
-    unresolvedGroups.length > 0
-      ? `
+	const unresolvedSection =
+		unresolvedGroups.length > 0
+			? `
 <div class="section">
   <div class="section-header-row">
     <h2>
@@ -157,13 +154,14 @@ export function buildHTML(
   </div>
   ${unresolvedGroups.map((g) => renderFileGroup(g, true)).join('')}
 </div>`
-      : '';
+			: '';
 
-  const empty = !draftGroups.length
-    && !unresolvedGroups.length
-    && !olderPatchsetGroups.length;
+	const empty =
+		!draftGroups.length &&
+		!unresolvedGroups.length &&
+		!olderPatchsetGroups.length;
 
-  return `<!DOCTYPE html>
+	return `<!DOCTYPE html>
 <html>
 <head>
 <meta charset="UTF-8">
@@ -174,13 +172,12 @@ ${OVERVIEW_CSS}
 </style>
 </head>
 <body>
-<h1>Review Comments \u2014 Change ${escapeHtml(changeNumber)
-    }</h1>
-${empty
-      ? '<div class="empty">No draft or '
-      + 'unresolved comments found.</div>'
-      : olderSection + draftsSection + unresolvedSection
-    }
+<h1>Review Comments \u2014 Change ${escapeHtml(changeNumber)}</h1>
+${
+	empty
+		? '<div class="empty">No draft or ' + 'unresolved comments found.</div>'
+		: olderSection + draftsSection + unresolvedSection
+}
 <script>
 const vscode = acquireVsCodeApi();
 function navigate(el) {

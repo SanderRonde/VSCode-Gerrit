@@ -1,7 +1,7 @@
-import * as fs from 'fs';
-import * as os from 'os';
-import * as path from 'path';
 import { log } from '../util/log';
+import * as path from 'path';
+import * as os from 'os';
+import * as fs from 'fs';
 
 /**
  * Writes an elaborate AI review prompt to a temporary
@@ -11,62 +11,48 @@ import { log } from '../util/log';
  * @returns Path to the temporary prompt file.
  */
 export function writePromptFile(
-  changeNumber: string,
-  checkedOut: boolean
+	changeNumber: string,
+	checkedOut: boolean
 ): string {
-  const ts = Date.now();
-  const tmpFile = path.join(
-    os.tmpdir(),
-    `gerrit-ai-review-${ts}.md`
-  );
+	const ts = Date.now();
+	const tmpFile = path.join(os.tmpdir(), `gerrit-ai-review-${ts}.md`);
 
-  const prompt = buildPromptContent(
-    changeNumber, checkedOut
-  );
-  fs.writeFileSync(tmpFile, prompt, 'utf-8');
-  log(
-    `Wrote review prompt to ${tmpFile}`
-    + ` (${prompt.length} chars)`
-  );
+	const prompt = buildPromptContent(changeNumber, checkedOut);
+	fs.writeFileSync(tmpFile, prompt, 'utf-8');
+	log(`Wrote review prompt to ${tmpFile}` + ` (${prompt.length} chars)`);
 
-  return tmpFile;
+	return tmpFile;
 }
 
-function fileContentStep(
-  changeNumber: string,
-  checkedOut: boolean
-): string {
-  if (checkedOut) {
-    return [
-      'The change has been **checked out ',
-      'locally** in the workspace. Read ',
-      'changed files directly from the local ',
-      'file system — do **not** call ',
-      '`gerrit_get_file_content`. This is ',
-      'faster and gives you full repo context ',
-      'including surrounding files for better ',
-      'analysis. Also explore related files in ',
-      'the repo to understand patterns and ',
-      'conventions.',
-    ].join('');
-  }
-  return [
-    'For each changed file, call ',
-    '`gerrit_get_file_content` with:\n',
-    '```json\n',
-    '{\n',
-    `  "changeNumber": "${changeNumber}",\n`,
-    '  "filePath": "<path from step 2>"\n',
-    '}\n',
-    '```',
-  ].join('');
+function fileContentStep(changeNumber: string, checkedOut: boolean): string {
+	if (checkedOut) {
+		return [
+			'The change has been **checked out ',
+			'locally** in the workspace. Read ',
+			'changed files directly from the local ',
+			'file system — do **not** call ',
+			'`gerrit_get_file_content`. This is ',
+			'faster and gives you full repo context ',
+			'including surrounding files for better ',
+			'analysis. Also explore related files in ',
+			'the repo to understand patterns and ',
+			'conventions.',
+		].join('');
+	}
+	return [
+		'For each changed file, call ',
+		'`gerrit_get_file_content` with:\n',
+		'```json\n',
+		'{\n',
+		`  "changeNumber": "${changeNumber}",\n`,
+		'  "filePath": "<path from step 2>"\n',
+		'}\n',
+		'```',
+	].join('');
 }
 
-function buildPromptContent(
-  changeNumber: string,
-  checkedOut: boolean
-): string {
-  return `# Gerrit Code Review Instructions
+function buildPromptContent(changeNumber: string, checkedOut: boolean): string {
+	return `# Gerrit Code Review Instructions
 
 ## Role
 

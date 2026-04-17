@@ -16,8 +16,10 @@ import { ExpandComments } from '../../../commands/types';
 import { getConfiguration } from '../../vscode/config';
 import { CacheContainer } from '../../util/cache';
 
-interface CommentThreadWithGerritComments
-	extends Omit<CommentThread, 'comments'> {
+interface CommentThreadWithGerritComments extends Omit<
+	CommentThread,
+	'comments'
+> {
 	comments: readonly GerritCommentBase[];
 }
 

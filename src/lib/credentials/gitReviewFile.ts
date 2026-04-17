@@ -40,18 +40,15 @@ async function inferHostAndProject(
 	if (success) {
 		remote = stdout.trim().split('/')[0];
 	} else {
-    // Fallback: In DETACHED HEAD or no upstream, try default remote
+		// Fallback: In DETACHED HEAD or no upstream, try default remote
 		log('No upstream branch, trying default remote');
-		const { success: ok, stdout: out } =
-			await tryExecAsync('git remote', {
-				cwd: gerritRepo.rootUri.fsPath,
-			});
+		const { success: ok, stdout: out } = await tryExecAsync('git remote', {
+			cwd: gerritRepo.rootUri.fsPath,
+		});
 
 		if (ok) {
 			const remotes = out.trim().split('\n');
-			remote = remotes.includes('origin')
-				? 'origin'
-				: remotes[0];
+			remote = remotes.includes('origin') ? 'origin' : remotes[0];
 			log(`Using remote: ${remote}`);
 		}
 
@@ -78,10 +75,10 @@ async function inferHostAndProject(
 	const match = urlRegex.exec(remoteUrl);
 	if (match) {
 		let [, host, port, project] = match;
-    // Strip leading "/a/" from project if present (authentication prefix)
-    if (project.startsWith('a/')) {
-      project = project.substring(2);
-    }
+		// Strip leading "/a/" from project if present (authentication prefix)
+		if (project.startsWith('a/')) {
+			project = project.substring(2);
+		}
 		return {
 			host,
 			port: port || DEFAULT_GIT_REVIEW_FILE.port,

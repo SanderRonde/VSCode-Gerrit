@@ -1,12 +1,12 @@
 import {
-  window,
-  workspace,
-  Uri,
-  Selection,
-  Position,
-  ProgressLocation,
-  ExtensionContext,
-  commands as vscodeCommands,
+	window,
+	workspace,
+	Uri,
+	Selection,
+	Position,
+	ProgressLocation,
+	ExtensionContext,
+	commands as vscodeCommands,
 } from 'vscode';
 import { FileTreeView } from '../../views/activityBar/changes/changeTreeView/fileTreeView';
 import { ChangeTreeView } from '../../views/activityBar/changes/changeTreeView';
@@ -37,51 +37,45 @@ type CheckoutBehavior = 'ask' | 'always' | 'never';
 const SEPARATOR = '\u2500'.repeat(60);
 
 export async function runAIReview(
-  changeNumber: string,
-  gerritRepo: Repository,
-  extensionContext: ExtensionContext,
-  changeTreeView?: ChangeTreeView
+	changeNumber: string,
+	gerritRepo: Repository,
+	extensionContext: ExtensionContext,
+	changeTreeView?: ChangeTreeView
 ): Promise<void> {
-  await window.withProgress(
-    {
-      location: ProgressLocation.Notification,
-      title: 'Gerrit AI Review',
-      cancellable: true,
-    },
-    async (progress, token) => {
-      try {
-        await doReview(
-          changeNumber,
-          gerritRepo,
-          extensionContext,
-          progress,
-          token,
-          changeTreeView
-        );
-      } catch (e) {
-        const msg = e instanceof Error
-          ? e.message : String(e);
-        log('AI Review failed: ' + msg);
-        void window.showErrorMessage(
-          'AI Review failed: ' + msg
-        );
-      }
-    }
-  );
+	await window.withProgress(
+		{
+			location: ProgressLocation.Notification,
+			title: 'Gerrit AI Review',
+			cancellable: true,
+		},
+		async (progress, token) => {
+			try {
+				await doReview(
+					changeNumber,
+					gerritRepo,
+					extensionContext,
+					progress,
+					token,
+					changeTreeView
+				);
+			} catch (e) {
+				const msg = e instanceof Error ? e.message : String(e);
+				log('AI Review failed: ' + msg);
+				void window.showErrorMessage('AI Review failed: ' + msg);
+			}
+		}
+	);
 }
 
 async function doReview(
-  changeNumber: string,
-  gerritRepo: Repository,
-  extensionContext: ExtensionContext,
-  progress: {
-    report: (v: {
-      message?: string;
-      increment?: number;
-    }) => void;
-  },
-  token: { isCancellationRequested: boolean },
-  changeTreeView?: ChangeTreeView
+	changeNumber: string,
+	gerritRepo: Repository,
+	extensionContext: ExtensionContext,
+	progress: {
+		report: (v: { message?: string; increment?: number }) => void;
+	},
+	token: { isCancellationRequested: boolean },
+	changeTreeView?: ChangeTreeView
 ): Promise<void> {
   progress.report({
     message: 'Preparing review...',
@@ -203,49 +197,40 @@ async function doReview(
 // ── Credentials ─────────────────────────────────────
 
 async function extractCredentials(
-  gerritRepo: Repository
+	gerritRepo: Repository
 ): Promise<GerritCredentials | null> {
-  const config = getConfiguration();
-  const gitReviewFile =
-    await getGitReviewFileCached(gerritRepo);
+	const config = getConfiguration();
+	const gitReviewFile = await getGitReviewFileCached(gerritRepo);
 
-  const url = getGerritURLFromReviewFile(
-    gitReviewFile
-  );
-  if (!url) {
-    return null;
-  }
+	const url = getGerritURLFromReviewFile(gitReviewFile);
+	if (!url) {
+		return null;
+	}
 
-  const username =
-    config.get('gerrit.auth.username') ?? '';
-  const password =
-    await GerritSecrets.getForUrlOrWorkspace(
-      'password',
-      url,
-      workspace.workspaceFolders?.[0]?.uri
-    );
-  const cookie =
-    await GerritSecrets.getForUrlOrWorkspace(
-      'cookie',
-      url,
-      workspace.workspaceFolders?.[0]?.uri
-    );
-  const authPrefix = config.get(
-    'gerrit.customAuthUrlPrefix',
-    'a/'
-  );
+	const username = config.get('gerrit.auth.username') ?? '';
+	const password = await GerritSecrets.getForUrlOrWorkspace(
+		'password',
+		url,
+		workspace.workspaceFolders?.[0]?.uri
+	);
+	const cookie = await GerritSecrets.getForUrlOrWorkspace(
+		'cookie',
+		url,
+		workspace.workspaceFolders?.[0]?.uri
+	);
+	const authPrefix = config.get('gerrit.customAuthUrlPrefix', 'a/');
 
-  if (!username && !password && !cookie) {
-    return null;
-  }
+	if (!username && !password && !cookie) {
+		return null;
+	}
 
-  return {
-    url,
-    username,
-    password: password ?? '',
-    authCookie: cookie ?? undefined,
-    authPrefix,
-  };
+	return {
+		url,
+		username,
+		password: password ?? '',
+		authCookie: cookie ?? undefined,
+		authPrefix,
+	};
 }
 
 // ── Cursor agent invocation ─────────────────────────
@@ -433,262 +418,231 @@ async function invokeCursorAgent(
 }
 
 interface StreamEvent {
-  type?: string;
-  subtype?: string;
-  model?: string;
-  message?: {
-    role?: string;
-    content?: Array<{
-      type?: string;
-      text?: string;
-    }>;
-  };
-  result?: string;
-  duration_ms?: number;
-  is_error?: boolean;
+	type?: string;
+	subtype?: string;
+	model?: string;
+	message?: {
+		role?: string;
+		content?: Array<{
+			type?: string;
+			text?: string;
+		}>;
+	};
+	result?: string;
+	duration_ms?: number;
+	is_error?: boolean;
 }
 
 function processStreamEvent(
-  jsonLine: string,
-  oc: ReturnType<typeof getOutputChannel>,
-  progress: {
-    report: (v: {
-      message?: string;
-    }) => void;
-  },
-  lastStatus: string,
-  setStatus: (s: string) => void
+	jsonLine: string,
+	oc: ReturnType<typeof getOutputChannel>,
+	progress: {
+		report: (v: { message?: string }) => void;
+	},
+	lastStatus: string,
+	setStatus: (s: string) => void
 ): void {
-  let evt: StreamEvent;
-  try {
-    evt = JSON.parse(jsonLine) as StreamEvent;
-  } catch {
-    if (oc) {
-      oc.appendLine(jsonLine);
-    }
-    return;
-  }
+	let evt: StreamEvent;
+	try {
+		evt = JSON.parse(jsonLine) as StreamEvent;
+	} catch {
+		if (oc) {
+			oc.appendLine(jsonLine);
+		}
+		return;
+	}
 
-  switch (evt.type) {
-    case 'system':
-      if (evt.subtype === 'init' && oc) {
-        if (evt.model) {
-          oc.appendLine(
-            `Agent model: ${evt.model}`
-          );
-        }
-        oc.appendLine('');
-        progress.report({
-          message: 'Agent started. Look at output panel (Gerrit) for live '
-            + 'details.',
-        });
-      }
-      break;
+	switch (evt.type) {
+		case 'system':
+			if (evt.subtype === 'init' && oc) {
+				if (evt.model) {
+					oc.appendLine(`Agent model: ${evt.model}`);
+				}
+				oc.appendLine('');
+				progress.report({
+					message:
+						'Agent started. Look at output panel (Gerrit) for live ' +
+						'details.',
+				});
+			}
+			break;
 
-    case 'assistant': {
-      const text = evt.message?.content
-        ?.[0]?.text;
-      if (text && oc) {
-        oc.append(text);
-      }
-      const status = extractStatusFromText(
-        text || ''
-      );
-      if (status && status !== lastStatus) {
-        setStatus(status);
-        progress.report({
-          message: status,
-        });
-      }
-      break;
-    }
+		case 'assistant': {
+			const text = evt.message?.content?.[0]?.text;
+			if (text && oc) {
+				oc.append(text);
+			}
+			const status = extractStatusFromText(text || '');
+			if (status && status !== lastStatus) {
+				setStatus(status);
+				progress.report({
+					message: status,
+				});
+			}
+			break;
+		}
 
-    case 'tool_call':
-    case 'tool_result': {
-      const text = evt.message?.content
-        ?.[0]?.text;
-      if (text && oc) {
-        oc.appendLine(
-          `[tool] ${text.substring(0, 200)}`
-        );
-      }
-      break;
-    }
+		case 'tool_call':
+		case 'tool_result': {
+			const text = evt.message?.content?.[0]?.text;
+			if (text && oc) {
+				oc.appendLine(`[tool] ${text.substring(0, 200)}`);
+			}
+			break;
+		}
 
-    case 'result':
-      if (oc) {
-        oc.appendLine('');
-        if (evt.duration_ms) {
-          const secs = Math.round(
-            evt.duration_ms / 1000
-          );
-          oc.appendLine(
-            `Agent finished (${secs}s)`
-          );
-        }
-      }
-      progress.report({
-        message: 'Agent finished',
-      });
-      break;
+		case 'result':
+			if (oc) {
+				oc.appendLine('');
+				if (evt.duration_ms) {
+					const secs = Math.round(evt.duration_ms / 1000);
+					oc.appendLine(`Agent finished (${secs}s)`);
+				}
+			}
+			progress.report({
+				message: 'Agent finished',
+			});
+			break;
 
-    default:
-      if (oc) {
-        oc.appendLine(jsonLine);
-      }
-  }
+		default:
+			if (oc) {
+				oc.appendLine(jsonLine);
+			}
+	}
 }
 
-function extractStatusFromText(
-  text: string
-): string {
-  if (!text || text.length < 5) {
-    return '';
-  }
+function extractStatusFromText(text: string): string {
+	if (!text || text.length < 5) {
+		return '';
+	}
 
-  if (text.includes('gerrit_get_change')) {
-    return 'Fetching change metadata...';
-  }
-  if (text.includes('gerrit_get_changed_files')) {
-    return 'Fetching changed files...';
-  }
-  if (text.includes('gerrit_get_file_content')) {
-    return 'Reading file contents...';
-  }
-  if (text.includes('gerrit_get_comments')) {
-    return 'Reading comments...';
-  }
-  if (text.includes('gerrit_post_draft_comment')) {
-    return 'Posting review comment...';
-  }
-  if (text.includes('gerrit_reply_to_comment')) {
-    return 'Posting reply...';
-  }
+	if (text.includes('gerrit_get_change')) {
+		return 'Fetching change metadata...';
+	}
+	if (text.includes('gerrit_get_changed_files')) {
+		return 'Fetching changed files...';
+	}
+	if (text.includes('gerrit_get_file_content')) {
+		return 'Reading file contents...';
+	}
+	if (text.includes('gerrit_get_comments')) {
+		return 'Reading comments...';
+	}
+	if (text.includes('gerrit_post_draft_comment')) {
+		return 'Posting review comment...';
+	}
+	if (text.includes('gerrit_reply_to_comment')) {
+		return 'Posting reply...';
+	}
 
-  return '';
+	return '';
 }
 
 // ── Post-review: browse drafts ──────────────────────
 
 interface DraftItem {
-  filePath: string;
-  line?: number;
-  message: string;
-  changeNumber: string;
+	filePath: string;
+	line?: number;
+	message: string;
+	changeNumber: string;
 }
 
-async function fetchDrafts(
-  changeNumber: string
-): Promise<DraftItem[]> {
-  const api = await getAPI();
-  if (!api) {
-    return [];
-  }
+async function fetchDrafts(changeNumber: string): Promise<DraftItem[]> {
+	const api = await getAPI();
+	if (!api) {
+		return [];
+	}
 
-  try {
-    const draftsSub = api.getDraftComments(
-      changeNumber
-    );
-    const draftsMap = await draftsSub.getValue();
-    const items: DraftItem[] = [];
+	try {
+		const draftsSub = api.getDraftComments(changeNumber);
+		const draftsMap = await draftsSub.getValue();
+		const items: DraftItem[] = [];
 
-    for (const [filePath, comments]
-      of draftsMap) {
-      for (const c of comments) {
-        items.push({
-          filePath,
-          line: c.line,
-          message: c.message ?? '',
-          changeNumber,
-        });
-      }
-    }
+		for (const [filePath, comments] of draftsMap) {
+			for (const c of comments) {
+				items.push({
+					filePath,
+					line: c.line,
+					message: c.message ?? '',
+					changeNumber,
+				});
+			}
+		}
 
-    return items;
-  } catch (e) {
-    log(
-      'Failed to fetch drafts: '
-      + String(e)
-    );
-    return [];
-  }
+		return items;
+	} catch (e) {
+		log('Failed to fetch drafts: ' + String(e));
+		return [];
+	}
 }
 
 async function browseDrafts(
-  drafts: DraftItem[],
-  gerritRepo: Repository,
-  changeNumber: string
+	drafts: DraftItem[],
+	gerritRepo: Repository,
+	changeNumber: string
 ): Promise<void> {
-  // Resolve the change once and warm ALL caches
-  // (change, comments, drafts) before the loop
-  // so every navigateToDraft is instant.
-  const change = await GerritChange.getChangeOnce(
-    changeNumber,
-    [
-      GerritAPIWith.CURRENT_REVISION,
-      GerritAPIWith.CURRENT_FILES,
-    ]
-  );
-  if (change) {
-    await Promise.all([
-      GerritChange.getAllComments(change.changeID)
-        .then((s) => s.getValue()),
-      GerritChange.getAllComments(change.change_id)
-        .then((s) => s.getValue())
-        .catch(() => { }),
-      GerritChange.getChangeOnce(
-        change.change_id,
-        [
-          GerritAPIWith.CURRENT_REVISION,
-          GerritAPIWith.CURRENT_FILES,
-        ]
-      ).catch(() => { }),
-    ]);
-  }
+	// Resolve the change once and warm ALL caches
+	// (change, comments, drafts) before the loop
+	// so every navigateToDraft is instant.
+	const change = await GerritChange.getChangeOnce(changeNumber, [
+		GerritAPIWith.CURRENT_REVISION,
+		GerritAPIWith.CURRENT_FILES,
+	]);
+	if (change) {
+		await Promise.all([
+			GerritChange.getAllComments(change.changeID).then((s) =>
+				s.getValue()
+			),
+			GerritChange.getAllComments(change.change_id)
+				.then((s) => s.getValue())
+				.catch(() => {}),
+			GerritChange.getChangeOnce(change.change_id, [
+				GerritAPIWith.CURRENT_REVISION,
+				GerritAPIWith.CURRENT_FILES,
+			]).catch(() => {}),
+		]);
+	}
 
-  let idx = 0;
-  while (idx >= 0 && idx < drafts.length) {
-    const draft = drafts[idx];
-    const total = drafts.length;
-    const num = idx + 1;
+	let idx = 0;
+	while (idx >= 0 && idx < drafts.length) {
+		const draft = drafts[idx];
+		const total = drafts.length;
+		const num = idx + 1;
 
-    await navigateToDraft(draft, gerritRepo);
+		await navigateToDraft(draft, gerritRepo);
 
-    const loc =
-      draft.filePath === '/PATCHSET_LEVEL'
-        ? 'Patchset level'
-        : draft.line
-          ? `${draft.filePath}:${draft.line}`
-          : draft.filePath;
-    const header = `[${num}/${total}] ${loc}`;
+		const loc =
+			draft.filePath === '/PATCHSET_LEVEL'
+				? 'Patchset level'
+				: draft.line
+					? `${draft.filePath}:${draft.line}`
+					: draft.filePath;
+		const header = `[${num}/${total}] ${loc}`;
 
-    const actions: string[] = [];
-    if (idx > 0) {
-      actions.push('Previous');
-    }
-    if (idx < total - 1) {
-      actions.push('Next');
-    }
-    actions.push('Done');
+		const actions: string[] = [];
+		if (idx > 0) {
+			actions.push('Previous');
+		}
+		if (idx < total - 1) {
+			actions.push('Next');
+		}
+		actions.push('Done');
 
-    const pick =
-      await window.showInformationMessage(
-        header, ...actions
-      );
+		const pick = await window.showInformationMessage(header, ...actions);
 
-    if (pick === 'Next') {
-      idx++;
-    } else if (pick === 'Previous') {
-      idx--;
-    } else {
-      break;
-    }
-  }
+		if (pick === 'Next') {
+			idx++;
+		} else if (pick === 'Previous') {
+			idx--;
+		} else {
+			break;
+		}
+	}
 }
 
 async function navigateToDraft(
-  draft: DraftItem,
-  gerritRepo: Repository
+	draft: DraftItem,
+	gerritRepo: Repository
 ): Promise<void> {
   if (draft.filePath === '/PATCHSET_LEVEL') {
     void window.showInformationMessage(
@@ -757,172 +711,136 @@ async function navigateToDraft(
 }
 
 async function openFileFallback(
-  draft: DraftItem,
-  gerritRepo: Repository
+	draft: DraftItem,
+	gerritRepo: Repository
 ): Promise<void> {
-  const fileUri = Uri.joinPath(
-    gerritRepo.rootUri, draft.filePath
-  );
-  try {
-    const doc = await workspace.openTextDocument(
-      fileUri
-    );
-    const line = Math.max(
-      0, (draft.line ?? 1) - 1
-    );
-    const pos = new Position(line, 0);
-    const editor = await window.showTextDocument(
-      doc, { selection: new Selection(pos, pos) }
-    );
-    void vscodeCommands.executeCommand(
-      'revealLine',
-      {
-        lineNumber: editor.selection.active.line,
-        at: 'center',
-      }
-    );
-  } catch {
-    void window.showInformationMessage(
-      `${draft.filePath}:${draft.line ?? ''}`
-      + ` \u2014 ${draft.message}`
-    );
-  }
+	const fileUri = Uri.joinPath(gerritRepo.rootUri, draft.filePath);
+	try {
+		const doc = await workspace.openTextDocument(fileUri);
+		const line = Math.max(0, (draft.line ?? 1) - 1);
+		const pos = new Position(line, 0);
+		const editor = await window.showTextDocument(doc, {
+			selection: new Selection(pos, pos),
+		});
+		void vscodeCommands.executeCommand('revealLine', {
+			lineNumber: editor.selection.active.line,
+			at: 'center',
+		});
+	} catch {
+		void window.showInformationMessage(
+			`${draft.filePath}:${draft.line ?? ''}` + ` \u2014 ${draft.message}`
+		);
+	}
 }
 
 async function showCompletionActions(
-  changeNumber: string,
-  gerritRepo: Repository
+	changeNumber: string,
+	gerritRepo: Repository
 ): Promise<void> {
-  const drafts = await fetchDrafts(changeNumber);
-  const count = drafts.length;
+	const drafts = await fetchDrafts(changeNumber);
+	const count = drafts.length;
 
-  const msg = count > 0
-    ? `AI Review complete: ${count} draft `
-    + 'comment(s) posted.'
-    : 'AI Review complete: no issues found.';
+	const msg =
+		count > 0
+			? `AI Review complete: ${count} draft ` + 'comment(s) posted.'
+			: 'AI Review complete: no issues found.';
 
-  const actions: string[] = [];
-  if (count > 0) {
-    actions.push('Comments Overview');
-  }
-  actions.push('Open in Gerrit');
+	const actions: string[] = [];
+	if (count > 0) {
+		actions.push('Comments Overview');
+	}
+	actions.push('Open in Gerrit');
 
-  const result = await window.showInformationMessage(
-    msg, ...actions
-  );
+	const result = await window.showInformationMessage(msg, ...actions);
 
-  if (result === 'Comments Overview') {
-    // Warm the comments cache under the full
-    // changeID key so updatePanel can skip the
-    // API call.
-    const change = await GerritChange.getChangeOnce(
-      changeNumber,
-      [
-        GerritAPIWith.ALL_REVISIONS,
-        GerritAPIWith.ALL_FILES,
-      ]
-    );
-    if (change) {
-      const sub =
-        await GerritChange.getAllComments(
-          change.changeID
-        );
-      await sub.getValue(true);
-    }
+	if (result === 'Comments Overview') {
+		// Warm the comments cache under the full
+		// changeID key so updatePanel can skip the
+		// API call.
+		const change = await GerritChange.getChangeOnce(changeNumber, [
+			GerritAPIWith.ALL_REVISIONS,
+			GerritAPIWith.ALL_FILES,
+		]);
+		if (change) {
+			const sub = await GerritChange.getAllComments(change.changeID);
+			await sub.getValue(true);
+		}
 
-    await showCommentsOverview(
-      changeNumber, gerritRepo
-    );
-  } else if (result === 'Open in Gerrit') {
-    await openChangeInBrowser(changeNumber);
-  }
+		await showCommentsOverview(changeNumber, gerritRepo);
+	} else if (result === 'Open in Gerrit') {
+		await openChangeInBrowser(changeNumber);
+	}
 }
 
-async function openChangeInBrowser(
-  changeNumber: string
-): Promise<void> {
-  try {
-    const api = await getAPI();
-    if (!api) {
-      return;
-    }
-    const { GerritChange } = await import(
-      '../gerrit/gerritAPI/gerritChange'
-    );
-    const change =
-      await GerritChange.getChangeOnce(
-        changeNumber
-      );
-    if (!change) {
-      return;
-    }
-    const url = api.getPublicUrl(
-      `c/${change.project}/+/${change.number}`
-    );
-    if (url) {
-      const { env } = await import('vscode');
-      void env.openExternal(Uri.parse(url));
-    }
-  } catch {
-    // ignore navigation errors
-  }
+async function openChangeInBrowser(changeNumber: string): Promise<void> {
+	try {
+		const api = await getAPI();
+		if (!api) {
+			return;
+		}
+		const { GerritChange } =
+			await import('../gerrit/gerritAPI/gerritChange');
+		const change = await GerritChange.getChangeOnce(changeNumber);
+		if (!change) {
+			return;
+		}
+		const url = api.getPublicUrl(`c/${change.project}/+/${change.number}`);
+		if (url) {
+			const { env } = await import('vscode');
+			void env.openExternal(Uri.parse(url));
+		}
+	} catch {
+		// ignore navigation errors
+	}
 }
 
 // ── Helpers ─────────────────────────────────────────
 
 function cleanupTempFile(filePath: string): void {
-  try {
-    fs.unlinkSync(filePath);
-    log('Cleaned up temp file: ' + filePath);
-  } catch {
-    // ignore cleanup errors
-  }
+	try {
+		fs.unlinkSync(filePath);
+		log('Cleaned up temp file: ' + filePath);
+	} catch {
+		// ignore cleanup errors
+	}
 }
 
-async function resolveCheckoutDecision(
-  token: { isCancellationRequested: boolean }
-): Promise<boolean> {
-  const config = getConfiguration();
-  const behavior = (config.get(
-    'gerrit.aiReview.checkoutBehavior'
-  ) ?? 'ask') as CheckoutBehavior;
+async function resolveCheckoutDecision(token: {
+	isCancellationRequested: boolean;
+}): Promise<boolean> {
+	const config = getConfiguration();
+	const behavior = (config.get('gerrit.aiReview.checkoutBehavior') ??
+		'ask') as CheckoutBehavior;
 
-  if (behavior === 'always') {
-    return true;
-  }
-  if (behavior === 'never') {
-    return false;
-  }
+	if (behavior === 'always') {
+		return true;
+	}
+	if (behavior === 'never') {
+		return false;
+	}
 
-  const items = [
-    {
-      label: 'Yes',
-      description:
-        'Checkout for full repo context '
-        + '(recommended)',
-      value: 'yes',
-    },
-    {
-      label: 'No',
-      description:
-        'Review with Gerrit context only',
-      value: 'no',
-    }
-  ];
+	const items = [
+		{
+			label: 'Yes',
+			description: 'Checkout for full repo context ' + '(recommended)',
+			value: 'yes',
+		},
+		{
+			label: 'No',
+			description: 'Review with Gerrit context only',
+			value: 'no',
+		},
+	];
 
-  const selected = await window.showQuickPick(
-    items, {
-    placeHolder:
-      'Checkout change before AI review?',
-    title:
-      'Checkout gives Cursor full repo '
-      + 'context for better reviews',
-  }
-  );
+	const selected = await window.showQuickPick(items, {
+		placeHolder: 'Checkout change before AI review?',
+		title:
+			'Checkout gives Cursor full repo ' + 'context for better reviews',
+	});
 
-  if (!selected || token.isCancellationRequested) {
-    return false;
-  }
+	if (!selected || token.isCancellationRequested) {
+		return false;
+	}
 
-  return selected.value === 'yes';
+	return selected.value === 'yes';
 }

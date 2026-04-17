@@ -2,6 +2,7 @@ import { commands } from 'vscode';
 
 export interface ContextProps {
 	'gerrit:isUsingGerrit': boolean;
+	'gerrit:noGerritRepo': boolean;
 	'gerrit:connected': boolean;
 	'gerrit:searchQuery': string | null;
 	'gerrit:searchChangeNumber': number | null;
@@ -14,6 +15,7 @@ export interface ContextProps {
 
 const contextProps: ContextProps = {
 	'gerrit:isUsingGerrit': false,
+	'gerrit:noGerritRepo': false,
 	'gerrit:connected': false,
 	'gerrit:searchQuery': null,
 	'gerrit:searchChangeNumber': null,

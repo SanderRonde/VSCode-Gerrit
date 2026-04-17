@@ -327,23 +327,23 @@ export async function recursiveRebase(gerritRepo: Repository): Promise<void> {
 					increment: getRelativeProgress(currentProgress),
 				});
 
-			// Checkout branch
-			const changeNum = getChangeIDFromCheckoutString(
-				operation.change.number
-			);
-			const result = await gitFetchAndCheckoutChange(
-				changeNum,
-				'latest',
-				'origin',
-				gerritRepo.rootUri.fsPath
-			);
-			if (token.isCancellationRequested) {
-				return;
-			}
-			if (!result.success) {
-				await cancel(
-					`Failed to download change ${operation.change.number}, aborting`
+				// Checkout branch
+				const changeNum = getChangeIDFromCheckoutString(
+					operation.change.number
 				);
+				const result = await gitFetchAndCheckoutChange(
+					changeNum,
+					'latest',
+					'origin',
+					gerritRepo.rootUri.fsPath
+				);
+				if (token.isCancellationRequested) {
+					return;
+				}
+				if (!result.success) {
+					await cancel(
+						`Failed to download change ${operation.change.number}, aborting`
+					);
 				}
 
 				if (

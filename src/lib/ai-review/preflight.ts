@@ -4,10 +4,31 @@ import { AgentCommand } from './agentCli';
 export { AgentCommand };
 
 export const MIN_NODE_MAJOR = 18;
+export const CURSOR_NODE_PATH = process.execPath;
 export const CLI_INSTALL_URL =
 	'https://cursor.com/docs/cli/installation';
 export const CLI_INSTALL_CMD =
 	'curl https://cursor.com/install -fsS | bash';
+
+export class PreflightError extends Error {
+	public readonly recoverable: boolean;
+
+	public constructor(
+		message: string,
+		recoverable: boolean
+	) {
+		super(message);
+		this.name = 'PreflightError';
+		this.recoverable = recoverable;
+	}
+}
+
+export interface PreflightStatus {
+	nodeOk: boolean;
+	nodeMajor: number;
+	cliFound: boolean;
+	agent: AgentCommand;
+}
 
 export interface PreflightDeps {
 	whichCmd: (
@@ -39,44 +60,32 @@ const defaultDeps: PreflightDeps = {
 	},
 };
 
-export interface PreflightStatus {
-	nodeOk: boolean;
-	nodeMajor: number;
-	cliFound: boolean;
-	agent?: AgentCommand;
-	hasNvm?: boolean;
-}
-
-export interface PreflightResult {
-	ok: boolean;
-	agent?: AgentCommand;
-	error?: string;
-}
-
-export async function runPreflightDetailed(
+export async function runPreflight(
 	deps: PreflightDeps = defaultDeps
 ): Promise<PreflightStatus> {
 	const nodeMajor = deps.getNodeMajor();
-	const nodeOk = nodeMajor >= MIN_NODE_MAJOR;
-
-	if (!nodeOk) {
-		const hasNvm =
-			await deps.whichCmd('nvm');
-		return {
-			nodeOk: false,
-			nodeMajor,
-			cliFound: false,
-			hasNvm,
-		};
+	if (nodeMajor < MIN_NODE_MAJOR) {
+		throw new PreflightError(
+			`Node.js >= ${MIN_NODE_MAJOR} is `
+			+ 'required for AI Review, but found '
+			+ `v${nodeMajor}. Please upgrade `
+			+ 'Cursor to get a newer bundled '
+			+ 'Node.js runtime.',
+			false
+		);
 	}
 
-	const hasAgent = await deps.whichCmd('agent');
+	const hasAgent =
+		await deps.whichCmd('agent');
 	if (hasAgent) {
 		return {
 			nodeOk: true,
 			nodeMajor,
 			cliFound: true,
-			agent: { cmd: 'agent', baseArgs: [] },
+			agent: {
+				cmd: 'agent',
+				baseArgs: [],
+			},
 		};
 	}
 
@@ -94,43 +103,10 @@ export async function runPreflightDetailed(
 		};
 	}
 
-	return {
-		nodeOk: true,
-		nodeMajor,
-		cliFound: false,
-	};
+	throw new PreflightError(
+		'Cursor Agent CLI not found. '
+		+ `Install it with: ${CLI_INSTALL_CMD}`
+		+ `  (${CLI_INSTALL_URL})`,
+		true
+	);
 }
-
-export async function runPreflight(
-	deps: PreflightDeps = defaultDeps
-): Promise<PreflightResult> {
-	const status =
-		await runPreflightDetailed(deps);
-
-	if (!status.nodeOk) {
-		return {
-			ok: false,
-			error:
-				`Node.js >= ${MIN_NODE_MAJOR} is `
-				+ 'required for AI Review, but found '
-				+ `v${status.nodeMajor}. `
-				+ 'Please upgrade Node.js.',
-		};
-	}
-
-	if (!status.cliFound) {
-		return {
-			ok: false,
-			error:
-				'Cursor Agent CLI not found. '
-				+ `Install it with: ${CLI_INSTALL_CMD}`
-				+ `  (${CLI_INSTALL_URL})`,
-		};
-	}
-
-	return {
-		ok: true,
-		agent: status.agent,
-	};
-}
-

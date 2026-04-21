@@ -11,22 +11,15 @@ import {
 } from '../util/errors';
 import { log } from '../util/log';
 import { getConfiguration } from '../vscode/config';
-import {
-  runPreflightDetailed,
-  PreflightStatus,
-  MIN_NODE_MAJOR,
-  CLI_INSTALL_CMD,
-  CLI_INSTALL_URL,
-} from './preflight';
+import { runPreflight } from './preflight';
 import {
   AgentCommand,
   buildMcpEnableCommand,
-  buildStatusCommand,
   buildLoginCommand,
 } from './agentCli';
 import { selectAiModel } from './modelSelector';
 import {
-  window, workspace, env, Uri,
+  window, workspace,
   ExtensionContext, ProgressLocation,
 } from 'vscode';
 
@@ -117,41 +110,7 @@ export async function enableAiReview(
 async function resolvePrerequisites(): Promise<
   PrerequisiteResult
 > {
-  let status = await runPreflightDetailed();
-
-  if (!status.nodeOk) {
-    const fixed = await promptNodeUpgrade(status);
-    if (!fixed) {
-      throw new UserCancelledError('nodeUpgrade');
-    }
-    status = await runPreflightDetailed();
-    if (!status.nodeOk) {
-      throw new Error(
-        `Node.js >= ${MIN_NODE_MAJOR} is still `
-        + 'required. Please upgrade and retry.'
-      );
-    }
-  }
-
-  if (!status.cliFound) {
-    const fixed = await promptCliInstall();
-    if (!fixed) {
-      throw new UserCancelledError('cliInstall');
-    }
-    status = await runPreflightDetailed();
-    if (!status.cliFound || !status.agent) {
-      throw new Error(
-        'Cursor CLI is still not detected. '
-        + 'Please install it and retry.'
-      );
-    }
-  }
-
-  if (!status.agent) {
-    throw new Error(
-      'Could not detect Cursor Agent CLI.'
-    );
-  }
+  const status = await runPreflight();
 
   const alreadyLoggedIn = await isAgentLoggedIn(
     status.agent
@@ -239,85 +198,6 @@ async function waitForUserDone(
         token.onCancellationRequested(resolve);
       })
   );
-}
-
-async function promptNodeUpgrade(
-  status: PreflightStatus
-): Promise<boolean> {
-  const actions: string[] = [
-    'Open nodejs.org',
-  ];
-  if (status.hasNvm) {
-    actions.unshift('Run nvm install --lts');
-  }
-  actions.push('Cancel');
-
-  const pick = await window.showWarningMessage(
-    `Node.js >= ${MIN_NODE_MAJOR} is required, `
-    + `but found v${status.nodeMajor}.`,
-    ...actions
-  );
-
-  if (pick === 'Run nvm install --lts') {
-    const term = window.createTerminal(
-      'Node Upgrade'
-    );
-    term.show();
-    term.sendText(
-      'nvm install --lts && nvm use --lts'
-    );
-    await waitForUserDone(
-      'Upgrading Node.js \u2014 cancel when done'
-    );
-    return true;
-  }
-
-  if (pick === 'Open nodejs.org') {
-    void env.openExternal(
-      Uri.parse('https://nodejs.org/')
-    );
-    await waitForUserDone(
-      'Upgrading Node.js \u2014 cancel when done'
-    );
-    return true;
-  }
-
-  return false;
-}
-
-async function promptCliInstall(): Promise<
-  boolean
-> {
-  const pick = await window.showWarningMessage(
-    'Cursor Agent CLI not found.',
-    'Install Now',
-    'Show Instructions',
-    'Cancel'
-  );
-
-  if (pick === 'Install Now') {
-    const term = window.createTerminal(
-      'Cursor CLI Install'
-    );
-    term.show();
-    term.sendText(CLI_INSTALL_CMD);
-    await waitForUserDone(
-      'Installing Cursor CLI \u2014 cancel when done'
-    );
-    return true;
-  }
-
-  if (pick === 'Show Instructions') {
-    void env.openExternal(
-      Uri.parse(CLI_INSTALL_URL)
-    );
-    await waitForUserDone(
-      'Installing Cursor CLI \u2014 cancel when done'
-    );
-    return true;
-  }
-
-  return false;
 }
 
 async function promptAgentLogin(

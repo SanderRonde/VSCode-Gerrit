@@ -26,9 +26,9 @@ import { getConfiguration } from '../vscode/config';
 import { writePromptFile } from './promptBuilder';
 import { getDefaultModel } from './modelSelector';
 import {
-  runPreflight,
-  AgentCommand,
+  runPreflight, PreflightError,
 } from './preflight';
+import { AgentCommand } from './agentCli';
 import { spawn } from 'child_process';
 import * as fs from 'fs';
 
@@ -139,17 +139,28 @@ async function doReview(
     increment: 5,
   });
 
-  const preflight = await runPreflight();
-  if (!preflight.ok || !preflight.agent) {
-    const action = await window.showErrorMessage(
-      (preflight.error
-        ?? 'AI Review prerequisites not met.')
-      + ' Run "Enable AI Review" to configure.',
-      'Enable AI Review'
-    );
-    if (action === 'Enable AI Review') {
-      await vscodeCommands.executeCommand(
-        'gerrit.enableAiReview'
+  let agent: AgentCommand;
+  try {
+    const status = await runPreflight();
+    agent = status.agent;
+  } catch (e: unknown) {
+    const err = e as PreflightError;
+    if (err.recoverable) {
+      const action =
+        await window.showErrorMessage(
+          err.message
+          + ' Click "Enable AI Review"'
+          + ' to set up the CLI.',
+          'Enable AI Review'
+        );
+      if (action === 'Enable AI Review') {
+        await vscodeCommands.executeCommand(
+          'gerrit.enableAiReview'
+        );
+      }
+    } else {
+      await window.showErrorMessage(
+        err.message
       );
     }
     return;
@@ -173,7 +184,7 @@ async function doReview(
 
   try {
     await invokeCursorAgent(
-      preflight.agent,
+      agent,
       changeNumber, promptFile, progress, token
     );
   } finally {

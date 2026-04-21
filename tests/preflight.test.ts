@@ -2,6 +2,7 @@ import * as assert from 'assert';
 import {
 	runPreflight,
 	PreflightDeps,
+	PreflightError,
 } from '../src/lib/ai-review/preflight';
 import {
 	buildMcpEnableCommand,
@@ -19,31 +20,53 @@ function makeDeps(
 }
 
 describe('runPreflight', () => {
-	it('returns error when Node < 18', async () => {
+	it('throws when Node < 18', async () => {
 		const deps = makeDeps({
 			getNodeMajor: () => 16,
 		});
-		const result = await runPreflight(deps);
 
-		assert.strictEqual(result.ok, false);
-		assert.ok(result.error);
-		assert.ok(
-			result.error.includes('Node.js >= 18')
-		);
-		assert.strictEqual(
-			result.agent, undefined
+		await assert.rejects(
+			() => runPreflight(deps),
+			(err: Error) => {
+				assert.ok(
+					err instanceof PreflightError
+				);
+				assert.strictEqual(
+					(err as PreflightError)
+						.recoverable,
+					false
+				);
+				assert.ok(
+					err.message.includes(
+						'Node.js >= 18'
+					)
+				);
+				return true;
+			}
 		);
 	});
 
-	it('returns error when Node is exactly 17', async () => {
+	it('throws when Node is exactly 17', async () => {
 		const deps = makeDeps({
 			getNodeMajor: () => 17,
 		});
-		const result = await runPreflight(deps);
 
-		assert.strictEqual(result.ok, false);
-		assert.ok(
-			result.error!.includes('v17')
+		await assert.rejects(
+			() => runPreflight(deps),
+			(err: Error) => {
+				assert.ok(
+					err instanceof PreflightError
+				);
+				assert.strictEqual(
+					(err as PreflightError)
+						.recoverable,
+					false
+				);
+				assert.ok(
+					err.message.includes('v17')
+				);
+				return true;
+			}
 		);
 	});
 
@@ -53,26 +76,36 @@ describe('runPreflight', () => {
 			whichCmd: async (name: string) =>
 				name === 'agent',
 		});
-		const result = await runPreflight(deps);
+		const status = await runPreflight(deps);
 
-		assert.strictEqual(result.ok, true);
-		assert.ok(result.agent);
+		assert.strictEqual(status.nodeOk, true);
+		assert.strictEqual(status.nodeMajor, 18);
+		assert.strictEqual(status.cliFound, true);
+		assert.strictEqual(
+			status.agent.cmd, 'agent'
+		);
 	});
 
 	it(
 		'prefers standalone agent CLI when available',
 		async () => {
 			const deps = makeDeps({
-				whichCmd: async (_name: string) => true,
+				whichCmd: async (_name: string) =>
+					true,
 			});
-			const result = await runPreflight(deps);
+			const status = await runPreflight(deps);
 
-			assert.strictEqual(result.ok, true);
 			assert.strictEqual(
-				result.agent!.cmd, 'agent'
+				status.nodeOk, true
+			);
+			assert.strictEqual(
+				status.cliFound, true
+			);
+			assert.strictEqual(
+				status.agent.cmd, 'agent'
 			);
 			assert.deepStrictEqual(
-				result.agent!.baseArgs, []
+				status.agent.baseArgs, []
 			);
 		}
 	);
@@ -85,36 +118,52 @@ describe('runPreflight', () => {
 				whichCmd: async (name: string) =>
 					name === 'cursor',
 			});
-			const result = await runPreflight(deps);
+			const status = await runPreflight(deps);
 
-			assert.strictEqual(result.ok, true);
 			assert.strictEqual(
-				result.agent!.cmd, 'cursor'
+				status.cliFound, true
+			);
+			assert.strictEqual(
+				status.agent.cmd, 'cursor'
 			);
 			assert.deepStrictEqual(
-				result.agent!.baseArgs, ['agent']
+				status.agent.baseArgs, ['agent']
 			);
 		}
 	);
 
 	it(
-		'returns error when neither agent nor cursor '
+		'throws when neither agent nor cursor '
 		+ 'are available',
 		async () => {
 			const deps = makeDeps({
-				whichCmd: async (_name: string) => false,
+				whichCmd: async (_name: string) =>
+					false,
 			});
-			const result = await runPreflight(deps);
 
-			assert.strictEqual(result.ok, false);
-			assert.ok(result.error);
-			assert.ok(
-				result.error.includes(
-					'Cursor Agent CLI not found'
-				)
-			);
-			assert.ok(
-				result.error.includes('cursor.com/install')
+			await assert.rejects(
+				() => runPreflight(deps),
+				(err: Error) => {
+					assert.ok(
+						err instanceof PreflightError
+					);
+					assert.strictEqual(
+						(err as PreflightError)
+							.recoverable,
+						true
+					);
+					assert.ok(
+						err.message.includes(
+							'Cursor Agent CLI not found'
+						)
+					);
+					assert.ok(
+						err.message.includes(
+							'cursor.com/install'
+						)
+					);
+					return true;
+				}
 			);
 		}
 	);
@@ -130,9 +179,10 @@ describe('runPreflight', () => {
 					return false;
 				},
 			};
-			const result = await runPreflight(deps);
 
-			assert.strictEqual(result.ok, false);
+			await assert.rejects(
+				() => runPreflight(deps)
+			);
 			assert.ok(
 				!whichNames.includes('agent'),
 				'should not probe for agent CLI'
@@ -171,4 +221,3 @@ describe('buildMcpEnableCommand', () => {
 		);
 	});
 });
-

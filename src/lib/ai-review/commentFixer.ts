@@ -204,7 +204,12 @@ function invokeCursorAgentForFix(
 	progress: {
 		report: (v: { message?: string; increment?: number }) => void;
 	},
-	_token: { isCancellationRequested: boolean }
+	token: {
+		isCancellationRequested: boolean;
+		onCancellationRequested: (
+			cb: () => void
+		) => { dispose: () => void };
+	}
 ): Promise<void> {
 	const model = getDefaultModel();
 	const args = [
@@ -280,7 +285,7 @@ function invokeCursorAgentForFix(
 				oc.appendLine('[Timed out after 5 minutes]');
 			}
 			proc.kill();
-			settle(resolve);
+			settle(reject, new Error('Timed out after 5 minutes'));
 		}, TIMEOUT_MS);
 
 		let buffer = '';
@@ -322,7 +327,21 @@ function invokeCursorAgentForFix(
 			);
 		});
 
+		const cancelSub =
+			token.onCancellationRequested(() => {
+				log('Suggestion fix cancelled by user');
+				if (oc) {
+					oc.appendLine('');
+					oc.appendLine(SEPARATOR);
+					oc.appendLine('[Cancelled by user]');
+				}
+				proc.kill();
+				settle(reject, new Error('Cancelled'));
+			});
+
 		proc.on('exit', (code) => {
+			cancelSub.dispose();
+
 			if (buffer.trim()) {
 				processStreamEvent(buffer.trim(), oc, progress);
 			}
@@ -343,6 +362,10 @@ function invokeCursorAgentForFix(
 				);
 			}
 		});
+
+		if (token.isCancellationRequested) {
+			proc.kill();
+		}
 	});
 }
 
@@ -421,6 +444,9 @@ export async function acceptSuggestion(
 					'Suggestion applied and comment resolved.'
 				);
 			} catch (e) {
+				if (token.isCancellationRequested) {
+					return;
+				}
 				const msg = e instanceof Error ? e.message : String(e);
 				log('Accept suggestion failed: ' + msg);
 				void window.showErrorMessage(
@@ -479,6 +505,9 @@ export async function acceptMultipleSuggestions(
 						'and resolved comments.'
 				);
 			} catch (e) {
+				if (token.isCancellationRequested) {
+					return;
+				}
 				const msg = e instanceof Error ? e.message : String(e);
 				log('Accept suggestions failed: ' + msg);
 				void window.showErrorMessage(

@@ -42,40 +42,54 @@ export async function runAIReview(
 	extensionContext: ExtensionContext,
 	changeTreeView?: ChangeTreeView
 ): Promise<void> {
-	await window.withProgress(
-		{
-			location: ProgressLocation.Notification,
-			title: 'Gerrit AI Review',
-			cancellable: true,
-		},
-		async (progress, token) => {
-			try {
-				await doReview(
-					changeNumber,
-					gerritRepo,
-					extensionContext,
-					progress,
-					token,
-					changeTreeView
-				);
-			} catch (e) {
-				const msg = e instanceof Error ? e.message : String(e);
-				log('AI Review failed: ' + msg);
-				void window.showErrorMessage('AI Review failed: ' + msg);
-			}
-		}
-	);
+  await window.withProgress(
+    {
+      location: ProgressLocation.Notification,
+      title: 'Gerrit AI Review',
+      cancellable: true,
+    },
+    async (progress, token) => {
+      try {
+        await doReview(
+          changeNumber,
+          gerritRepo,
+          extensionContext,
+          progress,
+          token,
+          changeTreeView
+        );
+      } catch (e) {
+        if (token.isCancellationRequested) {
+          return;
+        }
+        const msg = e instanceof Error
+          ? e.message : String(e);
+        log('AI Review failed: ' + msg);
+        void window.showErrorMessage(
+          'AI Review failed: ' + msg
+        );
+      }
+    }
+  );
 }
 
 async function doReview(
-	changeNumber: string,
-	gerritRepo: Repository,
-	extensionContext: ExtensionContext,
-	progress: {
-		report: (v: { message?: string; increment?: number }) => void;
-	},
-	token: { isCancellationRequested: boolean },
-	changeTreeView?: ChangeTreeView
+  changeNumber: string,
+  gerritRepo: Repository,
+  extensionContext: ExtensionContext,
+  progress: {
+    report: (v: {
+      message?: string;
+      increment?: number;
+    }) => void;
+  },
+  token: {
+    isCancellationRequested: boolean;
+    onCancellationRequested: (
+      cb: () => void
+    ) => { dispose: () => void };
+  },
+  changeTreeView?: ChangeTreeView
 ): Promise<void> {
   progress.report({
     message: 'Preparing review...',
@@ -191,10 +205,6 @@ async function doReview(
     cleanupTempFile(promptFile);
   }
 
-  if (token.isCancellationRequested) {
-    return;
-  }
-
   progress.report({
     message: 'Done!',
     increment: 60,
@@ -256,7 +266,12 @@ async function invokeCursorAgent(
       increment?: number;
     }) => void;
   },
-  token: { isCancellationRequested: boolean }
+  token: {
+    isCancellationRequested: boolean;
+    onCancellationRequested: (
+      cb: () => void
+    ) => { dispose: () => void };
+  }
 ): Promise<void> {
   const model = getDefaultModel();
   const prompt =
@@ -343,7 +358,9 @@ async function invokeCursorAgent(
         );
       }
       proc.kill();
-      settle(resolve);
+      settle(reject, new Error(
+        'Timed out after 5 minutes'
+      ));
     }, TIMEOUT_MS);
 
     let lastStatus = '';
@@ -392,7 +409,23 @@ async function invokeCursorAgent(
       ));
     });
 
+    const cancelSub =
+      token.onCancellationRequested(() => {
+        log('AI Review cancelled by user');
+        if (oc) {
+          oc.appendLine('');
+          oc.appendLine(SEPARATOR);
+          oc.appendLine(
+            '[Cancelled by user]'
+          );
+        }
+        proc.kill();
+        settle(reject, new Error('Cancelled'));
+      });
+
     proc.on('exit', (code) => {
+      cancelSub.dispose();
+
       if (buffer.trim()) {
         processStreamEvent(
           buffer.trim(), oc, progress,

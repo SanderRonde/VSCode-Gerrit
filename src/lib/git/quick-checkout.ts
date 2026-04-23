@@ -59,19 +59,19 @@ export interface QuickCheckoutApplyInfo {
 export async function quickCheckout(
 	gerritRepo: Repository,
 	changeTreeView: ChangeTreeView
-): Promise<void> {
+): Promise<boolean> {
 	const change = await changeTreeView.change;
 	if (!change) {
 		void window.showErrorMessage('Failed to get change');
-		return;
+		return false;
 	}
-	await window.withProgress(
+	const result = await window.withProgress(
 		{
 			location: ProgressLocation.Notification,
 			cancellable: true,
 			title: `Quick-checkout change ${change.number}`,
 		},
-		async (progress, token) => {
+		async (progress, token): Promise<boolean> => {
 			// Check if we have any working tree changes at all. If not, no
 			// need to stash
 			progress.report({
@@ -85,11 +85,11 @@ export async function quickCheckout(
 
 			const currentBranch = await getCurrentBranch(gerritRepo);
 			if (token.isCancellationRequested) {
-				return;
+				return false;
 			}
 			if (!currentBranch) {
 				void window.showErrorMessage('Failed to get current branch');
-				return;
+				return false;
 			}
 
 			const applyInfo: QuickCheckoutApplyInfo = {
@@ -107,7 +107,7 @@ export async function quickCheckout(
 					token.isCancellationRequested ||
 					!(await createStash(gerritRepo.rootUri.fsPath, stashName))
 				) {
-					return;
+					return false;
 				}
 
 				applyInfo.stashName = stashName;
@@ -133,7 +133,7 @@ export async function quickCheckout(
 				{}
 			);
 			if (token.isCancellationRequested) {
-				return;
+				return false;
 			}
 
 			progress.report({
@@ -151,7 +151,7 @@ export async function quickCheckout(
 			);
 			if (!result.success) {
 				void window.showErrorMessage('Failed to checkout change');
-				return;
+				return false;
 			}
 
 			progress.report({
@@ -159,8 +159,10 @@ export async function quickCheckout(
 				increment: 45,
 			});
 			void window.showInformationMessage('Checked out change');
+			return true;
 		}
 	);
+	return result ?? false;
 }
 
 export function getQuickCheckoutSubscribable(): Subscribable<

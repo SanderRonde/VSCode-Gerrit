@@ -109,16 +109,32 @@ async function doReview(
     });
 
     if (changeTreeView) {
-      await quickCheckout(
+      const ok = await quickCheckout(
         gerritRepo, changeTreeView
       );
+      if (!ok) {
+        throw new Error(
+          'Failed to checkout change ' + changeNumber
+          + '. Aborting AI review. See the Gerrit '
+          + 'output channel for details.'
+        );
+      }
     } else {
-      await gitFetchAndCheckoutChange(
+      const result = await gitFetchAndCheckoutChange(
         changeNumber,
         'latest',
         'origin',
         gerritRepo.rootUri.fsPath
       );
+      if (!result.success) {
+        throw new Error(
+          'Failed to checkout change ' + changeNumber
+          + '. Aborting AI review. '
+          + (result.stderr
+            ? 'Git error: ' + result.stderr.trim()
+            : 'See the Gerrit output channel for details.')
+        );
+      }
     }
   }
 

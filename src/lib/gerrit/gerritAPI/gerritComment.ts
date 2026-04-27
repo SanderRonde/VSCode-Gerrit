@@ -165,7 +165,7 @@ export class GerritComment extends GerritCommentBase {
 		return {
 			name: `${authorName} @ ${this.updated.format({
 				dateStyle: 'short',
-			})}`,
+			})} - PatchSet: ${this.patchSet?.toString()}`,
 		};
 	}
 

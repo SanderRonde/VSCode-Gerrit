@@ -305,7 +305,7 @@ export const commands: {
 	'gerrit.commentsOverview': {
 		title: 'Comments Overview',
 		icon: '$(comment-discussion)',
-		inCommandPalette: contextProp('gerrit:connected'),
+		inCommandPalette: false,
 	},
 	'gerrit.acceptSuggestion': {
 		title: 'Accept Suggestion',

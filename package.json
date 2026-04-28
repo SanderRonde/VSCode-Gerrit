@@ -396,11 +396,6 @@
 			{
 				"command": "cmd.gerrit.selectAiModel",
 				"title": "Gerrit: Select AI Review Model"
-			},
-			{
-				"command": "cmd.gerrit.commentsOverview",
-				"title": "Gerrit: Comments Overview",
-				"icon": "$(comment-discussion)"
 			}
 		],
 		"keybindings": [
@@ -733,10 +728,6 @@
 				},
 				{
 					"command": "cmd.gerrit.selectAiModel",
-					"when": "true"
-				},
-				{
-					"command": "cmd.gerrit.commentsOverview",
 					"when": "true"
 				}
 			],

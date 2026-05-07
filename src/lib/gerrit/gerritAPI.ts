@@ -37,16 +37,19 @@ export async function checkConnection(): Promise<void> {
 	const config = getConfigurationWithLegacy();
 	const url = getGerritURLFromReviewFile(gitReviewFile);
 	const username = config.get('gerrit.auth.username');
-	const password = await GerritSecrets.getForUrlOrWorkspace(
-		'password',
-		url ?? undefined,
-		workspace.workspaceFolders?.[0]?.uri
-	);
-	const cookie = await GerritSecrets.getForUrlOrWorkspace(
-		'cookie',
-		url ?? undefined,
-		workspace.workspaceFolders?.[0]?.uri
-	);
+	const wsUri = workspace.workspaceFolders?.[0]?.uri;
+	const [password, cookie] = await Promise.all([
+		GerritSecrets.getForUrlOrWorkspace(
+			'password',
+			url ?? undefined,
+			wsUri
+		),
+		GerritSecrets.getForUrlOrWorkspace(
+			'cookie',
+			url ?? undefined,
+			wsUri
+		),
+	]);
 	const extraCookies = config.get('gerrit.extraCookies');
 
 	if (!url || ((!username || !password) && !cookie)) {
@@ -108,20 +111,23 @@ export async function createAPI(
 	const config = getConfiguration();
 	const url = getGerritURLFromReviewFile(gitReviewFile);
 	const username = config.get('gerrit.auth.username');
-	const password = await GerritSecrets.getForUrlOrWorkspace(
-		'password',
-		url ?? undefined,
-		workspace.workspaceFolders?.[0]?.uri
-	);
-	const cookie = await GerritSecrets.getForUrlOrWorkspace(
-		'cookie',
-		url ?? undefined,
-		workspace.workspaceFolders?.[0]?.uri
-	);
+	const wsUri = workspace.workspaceFolders?.[0]?.uri;
+	const [password, cookie] = await Promise.all([
+		GerritSecrets.getForUrlOrWorkspace(
+			'password',
+			url ?? undefined,
+			wsUri
+		),
+		GerritSecrets.getForUrlOrWorkspace(
+			'cookie',
+			url ?? undefined,
+			wsUri
+		),
+	]);
 	const extraCookies = config.get('gerrit.extraCookies');
 
 	if (!url || ((!username || !password) && !cookie)) {
-		await setContextProp('gerrit:connected', false);
+		void setContextProp('gerrit:connected', false);
 		if (!hasSameConfig(url ?? undefined, username, password ?? undefined)) {
 			log(
 				'Missing URL, username or password. Please set them in your settings. (gerrit.auth.{url|username|password})'
@@ -147,7 +153,7 @@ export async function createAPI(
 		gitReviewFile,
 		allowFail
 	);
-	await setContextProp('gerrit:connected', true);
+	void setContextProp('gerrit:connected', true);
 	return api;
 }
 

@@ -47,7 +47,7 @@ export async function activate(context: ExtensionContext): Promise<void> {
 	setDevContext(context);
 
 	// set a bunch of default states
-	await setDefaultContexts();
+	void setDefaultContexts();
 
 	// Init storage
 	storageInit(context);
@@ -67,10 +67,10 @@ export async function activate(context: ExtensionContext): Promise<void> {
 	const gerritRepo = await getGerritRepo(context);
 
 	if (!gerritRepo) {
-		await setContextProp('gerrit:noGerritRepo', true);
+		void setContextProp('gerrit:noGerritRepo', true);
 		return;
 	}
-	await setContextProp('gerrit:isUsingGerrit', true);
+	void setContextProp('gerrit:isUsingGerrit', true);
 
 	GerritSecrets.secretStorage = context.secrets;
 	await setAPIGitReviewFile(gerritRepo);
@@ -80,7 +80,7 @@ export async function activate(context: ExtensionContext): Promise<void> {
 		'gerrit.aiReview.enabled',
 		false
 	);
-	await setContextProp('gerrit:aiReview.enabled', aiReviewEnabled);
+	void setContextProp('gerrit:aiReview.enabled', aiReviewEnabled);
 
 	// Watch for config changes to update AI Review enabled context
 	context.subscriptions.push(
@@ -100,7 +100,40 @@ export async function activate(context: ExtensionContext): Promise<void> {
 	context.subscriptions.push(statusBar);
 	registerCommands(statusBar, gerritRepo, context);
 
-	const version = await (await getAPI(true))?.getGerritVersion();
+	const reviewWebviewPromise =
+		getOrCreateReviewWebviewProvider(gerritRepo, context).then(
+			(provider) => {
+				context.subscriptions.push(
+					window.registerWebviewViewProvider(
+						'gerrit:review',
+						provider,
+						{
+							webviewOptions: {
+								retainContextWhenHidden: true,
+							},
+						}
+					)
+				);
+			}
+		);
+
+	// Warm caches and register early UI surfaces in parallel
+	const results = await Promise.all([
+		getAPI(true),
+		showQuickCheckoutStatusBarIcons(context),
+		reviewWebviewPromise,
+		showCurrentChangeStatusBarIcon(gerritRepo, statusBar, context),
+		updateUploaderState(gerritRepo).then((d) => {
+			context.subscriptions.push(d);
+		}),
+		setupChangeIDCache(gerritRepo).then((d) => {
+			context.subscriptions.push(d);
+		}),
+	]);
+
+	const api = results[0];
+
+	const version = await api?.getGerritVersion();
 	if (version?.isSmallerThan(new VersionNumber(3, 4, 0))) {
 		// Pre-unsupported versions check if force-enable is enabled
 		if (!getConfiguration().get('gerrit.forceEnable')) {
@@ -128,9 +161,13 @@ export async function activate(context: ExtensionContext): Promise<void> {
 		}
 	}
 
-	// Register status bar entry
-	await showCurrentChangeStatusBarIcon(gerritRepo, statusBar, context);
-	await showQuickCheckoutStatusBarIcons(context);
+	// Get version number and enable/disable features
+	if (version) {
+		void setContextProp(
+			'gerrit:hasCommentFeature',
+			version.isGreaterThanOrEqual(new VersionNumber(3, 5, 0))
+		);
+	}
 
 	// Test stream events
 	void (async () => {
@@ -147,17 +184,6 @@ export async function activate(context: ExtensionContext): Promise<void> {
 	// Register tree views
 	context.subscriptions.push(getOrCreateChangesTreeProvider(gerritRepo));
 	context.subscriptions.push(getOrCreateQuickCheckoutTreeProvider());
-	context.subscriptions.push(
-		window.registerWebviewViewProvider(
-			'gerrit:review',
-			await getOrCreateReviewWebviewProvider(gerritRepo, context),
-			{
-				webviewOptions: {
-					retainContextWhenHidden: true,
-				},
-			}
-		)
-	);
 	context.subscriptions.push(
 		(() => {
 			const searchResultsTreeProvider = new SearchResultsTreeProvider(
@@ -210,20 +236,10 @@ export async function activate(context: ExtensionContext): Promise<void> {
 	);
 
 	// Add disposables
-	context.subscriptions.push(await setupChangeIDCache(gerritRepo));
-	context.subscriptions.push(await updateUploaderState(gerritRepo));
 	context.subscriptions.push(fileCache);
 
 	// Warm up cache for self
 	void GerritUser.getSelf();
-
-	// Get version number and enable/disable features
-	if (version) {
-		await setContextProp(
-			'gerrit:hasCommentFeature',
-			version.isGreaterThanOrEqual(new VersionNumber(3, 5, 0))
-		);
-	}
 }
 
 export function deactivate(): void {}

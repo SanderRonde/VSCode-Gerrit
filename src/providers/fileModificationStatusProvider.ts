@@ -6,9 +6,18 @@ import {
 	Uri,
 } from 'vscode';
 import { FileMetaWithSideAndBase, GERRIT_FILE_SCHEME } from './fileProvider';
-import { GerritRevisionFileStatus } from '../lib/gerrit/gerritAPI/types';
+import {
+	FileChangeKind,
+	classifyFile,
+} from '../lib/gerrit/gerritAPI/fileChangeKind';
 import { GerritChange } from '../lib/gerrit/gerritAPI/gerritChange';
 import { GerritFile } from '../lib/gerrit/gerritAPI/gerritFile';
+
+interface DecorationParts {
+	letter: string;
+	colorKey: string;
+	tooltip: string;
+}
 
 export class FileModificationStatusProvider implements FileDecorationProvider {
 	private _formatFilePath(filePath: string): string {
@@ -21,47 +30,37 @@ export class FileModificationStatusProvider implements FileDecorationProvider {
 		return trimmed.replace(/\\/g, '/');
 	}
 
-	private _getTooltip(file: GerritFile): string {
-		switch (file.status) {
-			case GerritRevisionFileStatus.ADDED:
-				return 'added';
-			case GerritRevisionFileStatus.DELETED:
-				return 'deleted';
-			case GerritRevisionFileStatus.RENAMED:
-				return `renamed ${this._formatFilePath(
-					file.oldPath!
-				)} -> ${this._formatFilePath(file.filePath)}`;
-			default:
-				return 'modified';
-		}
-	}
-
-	private _getColor(status: GerritRevisionFileStatus | null): ThemeColor {
-		const color = (() => {
-			switch (status) {
-				case GerritRevisionFileStatus.ADDED:
-					return 'gitDecoration.addedResourceForeground';
-				case GerritRevisionFileStatus.DELETED:
-					return 'gitDecoration.deletedResourceForeground';
-				case GerritRevisionFileStatus.RENAMED:
-					return 'gitDecoration.renamedResourceForeground';
-				default:
-					return 'gitDecoration.modifiedResourceForeground';
-			}
-		})();
-		return new ThemeColor(color);
-	}
-
-	private _getLetter(status: GerritRevisionFileStatus | null): string {
-		switch (status) {
-			case GerritRevisionFileStatus.ADDED:
-				return 'A';
-			case GerritRevisionFileStatus.DELETED:
-				return 'D';
-			case GerritRevisionFileStatus.RENAMED:
-				return 'R';
-			default:
-				return 'M';
+	private _decorationParts(
+		file: GerritFile,
+		kind: FileChangeKind
+	): DecorationParts {
+		switch (kind.kind) {
+			case 'added':
+				return {
+					letter: 'A',
+					colorKey: 'gitDecoration.addedResourceForeground',
+					tooltip: 'added',
+				};
+			case 'deleted':
+				return {
+					letter: 'D',
+					colorKey: 'gitDecoration.deletedResourceForeground',
+					tooltip: 'deleted',
+				};
+			case 'renamed':
+				return {
+					letter: 'R',
+					colorKey: 'gitDecoration.renamedResourceForeground',
+					tooltip: `renamed ${this._formatFilePath(
+						kind.oldPath
+					)} -> ${this._formatFilePath(file.filePath)}`,
+				};
+			case 'modified':
+				return {
+					letter: 'M',
+					colorKey: 'gitDecoration.modifiedResourceForeground',
+					tooltip: 'modified',
+				};
 		}
 	}
 
@@ -94,12 +93,16 @@ export class FileModificationStatusProvider implements FileDecorationProvider {
 		}
 
 		const file = files[meta.filePath];
+		const parts = this._decorationParts(
+			file,
+			classifyFile(file)
+		);
 
 		return {
 			propagate: false,
-			badge: this._getLetter(file.status),
-			color: this._getColor(file.status),
-			tooltip: this._getTooltip(file),
+			badge: parts.letter,
+			color: new ThemeColor(parts.colorKey),
+			tooltip: parts.tooltip,
 		};
 	}
 }

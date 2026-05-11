@@ -14,8 +14,10 @@ import {
 	TREE_ITEM_TYPE_FILE,
 	TREE_ITEM_WAS_MODIFIED,
 } from '../../../../lib/util/magic';
-import { GerritCommentSide } from '../../../../lib/gerrit/gerritAPI/types';
-import { classifyFile } from '../../../../lib/gerrit/gerritAPI/fileChangeKind';
+import {
+	GerritCommentSide,
+	GerritRevisionFileStatus,
+} from '../../../../lib/gerrit/gerritAPI/types';
 import {
 	GerritFile,
 	TextContent,
@@ -83,14 +85,13 @@ export class FileTreeView implements TreeItemWithoutChildren {
 		file: GerritFile,
 		patchsetBase: PatchsetDescription | null
 	): Promise<[TextContent | null, TextContent | null]> {
-		const kind = classifyFile(file);
-		if (kind.kind === 'added') {
+		if (file.status === GerritRevisionFileStatus.ADDED) {
 			return [
 				TextContent.from(FileMeta.EMPTY, '', 'utf8'),
 				await file.getNewContent(),
 			];
 		}
-		if (kind.kind === 'deleted') {
+		if (file.status === GerritRevisionFileStatus.DELETED) {
 			const oldContent = await this._getFileBaseContent(
 				file,
 				patchsetBase
@@ -215,15 +216,17 @@ export class FileTreeView implements TreeItemWithoutChildren {
 
 	private _getContextValue(): string {
 		const values: string[] = [TREE_ITEM_TYPE_FILE];
-		const kind = classifyFile(this.file).kind;
-		if (kind === 'renamed' || kind === 'modified') {
+		if (
+			this.file.status === GerritRevisionFileStatus.RENAMED ||
+			!this.file.status
+		) {
 			values.push(TREE_ITEM_WAS_MODIFIED);
 		}
 		return values.join('|');
 	}
 
 	private async _getFileUri(file: GerritFile): Promise<Uri | null> {
-		if (classifyFile(file).kind === 'deleted') {
+		if (file.status === GerritRevisionFileStatus.DELETED) {
 			const commit = await this.change.getCurrentCommit(
 				GerritAPIWith.CURRENT_FILES
 			);

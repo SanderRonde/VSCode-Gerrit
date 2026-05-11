@@ -10,10 +10,7 @@
 	},
 	"include": [
 		"./**/*.ts",
-		"../src/lib/ai-review/preflight.ts",
-		"../src/lib/gerrit/gerritAPI/fileChangeKind.ts",
-		"../src/lib/gerrit/gerritAPI/types.ts",
-		"../src/lib/gerrit/gerritAPI/gerritChangeMergeable.ts"
+		"../src/lib/ai-review/preflight.ts"
 	]
 }
 

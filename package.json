@@ -1571,7 +1571,7 @@
 		"package-dev": "npm run prepush && npm run build:debug && npm exec vsce package --no-yarn",
 		"generate-package": "generate-package-json generate --name Gerrit --input src/commands/defs.ts -w -p package.json --handler src/commands/commands.ts --validate --prefix Gerrit && prettier --write package.json",
 		"test": "TS_NODE_PROJECT=tests/tsconfig.json mocha --require ts-node/register 'tests/**/*.test.ts' --timeout 10000",
-		"prepush": "npm run generate-package && npm run format-staged && npm run lint -- --fix && npm run compile"
+		"prepush": "npm run generate-package && npm run lint -- --fix && npm run format-staged && npm run compile"
 	},
 	"devDependencies": {
 		"@emotion/react": "^11.7.0",

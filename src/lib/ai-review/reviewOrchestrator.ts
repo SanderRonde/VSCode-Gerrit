@@ -10,24 +10,22 @@ import {
 } from 'vscode';
 import { FileTreeView } from '../../views/activityBar/changes/changeTreeView/fileTreeView';
 import { ChangeTreeView } from '../../views/activityBar/changes/changeTreeView';
-import { showCommentsOverview } from '../../views/commentsOverview';
 import { getGerritURLFromReviewFile } from '../credentials/enterCredentials';
+import { log, getOutputChannel, showOutputChannel } from '../util/log';
 import { getGitReviewFileCached } from '../credentials/gitReviewFile';
-import { GerritSecrets } from '../credentials/secrets';
-import { getAPI } from '../gerrit/gerritAPI';
-import { GerritAPIWith } from '../gerrit/gerritAPI/api';
+import { writeMcpConfig, GerritCredentials } from '../mcp/mcpManager';
+import { showCommentsOverview } from '../../views/commentsOverview';
 import { GerritChange } from '../gerrit/gerritAPI/gerritChange';
+import { Repository } from '../../types/vscode-extension-git';
+import { runPreflight, PreflightError } from './preflight';
+import { GerritAPIWith } from '../gerrit/gerritAPI/api';
+import { GerritSecrets } from '../credentials/secrets';
 import { gitFetchAndCheckoutChange } from '../git/git';
 import { quickCheckout } from '../git/quick-checkout';
-import { writeMcpConfig, GerritCredentials } from '../mcp/mcpManager';
-import { Repository } from '../../types/vscode-extension-git';
-import { log, getOutputChannel, showOutputChannel } from '../util/log';
 import { getConfiguration } from '../vscode/config';
 import { writePromptFile } from './promptBuilder';
 import { getDefaultModel } from './modelSelector';
-import {
-  runPreflight, PreflightError,
-} from './preflight';
+import { getAPI } from '../gerrit/gerritAPI';
 import { AgentCommand } from './agentCli';
 import { spawn } from 'child_process';
 import * as fs from 'fs';
@@ -42,193 +40,173 @@ export async function runAIReview(
 	extensionContext: ExtensionContext,
 	changeTreeView?: ChangeTreeView
 ): Promise<void> {
-  await window.withProgress(
-    {
-      location: ProgressLocation.Notification,
-      title: 'Gerrit AI Review',
-      cancellable: true,
-    },
-    async (progress, token) => {
-      try {
-        await doReview(
-          changeNumber,
-          gerritRepo,
-          extensionContext,
-          progress,
-          token,
-          changeTreeView
-        );
-      } catch (e) {
-        if (token.isCancellationRequested) {
-          return;
-        }
-        const msg = e instanceof Error
-          ? e.message : String(e);
-        log('AI Review failed: ' + msg);
-        void window.showErrorMessage(
-          'AI Review failed: ' + msg
-        );
-      }
-    }
-  );
+	await window.withProgress(
+		{
+			location: ProgressLocation.Notification,
+			title: 'Gerrit AI Review',
+			cancellable: true,
+		},
+		async (progress, token) => {
+			try {
+				await doReview(
+					changeNumber,
+					gerritRepo,
+					extensionContext,
+					progress,
+					token,
+					changeTreeView
+				);
+			} catch (e) {
+				if (token.isCancellationRequested) {
+					return;
+				}
+				const msg = e instanceof Error ? e.message : String(e);
+				log('AI Review failed: ' + msg);
+				void window.showErrorMessage('AI Review failed: ' + msg);
+			}
+		}
+	);
 }
 
 async function doReview(
-  changeNumber: string,
-  gerritRepo: Repository,
-  extensionContext: ExtensionContext,
-  progress: {
-    report: (v: {
-      message?: string;
-      increment?: number;
-    }) => void;
-  },
-  token: {
-    isCancellationRequested: boolean;
-    onCancellationRequested: (
-      cb: () => void
-    ) => { dispose: () => void };
-  },
-  changeTreeView?: ChangeTreeView
+	changeNumber: string,
+	gerritRepo: Repository,
+	extensionContext: ExtensionContext,
+	progress: {
+		report: (v: { message?: string; increment?: number }) => void;
+	},
+	token: {
+		isCancellationRequested: boolean;
+		onCancellationRequested: (cb: () => void) => { dispose: () => void };
+	},
+	changeTreeView?: ChangeTreeView
 ): Promise<void> {
-  progress.report({
-    message: 'Preparing review...',
-    increment: 5,
-  });
+	progress.report({
+		message: 'Preparing review...',
+		increment: 5,
+	});
 
-  const shouldCheckout =
-    await resolveCheckoutDecision(token);
-  if (token.isCancellationRequested) {
-    return;
-  }
+	const shouldCheckout = await resolveCheckoutDecision(token);
+	if (token.isCancellationRequested) {
+		return;
+	}
 
-  if (shouldCheckout) {
-    progress.report({
-      message: 'Checking out change...',
-      increment: 10,
-    });
+	if (shouldCheckout) {
+		progress.report({
+			message: 'Checking out change...',
+			increment: 10,
+		});
 
-    if (changeTreeView) {
-      const ok = await quickCheckout(
-        gerritRepo, changeTreeView
-      );
-      if (!ok) {
-        throw new Error(
-          'Failed to checkout change ' + changeNumber
-          + '. Aborting AI review. See the Gerrit '
-          + 'output channel for details.'
-        );
-      }
-    } else {
-      const result = await gitFetchAndCheckoutChange(
-        changeNumber,
-        'latest',
-        'origin',
-        gerritRepo.rootUri.fsPath
-      );
-      if (!result.success) {
-        throw new Error(
-          'Failed to checkout change ' + changeNumber
-          + '. Aborting AI review. '
-          + (result.stderr
-            ? 'Git error: ' + result.stderr.trim()
-            : 'See the Gerrit output channel for details.')
-        );
-      }
-    }
-  }
+		if (changeTreeView) {
+			const ok = await quickCheckout(gerritRepo, changeTreeView);
+			if (!ok) {
+				throw new Error(
+					'Failed to checkout change ' +
+						changeNumber +
+						'. Aborting AI review. See the Gerrit ' +
+						'output channel for details.'
+				);
+			}
+		} else {
+			const result = await gitFetchAndCheckoutChange(
+				changeNumber,
+				'latest',
+				'origin',
+				gerritRepo.rootUri.fsPath
+			);
+			if (!result.success) {
+				throw new Error(
+					'Failed to checkout change ' +
+						changeNumber +
+						'. Aborting AI review. ' +
+						(result.stderr
+							? 'Git error: ' + result.stderr.trim()
+							: 'See the Gerrit output channel for details.')
+				);
+			}
+		}
+	}
 
-  progress.report({
-    message: 'Configuring review environment...',
-    increment: 10,
-  });
+	progress.report({
+		message: 'Configuring review environment...',
+		increment: 10,
+	});
 
-  const credentials = await extractCredentials(
-    gerritRepo
-  );
-  if (!credentials) {
-    throw new Error(
-      'Could not extract Gerrit credentials. '
-      + 'Please configure them via "Gerrit: '
-      + 'Enter Credentials".'
-    );
-  }
+	const credentials = await extractCredentials(gerritRepo);
+	if (!credentials) {
+		throw new Error(
+			'Could not extract Gerrit credentials. ' +
+				'Please configure them via "Gerrit: ' +
+				'Enter Credentials".'
+		);
+	}
 
-  const mcpOk = await writeMcpConfig(
-    extensionContext.extensionPath,
-    credentials
-  );
-  if (!mcpOk) {
-    throw new Error(
-      'Failed to write MCP configuration.'
-    );
-  }
+	const mcpOk = await writeMcpConfig(
+		extensionContext.extensionPath,
+		credentials
+	);
+	if (!mcpOk) {
+		throw new Error('Failed to write MCP configuration.');
+	}
 
-  progress.report({
-    message: 'Checking prerequisites...',
-    increment: 5,
-  });
+	progress.report({
+		message: 'Checking prerequisites...',
+		increment: 5,
+	});
 
-  let agent: AgentCommand;
-  try {
-    const status = await runPreflight();
-    agent = status.agent;
-  } catch (e: unknown) {
-    const err = e as PreflightError;
-    if (err.recoverable) {
-      const action =
-        await window.showErrorMessage(
-          err.message
-          + ' Click "Enable AI Review"'
-          + ' to set up the CLI.',
-          'Enable AI Review'
-        );
-      if (action === 'Enable AI Review') {
-        await vscodeCommands.executeCommand(
-          'gerrit.enableAiReview'
-        );
-      }
-    } else {
-      await window.showErrorMessage(
-        err.message
-      );
-    }
-    return;
-  }
+	let agent: AgentCommand;
+	try {
+		const status = await runPreflight();
+		agent = status.agent;
+	} catch (e: unknown) {
+		const err = e as PreflightError;
+		if (err.recoverable) {
+			const action = await window.showErrorMessage(
+				err.message +
+					' Click "Enable AI Review"' +
+					' to set up the CLI.',
+				'Enable AI Review'
+			);
+			if (action === 'Enable AI Review') {
+				await vscodeCommands.executeCommand('gerrit.enableAiReview');
+			}
+		} else {
+			await window.showErrorMessage(err.message);
+		}
+		return;
+	}
 
-  progress.report({
-    message: 'Preparing review prompt...',
-    increment: 5,
-  });
+	progress.report({
+		message: 'Preparing review prompt...',
+		increment: 5,
+	});
 
-  const promptFile = writePromptFile(
-    changeNumber, shouldCheckout
-  );
+	const promptFile = writePromptFile(changeNumber, shouldCheckout);
 
-  progress.report({
-    message:
-      'Review in progress \u2014 see Output '
-      + 'panel for live details',
-    increment: 10,
-  });
+	progress.report({
+		message:
+			'Review in progress \u2014 see Output ' + 'panel for live details',
+		increment: 10,
+	});
 
-  try {
-    await invokeCursorAgent(
-      agent,
-      changeNumber, promptFile, progress, token
-    );
-  } finally {
-    cleanupTempFile(promptFile);
-  }
+	try {
+		await invokeCursorAgent(
+			agent,
+			changeNumber,
+			promptFile,
+			progress,
+			token
+		);
+	} finally {
+		cleanupTempFile(promptFile);
+	}
 
-  progress.report({
-    message: 'Done!',
-    increment: 60,
-  });
+	progress.report({
+		message: 'Done!',
+		increment: 60,
+	});
 
-  await showCompletionActions(
-    changeNumber, gerritRepo
-  );
+	await showCompletionActions(changeNumber, gerritRepo);
 }
 
 // ── Credentials ─────────────────────────────────────
@@ -273,208 +251,186 @@ async function extractCredentials(
 // ── Cursor agent invocation ─────────────────────────
 
 async function invokeCursorAgent(
-  agent: AgentCommand,
-  changeNumber: string,
-  promptFile: string,
-  progress: {
-    report: (v: {
-      message?: string;
-      increment?: number;
-    }) => void;
-  },
-  token: {
-    isCancellationRequested: boolean;
-    onCancellationRequested: (
-      cb: () => void
-    ) => { dispose: () => void };
-  }
+	agent: AgentCommand,
+	changeNumber: string,
+	promptFile: string,
+	progress: {
+		report: (v: { message?: string; increment?: number }) => void;
+	},
+	token: {
+		isCancellationRequested: boolean;
+		onCancellationRequested: (cb: () => void) => { dispose: () => void };
+	}
 ): Promise<void> {
-  const model = getDefaultModel();
-  const prompt =
-    `Read and follow ${promptFile}`;
-  const args = [
-    ...agent.baseArgs,
-    '--print',
-    '--output-format', 'stream-json',
-    '--stream-partial-output',
-    '--approve-mcps',
-    '--trust',
-    '--force',
-  ];
-  if (model) {
-    args.push('--model', model);
-  }
+	const model = getDefaultModel();
+	const prompt = `Read and follow ${promptFile}`;
+	const args = [
+		...agent.baseArgs,
+		'--print',
+		'--output-format',
+		'stream-json',
+		'--stream-partial-output',
+		'--approve-mcps',
+		'--trust',
+		'--force',
+	];
+	if (model) {
+		args.push('--model', model);
+	}
 
-  const cwd =
-    workspace.workspaceFolders?.[0]?.uri.fsPath;
+	const cwd = workspace.workspaceFolders?.[0]?.uri.fsPath;
 
-  const oc = getOutputChannel();
-  if (oc) {
-    oc.clear();
-    showOutputChannel();
-    oc.appendLine('=== Gerrit AI Review ===');
-    oc.appendLine('');
-    oc.appendLine(`Change: ${changeNumber}`);
-    oc.appendLine(
-      `Model: ${model || '(auto)'}`
-    );
-    oc.appendLine('');
-    oc.appendLine(SEPARATOR);
-    oc.appendLine('');
-  }
+	const oc = getOutputChannel();
+	if (oc) {
+		oc.clear();
+		showOutputChannel();
+		oc.appendLine('=== Gerrit AI Review ===');
+		oc.appendLine('');
+		oc.appendLine(`Change: ${changeNumber}`);
+		oc.appendLine(`Model: ${model || '(auto)'}`);
+		oc.appendLine('');
+		oc.appendLine(SEPARATOR);
+		oc.appendLine('');
+	}
 
-  log(
-    `Invoking ${agent.cmd} agent (stream-json)`
-  );
+	log(`Invoking ${agent.cmd} agent (stream-json)`);
 
-  const TIMEOUT_MS = 5 * 60 * 1000;
-  const startTime = Date.now();
+	const TIMEOUT_MS = 5 * 60 * 1000;
+	const startTime = Date.now();
 
-  return new Promise<void>((resolve, reject) => {
-    let settled = false;
-    const settle = (
-      fn: typeof resolve | typeof reject,
-      val?: unknown
-    ): void => {
-      if (settled) {
-        return;
-      }
-      settled = true;
-      clearTimeout(timer);
-      (fn as (v?: unknown) => void)(val);
-    };
+	return new Promise<void>((resolve, reject) => {
+		let settled = false;
+		const settle = (
+			fn: typeof resolve | typeof reject,
+			val?: unknown
+		): void => {
+			if (settled) {
+				return;
+			}
+			settled = true;
+			clearTimeout(timer);
+			(fn as (v?: unknown) => void)(val);
+		};
 
-    const proc = spawn(agent.cmd, args, {
-      cwd,
-      stdio: ['pipe', 'pipe', 'pipe'],
-    });
+		const proc = spawn(agent.cmd, args, {
+			cwd,
+			stdio: ['pipe', 'pipe', 'pipe'],
+		});
 
-    proc.stdout.setEncoding('utf8');
-    proc.stderr.setEncoding('utf8');
+		proc.stdout.setEncoding('utf8');
+		proc.stderr.setEncoding('utf8');
 
-    if (proc.stdin) {
-      proc.stdin.write(prompt);
-      proc.stdin.end();
-    }
+		if (proc.stdin) {
+			proc.stdin.write(prompt);
+			proc.stdin.end();
+		}
 
-    if (oc) {
-      oc.appendLine(
-        `PID: ${proc.pid ?? 'unknown'}`
-      );
-      oc.appendLine('');
-    }
+		if (oc) {
+			oc.appendLine(`PID: ${proc.pid ?? 'unknown'}`);
+			oc.appendLine('');
+		}
 
-    const timer = setTimeout(() => {
-      log('Agent timed out after 5 minutes');
-      if (oc) {
-        oc.appendLine('');
-        oc.appendLine(SEPARATOR);
-        oc.appendLine(
-          '[Timed out after 5 minutes]'
-        );
-      }
-      proc.kill();
-      settle(reject, new Error(
-        'Timed out after 5 minutes'
-      ));
-    }, TIMEOUT_MS);
+		const timer = setTimeout(() => {
+			log('Agent timed out after 5 minutes');
+			if (oc) {
+				oc.appendLine('');
+				oc.appendLine(SEPARATOR);
+				oc.appendLine('[Timed out after 5 minutes]');
+			}
+			proc.kill();
+			settle(reject, new Error('Timed out after 5 minutes'));
+		}, TIMEOUT_MS);
 
-    let lastStatus = '';
-    let buffer = '';
+		let lastStatus = '';
+		let buffer = '';
 
-    proc.stdout.on('data', (chunk: string) => {
-      buffer += chunk;
-      const lines = buffer.split('\n');
-      buffer = lines.pop() || '';
+		proc.stdout.on('data', (chunk: string) => {
+			buffer += chunk;
+			const lines = buffer.split('\n');
+			buffer = lines.pop() || '';
 
-      for (const line of lines) {
-        const trimmed = line.trim();
-        if (!trimmed) {
-          continue;
-        }
-        processStreamEvent(
-          trimmed, oc, progress,
-          lastStatus,
-          (s) => { lastStatus = s; }
-        );
-      }
-    });
+			for (const line of lines) {
+				const trimmed = line.trim();
+				if (!trimmed) {
+					continue;
+				}
+				processStreamEvent(trimmed, oc, progress, lastStatus, (s) => {
+					lastStatus = s;
+				});
+			}
+		});
 
-    proc.stderr.on('data', (chunk: string) => {
-      if (oc) {
-        oc.appendLine(
-          '[stderr] ' + chunk.trimEnd()
-        );
-      }
-    });
+		proc.stderr.on('data', (chunk: string) => {
+			if (oc) {
+				oc.appendLine('[stderr] ' + chunk.trimEnd());
+			}
+		});
 
-    proc.on('error', (err) => {
-      if (oc) {
-        oc.appendLine('');
-        oc.appendLine(SEPARATOR);
-        oc.appendLine(
-          '[ERROR] ' + err.message
-        );
-      }
-      settle(reject, new Error(
-        'Cursor Agent CLI failed to start: '
-        + err.message
-        + '. Install it via: '
-        + 'curl https://cursor.com/install '
-        + '-fsS | bash'
-      ));
-    });
+		proc.on('error', (err) => {
+			if (oc) {
+				oc.appendLine('');
+				oc.appendLine(SEPARATOR);
+				oc.appendLine('[ERROR] ' + err.message);
+			}
+			settle(
+				reject,
+				new Error(
+					'Cursor Agent CLI failed to start: ' +
+						err.message +
+						'. Install it via: ' +
+						'curl https://cursor.com/install ' +
+						'-fsS | bash'
+				)
+			);
+		});
 
-    const cancelSub =
-      token.onCancellationRequested(() => {
-        log('AI Review cancelled by user');
-        if (oc) {
-          oc.appendLine('');
-          oc.appendLine(SEPARATOR);
-          oc.appendLine(
-            '[Cancelled by user]'
-          );
-        }
-        proc.kill();
-        settle(reject, new Error('Cancelled'));
-      });
+		const cancelSub = token.onCancellationRequested(() => {
+			log('AI Review cancelled by user');
+			if (oc) {
+				oc.appendLine('');
+				oc.appendLine(SEPARATOR);
+				oc.appendLine('[Cancelled by user]');
+			}
+			proc.kill();
+			settle(reject, new Error('Cancelled'));
+		});
 
-    proc.on('exit', (code) => {
-      cancelSub.dispose();
+		proc.on('exit', (code) => {
+			cancelSub.dispose();
 
-      if (buffer.trim()) {
-        processStreamEvent(
-          buffer.trim(), oc, progress,
-          lastStatus,
-          (s) => { lastStatus = s; }
-        );
-      }
+			if (buffer.trim()) {
+				processStreamEvent(
+					buffer.trim(),
+					oc,
+					progress,
+					lastStatus,
+					(s) => {
+						lastStatus = s;
+					}
+				);
+			}
 
-      const elapsed = Math.round(
-        (Date.now() - startTime) / 1000
-      );
-      if (oc) {
-        oc.appendLine('');
-        oc.appendLine(SEPARATOR);
-        oc.appendLine(
-          `[Completed in ${elapsed}s]`
-        );
-      }
-      if (code === 0 || code === null) {
-        log('Cursor Agent completed');
-        settle(resolve);
-      } else {
-        settle(reject, new Error(
-          'Cursor Agent exited with code '
-          + String(code)
-        ));
-      }
-    });
+			const elapsed = Math.round((Date.now() - startTime) / 1000);
+			if (oc) {
+				oc.appendLine('');
+				oc.appendLine(SEPARATOR);
+				oc.appendLine(`[Completed in ${elapsed}s]`);
+			}
+			if (code === 0 || code === null) {
+				log('Cursor Agent completed');
+				settle(resolve);
+			} else {
+				settle(
+					reject,
+					new Error('Cursor Agent exited with code ' + String(code))
+				);
+			}
+		});
 
-    if (token.isCancellationRequested) {
-      proc.kill();
-    }
-  });
+		if (token.isCancellationRequested) {
+			proc.kill();
+		}
+	});
 }
 
 interface StreamEvent {
@@ -704,70 +660,56 @@ async function navigateToDraft(
 	draft: DraftItem,
 	gerritRepo: Repository
 ): Promise<void> {
-  if (draft.filePath === '/PATCHSET_LEVEL') {
-    void window.showInformationMessage(
-      'Patchset comment: ' + draft.message
-    );
-    return;
-  }
+	if (draft.filePath === '/PATCHSET_LEVEL') {
+		void window.showInformationMessage(
+			'Patchset comment: ' + draft.message
+		);
+		return;
+	}
 
-  try {
-    const change = await GerritChange.getChangeOnce(
-      draft.changeNumber,
-      [
-        GerritAPIWith.CURRENT_REVISION,
-        GerritAPIWith.CURRENT_FILES,
-      ]
-    );
-    if (!change) {
-      throw new Error('Change not found');
-    }
+	try {
+		const change = await GerritChange.getChangeOnce(draft.changeNumber, [
+			GerritAPIWith.CURRENT_REVISION,
+			GerritAPIWith.CURRENT_FILES,
+		]);
+		if (!change) {
+			throw new Error('Change not found');
+		}
 
-    const revision =
-      await change.getCurrentRevision();
-    if (!revision) {
-      throw new Error('Revision not found');
-    }
+		const revision = await change.getCurrentRevision();
+		if (!revision) {
+			throw new Error('Revision not found');
+		}
 
-    const filesMap = await (
-      await revision.files(null)
-    ).getValue();
-    const file = filesMap?.[draft.filePath];
+		const filesMap = await (await revision.files(null)).getValue();
+		const file = filesMap?.[draft.filePath];
 
-    if (file) {
-      const diffCmd =
-        await FileTreeView.createDiffCommand(
-          gerritRepo, file, null
-        );
-      if (diffCmd?.arguments) {
-        await vscodeCommands.executeCommand(
-          diffCmd.command,
-          ...(diffCmd.arguments as unknown[])
-        );
-        if (draft.line) {
-          await new Promise((r) =>
-            setTimeout(r, 300)
-          );
-          void vscodeCommands.executeCommand(
-            'revealLine',
-            {
-              lineNumber: draft.line - 1,
-              at: 'center',
-            }
-          );
-        }
-        return;
-      }
-    }
+		if (file) {
+			const diffCmd = await FileTreeView.createDiffCommand(
+				gerritRepo,
+				file,
+				null
+			);
+			if (diffCmd?.arguments) {
+				await vscodeCommands.executeCommand(
+					diffCmd.command,
+					...(diffCmd.arguments as unknown[])
+				);
+				if (draft.line) {
+					await new Promise((r) => setTimeout(r, 300));
+					void vscodeCommands.executeCommand('revealLine', {
+						lineNumber: draft.line - 1,
+						at: 'center',
+					});
+				}
+				return;
+			}
+		}
 
-    await openFileFallback(
-      draft, gerritRepo
-    );
-  } catch {
-    await openFileFallback(
-      draft, gerritRepo
-    );
-  }
+		await openFileFallback(draft, gerritRepo);
+	} catch {
+		await openFileFallback(draft, gerritRepo);
+	}
 }
 
 async function openFileFallback(

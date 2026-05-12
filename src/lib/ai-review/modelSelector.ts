@@ -7,21 +7,21 @@ export interface AIModel {
 }
 
 const AVAILABLE_MODELS: AIModel[] = [
-  { label: 'Auto (let Cursor decide)', id: '' },
-  { label: 'GPT-5.2 Codex', id: 'gpt-5.2-codex' },
-  { label: 'GPT-5.2 Codex Mini', id: 'gpt-5.2-codex-mini' },
-  { label: 'Composer', id: 'composer' },
-  { label: 'Claude 4.6 Opus High', id: 'claude-4.6-opus-high' },
-  { label: 'Claude 4.7 Opus High', id: 'claude-4.7-opus-high' },
-  { label: 'Claude 4.5 Sonnet', id: 'claude-4.5-sonnet' },
-  { label: 'Claude 4.6 Sonnet Medium', id: 'claude-4.6-sonnet-medium' },
-  { label: 'Claude 3.5 Sonnet', id: 'claude-3.5-sonnet' },
-  { label: 'GPT-4o', id: 'gpt-4o' },
-  { label: 'Gemini 2.5 Pro', id: 'gemini-2.5-pro' },
-  {
-    label: '$(edit) Enter custom model ID...',
-    id: '__custom__',
-  },
+	{ label: 'Auto (let Cursor decide)', id: '' },
+	{ label: 'GPT-5.2 Codex', id: 'gpt-5.2-codex' },
+	{ label: 'GPT-5.2 Codex Mini', id: 'gpt-5.2-codex-mini' },
+	{ label: 'Composer', id: 'composer' },
+	{ label: 'Claude 4.6 Opus High', id: 'claude-4.6-opus-high' },
+	{ label: 'Claude 4.7 Opus High', id: 'claude-4.7-opus-high' },
+	{ label: 'Claude 4.5 Sonnet', id: 'claude-4.5-sonnet' },
+	{ label: 'Claude 4.6 Sonnet Medium', id: 'claude-4.6-sonnet-medium' },
+	{ label: 'Claude 3.5 Sonnet', id: 'claude-3.5-sonnet' },
+	{ label: 'GPT-4o', id: 'gpt-4o' },
+	{ label: 'Gemini 2.5 Pro', id: 'gemini-2.5-pro' },
+	{
+		label: '$(edit) Enter custom model ID...',
+		id: '__custom__',
+	},
 ];
 
 export async function selectAiModel(): Promise<string | undefined> {

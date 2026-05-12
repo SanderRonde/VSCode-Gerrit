@@ -100,22 +100,18 @@ export async function activate(context: ExtensionContext): Promise<void> {
 	context.subscriptions.push(statusBar);
 	registerCommands(statusBar, gerritRepo, context);
 
-	const reviewWebviewPromise =
-		getOrCreateReviewWebviewProvider(gerritRepo, context).then(
-			(provider) => {
-				context.subscriptions.push(
-					window.registerWebviewViewProvider(
-						'gerrit:review',
-						provider,
-						{
-							webviewOptions: {
-								retainContextWhenHidden: true,
-							},
-						}
-					)
-				);
-			}
+	const reviewWebviewPromise = getOrCreateReviewWebviewProvider(
+		gerritRepo,
+		context
+	).then((provider) => {
+		context.subscriptions.push(
+			window.registerWebviewViewProvider('gerrit:review', provider, {
+				webviewOptions: {
+					retainContextWhenHidden: true,
+				},
+			})
 		);
+	});
 
 	// Warm caches and register early UI surfaces in parallel
 	const results = await Promise.all([

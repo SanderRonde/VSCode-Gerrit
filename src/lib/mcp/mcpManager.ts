@@ -70,11 +70,11 @@ export async function writeMcpConfig(
 		env.GERRIT_AUTH_PREFIX = credentials.authPrefix;
 	}
 
-  config.mcpServers[MCP_SERVER_NAME] = {
-    command: process.execPath,
-    args: [serverScript],
-    env,
-  };
+	config.mcpServers[MCP_SERVER_NAME] = {
+		command: process.execPath,
+		args: [serverScript],
+		env,
+	};
 
 	try {
 		if (!fs.existsSync(mcpDir)) {

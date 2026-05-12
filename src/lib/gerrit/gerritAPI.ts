@@ -39,16 +39,8 @@ export async function checkConnection(): Promise<void> {
 	const username = config.get('gerrit.auth.username');
 	const wsUri = workspace.workspaceFolders?.[0]?.uri;
 	const [password, cookie] = await Promise.all([
-		GerritSecrets.getForUrlOrWorkspace(
-			'password',
-			url ?? undefined,
-			wsUri
-		),
-		GerritSecrets.getForUrlOrWorkspace(
-			'cookie',
-			url ?? undefined,
-			wsUri
-		),
+		GerritSecrets.getForUrlOrWorkspace('password', url ?? undefined, wsUri),
+		GerritSecrets.getForUrlOrWorkspace('cookie', url ?? undefined, wsUri),
 	]);
 	const extraCookies = config.get('gerrit.extraCookies');
 
@@ -113,16 +105,8 @@ export async function createAPI(
 	const username = config.get('gerrit.auth.username');
 	const wsUri = workspace.workspaceFolders?.[0]?.uri;
 	const [password, cookie] = await Promise.all([
-		GerritSecrets.getForUrlOrWorkspace(
-			'password',
-			url ?? undefined,
-			wsUri
-		),
-		GerritSecrets.getForUrlOrWorkspace(
-			'cookie',
-			url ?? undefined,
-			wsUri
-		),
+		GerritSecrets.getForUrlOrWorkspace('password', url ?? undefined, wsUri),
+		GerritSecrets.getForUrlOrWorkspace('cookie', url ?? undefined, wsUri),
 	]);
 	const extraCookies = config.get('gerrit.extraCookies');
 

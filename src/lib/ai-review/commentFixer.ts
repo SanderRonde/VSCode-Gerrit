@@ -206,9 +206,7 @@ function invokeCursorAgentForFix(
 	},
 	token: {
 		isCancellationRequested: boolean;
-		onCancellationRequested: (
-			cb: () => void
-		) => { dispose: () => void };
+		onCancellationRequested: (cb: () => void) => { dispose: () => void };
 	}
 ): Promise<void> {
 	const model = getDefaultModel();
@@ -327,17 +325,16 @@ function invokeCursorAgentForFix(
 			);
 		});
 
-		const cancelSub =
-			token.onCancellationRequested(() => {
-				log('Suggestion fix cancelled by user');
-				if (oc) {
-					oc.appendLine('');
-					oc.appendLine(SEPARATOR);
-					oc.appendLine('[Cancelled by user]');
-				}
-				proc.kill();
-				settle(reject, new Error('Cancelled'));
-			});
+		const cancelSub = token.onCancellationRequested(() => {
+			log('Suggestion fix cancelled by user');
+			if (oc) {
+				oc.appendLine('');
+				oc.appendLine(SEPARATOR);
+				oc.appendLine('[Cancelled by user]');
+			}
+			proc.kill();
+			settle(reject, new Error('Cancelled'));
+		});
 
 		proc.on('exit', (code) => {
 			cancelSub.dispose();

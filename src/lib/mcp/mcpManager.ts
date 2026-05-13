@@ -34,7 +34,7 @@ export async function writeMcpConfig(
 		return false;
 	}
 
-	const mcpDir = path.join(workspaceFolder, '.mcp');
+	const mcpDir = path.join(workspaceFolder, '.cursor');
 	const mcpConfigPath = path.join(mcpDir, 'mcp.json');
 
 	let config: McpConfig = { mcpServers: {} };
@@ -99,7 +99,7 @@ export function removeMcpConfig(): void {
 		return;
 	}
 
-	const mcpConfigPath = path.join(workspaceFolder, '.mcp', 'mcp.json');
+	const mcpConfigPath = path.join(workspaceFolder, '.cursor', 'mcp.json');
 	try {
 		if (!fs.existsSync(mcpConfigPath)) {
 			return;
@@ -126,7 +126,7 @@ export function isMcpConfigured(): boolean {
 		return false;
 	}
 
-	const mcpConfigPath = path.join(workspaceFolder, '.mcp', 'mcp.json');
+	const mcpConfigPath = path.join(workspaceFolder, '.cursor', 'mcp.json');
 	try {
 		if (!fs.existsSync(mcpConfigPath)) {
 			return false;

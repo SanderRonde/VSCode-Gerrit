@@ -200,20 +200,6 @@ async function isAgentLoggedIn(agent: AgentCommand): Promise<boolean> {
 	});
 }
 
-async function waitForUserDone(message: string): Promise<void> {
-	await window.withProgress(
-		{
-			location: ProgressLocation.Notification,
-			title: message,
-			cancellable: true,
-		},
-		(_progress, token) =>
-			new Promise<void>((resolve) => {
-				token.onCancellationRequested(resolve);
-			})
-	);
-}
-
 async function promptAgentLogin(agent: AgentCommand): Promise<boolean> {
 	const pick = await window.showInformationMessage(
 		'Cursor Agent CLI requires authentication.',
@@ -225,7 +211,7 @@ async function promptAgentLogin(agent: AgentCommand): Promise<boolean> {
 		const term = window.createTerminal('Cursor Agent Login');
 		term.show();
 		term.sendText(buildLoginCommand(agent));
-		await waitForUserDone('Logging in \u2014 cancel when done');
+		await window.showInformationMessage('Logging in via terminal', 'Click here to continue');
 		return true;
 	}
 

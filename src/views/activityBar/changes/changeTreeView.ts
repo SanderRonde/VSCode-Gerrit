@@ -323,7 +323,7 @@ export class ChangeTreeView
 						description: 'Revision ' + String(r.number),
 					})),
 			];
-			quickPick.selectedItems = [quickPick.items[0]];
+			quickPick.activeItems = [quickPick.items[0]];
 			quickPick.title = 'Select start patchset';
 			quickPick.show();
 
@@ -333,9 +333,9 @@ export class ChangeTreeView
 				quickPick.onDidAccept(() => {
 					if (quickPick.step === 1) {
 						values.push(
-							quickPick.selectedItems[0].label === 'Base'
+							quickPick.activeItems[0].label === 'Base'
 								? null
-								: parseInt(quickPick.selectedItems[0].label, 10)
+								: parseInt(quickPick.activeItems[0].label, 10)
 						);
 						quickPick.step = 2;
 						quickPick.title = 'Select end patchset';
@@ -351,7 +351,7 @@ export class ChangeTreeView
 							}));
 					} else {
 						const selectedNum = parseInt(
-							quickPick.selectedItems[0].label,
+							quickPick.activeItems[0].label,
 							10
 						);
 						values.push(

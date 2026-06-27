@@ -318,6 +318,7 @@ export class ChangeTreeView
 				},
 				...revisions
 					.sort((a, b) => a.number - b.number)
+					.filter((r) => r.number < maxRevision)
 					.map((r) => ({
 						label: String(r.number),
 						description: 'Revision ' + String(r.number),

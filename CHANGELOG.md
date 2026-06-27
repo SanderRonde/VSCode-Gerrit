@@ -2,6 +2,14 @@
 
 All notable changes to the "gerrit" extension will be documented in this file.
 
+## 1.2.60
+
+-   Don't show base revision in patchset selector if it's the same as the current revision
+
+## 1.2.59
+
+-   Fix issue where the patchset selector would show the base revision even if it was the same as the current revision
+
 ## 1.2.58
 
 -   Add commands to mark files as reviewed or unreviewed and visually indicate the reviewed status of files in the change explorer

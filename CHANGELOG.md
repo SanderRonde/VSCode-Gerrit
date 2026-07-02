@@ -2,6 +2,10 @@
 
 All notable changes to the "gerrit" extension will be documented in this file.
 
+## 1.2.61
+
+-   Update label for entering credentials to be more descriptive
+
 ## 1.2.60
 
 -   Don't show base revision in patchset selector if it's the same as the current revision

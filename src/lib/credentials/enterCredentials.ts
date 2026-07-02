@@ -350,12 +350,14 @@ export async function enterCredentials(gerritRepo: Repository): Promise<void> {
 	const choice = await window.showQuickPick(
 		[
 			{
-				label: 'Enter username and password',
+				label: 'Enter HTTP credentials',
+				description:
+					'Default authentication method for Gerrit, either with legacy HTTP password or token',
 			},
 			{
-				label: 'Access token (or cookie)',
+				label: 'Cookie',
 				description:
-					'Same value as GerritAccount cookie or from Gerrit Settings → HTTP Credentials',
+					'Same value as GerritAccount cookie from your browser',
 			},
 		] as const,
 		{
@@ -365,7 +367,7 @@ export async function enterCredentials(gerritRepo: Repository): Promise<void> {
 		}
 	);
 
-	if (choice?.label === 'Enter username and password') {
+	if (choice?.label === 'Enter HTTP credentials') {
 		await enterBasicCredentials(gerritRepo);
 	} else {
 		await enterCookieCredentials(gerritRepo);

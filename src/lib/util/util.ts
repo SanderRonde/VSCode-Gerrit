@@ -231,6 +231,14 @@ export function arrDiff<V>(
 	};
 }
 
+/**
+ * POSIX single-quote a string for interpolation into `exec` commands.
+ */
+export function shellQuote(value: string): string {
+	const q = String.fromCharCode(39);
+	return q + value.replace(/'/g, `${q}\\${q}${q}`) + q;
+}
+
 export function generateRandomString(length: number = 25): string {
 	const chars =
 		'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';

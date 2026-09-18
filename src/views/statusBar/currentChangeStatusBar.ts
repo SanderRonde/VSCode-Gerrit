@@ -18,17 +18,18 @@ import { GerritAPIWith } from '../../lib/gerrit/gerritAPI/api';
 import { GitCommit, tryExecAsync } from '../../lib/git/gitCLI';
 import { Repository } from '../../types/vscode-extension-git';
 import { getAPI } from '../../lib/gerrit/gerritAPI';
+import { shellQuote } from '../../lib/util/util';
 
 async function getMainBranchName(gerritRepo: Repository): Promise<string> {
 	const cmd = await tryExecAsync(
-		"git symbolic-ref refs/remotes/origin/HEAD | sed 's@^refs/remotes/origin/@@'",
+		'git symbolic-ref refs/remotes/origin/HEAD',
 		{
 			cwd: gerritRepo.rootUri.fsPath,
 			timeout: 2000,
 		}
 	);
 	if (cmd.success && cmd.stdout) {
-		return cmd.stdout.trim();
+		return cmd.stdout.trim().replace(/^refs\/remotes\/origin\//, '');
 	}
 	return 'master';
 }
@@ -222,10 +223,13 @@ async function gitCheckoutBranch(
 	gerritRepo: Repository,
 	branchName: string
 ): Promise<void> {
-	const { success } = await tryExecAsync(`git checkout ${branchName}`, {
-		cwd: gerritRepo.rootUri.fsPath,
-		timeout: 10000,
-	});
+	const { success } = await tryExecAsync(
+		`git checkout ${shellQuote(branchName)}`,
+		{
+			cwd: gerritRepo.rootUri.fsPath,
+			timeout: 10000,
+		}
+	);
 
 	if (!success) {
 		void window.showErrorMessage(

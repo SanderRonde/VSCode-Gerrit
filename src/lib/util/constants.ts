@@ -4,6 +4,7 @@ export const EXTENSION_ID = 'sanderronde.vscode--gerrit';
 // Refreshing
 export const PERIODICAL_GIT_FETCH_INTERVAL = 5000;
 export const PERIODICAL_CHANGE_FETCH_INTERVAL = 1000 * 60 * 5;
+export const GIT_REVIEW_TIMEOUT_MS = 120000;
 
 // Caching
 export const CHANGE_CACHE_TIME = 1000 * 60 * 15;

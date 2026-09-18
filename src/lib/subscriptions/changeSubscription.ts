@@ -4,6 +4,7 @@ import {
 	MATCH_ANY,
 	WithMatchAny,
 } from './baseSubscriptions';
+import { changeIdsEqual } from '../gerrit/gerritAPI/changeId';
 import { GerritAPIWith } from '../gerrit/gerritAPI/api';
 
 export enum ChangeField {
@@ -34,7 +35,7 @@ export class GenericChangeSubscriptionsManager<
 				if (config.changeID === MATCH_ANY) {
 					return true;
 				}
-				return c.changeID === config.changeID;
+				return changeIdsEqual(c.changeID, config.changeID);
 			})
 			.filter(([c]) => {
 				if (config.withValues === MATCH_ANY) {

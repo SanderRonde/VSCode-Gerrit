@@ -19,6 +19,7 @@ import { PatchSetLevelCommentsTreeView } from './changeTreeView/patchSetLevelCom
 import { GerritRevision } from '../../../lib/gerrit/gerritAPI/gerritRevision';
 import { GerritChange } from '../../../lib/gerrit/gerritAPI/gerritChange';
 import { TreeItemWithChildren, TreeViewItem } from '../shared/treeTypes';
+import { changeIdsEqual } from '../../../lib/gerrit/gerritAPI/changeId';
 import { StorageScope, storageSet } from '../../../lib/vscode/storage';
 import { GerritFile } from '../../../lib/gerrit/gerritAPI/gerritFile';
 import { getAPIForSubscription } from '../../../lib/gerrit/gerritAPI';
@@ -293,7 +294,7 @@ export class ChangeTreeView
 		const currentChangeID = await getCurrentChangeIDCached();
 		if (
 			currentChangeID &&
-			currentChangeID === this.initialChange.changeID
+			changeIdsEqual(currentChangeID, this.initialChange.changeID)
 		) {
 			values.push(TREE_ITEM_IS_CURRENT);
 		} else {

@@ -54,7 +54,7 @@ Adds a `Open on gitiles` gutter action, as well as ones from the command palette
 
 ### URI handler
 
-This extension registers a URI handler for `vscode://sanderronde.vscode-gerrit` URIs. These allow you to open files and changes in your editor. You can either check out the changes or simply preview them. An example use case for this is sending a "view in your editor" link to your coworker so they can inspect your changes in their editor instead of in the web view.
+This extension registers a URI handler for `vscode://sanderronde.vscode--gerrit` URIs. These allow you to open files and changes in your editor. You can either check out the changes or simply preview them. An example use case for this is sending a "view in your editor" link to your coworker so they can inspect your changes in their editor instead of in the web view.
 
 The following (all optional) fields are supported:
 
@@ -66,9 +66,9 @@ The following (all optional) fields are supported:
 
 Some examples:
 
--   `vscode://sanderronde.vscode-gerrit?change=12345&checkout` - Checks out a change
--   `vscode://sanderronde.vscode-gerrit?change=12345&file=index.ts&line=10` - Previews a file in a change without checking it out
--   `vscode://sanderronde.vscode-gerrit?change=12345&checkout&patchset=2` - Checks out an old patchset of a change
+-   `vscode://sanderronde.vscode--gerrit?change=12345&checkout` - Checks out a change
+-   `vscode://sanderronde.vscode--gerrit?change=12345&file=index.ts&line=10` - Previews a file in a change without checking it out
+-   `vscode://sanderronde.vscode--gerrit?change=12345&checkout&patchset=2` - Checks out an old patchset of a change
 
 ### Stream events
 

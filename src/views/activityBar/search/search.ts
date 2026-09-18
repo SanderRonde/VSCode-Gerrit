@@ -320,7 +320,7 @@ const searchFilterMap: SearchFilterMap = {
 	extension: {
 		description: 'Changes where a file with given extension was touched',
 	},
-	onlyeextensions: {
+	onlyextensions: {
 		description:
 			'Changes where a file with any of the given extension was touched (comma-separated list)',
 	},

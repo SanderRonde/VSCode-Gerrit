@@ -9,7 +9,6 @@ import { CCPicker } from './pickers/CCPicker';
 import { useDebounce } from '../lib/debounce';
 import { globalStyles } from '../lib/styles';
 import { ScorePicker } from './ScorePicker';
-import { fromEntries } from '../lib/util';
 import { EmptyView } from './EmptyView';
 import { getAPI } from '../lib/api';
 import * as React from 'react';
@@ -208,9 +207,7 @@ const _ReviewPane: React.VFC<ReviewPaneProps> = ({ currentState }) => {
 				...usedChange,
 				postComments: true,
 				resolved: true,
-				labelValues: fromEntries(
-					usedChange.labels.map((label) => [label.name, 0])
-				),
+				labelValues: {},
 			});
 			if (textareaRef.current) {
 				textareaRef.current.value = usedChange.message;
@@ -222,9 +219,11 @@ const _ReviewPane: React.VFC<ReviewPaneProps> = ({ currentState }) => {
 	React.useEffect(() => {
 		if (textareaRef.current) {
 			// Bit of a hack to make the textarea fill the pane
-			const root = textareaRef.current.shadowRoot!;
-			const child = root.children[1] as HTMLElement;
-			child.style.height = '100%';
+			const root = textareaRef.current.shadowRoot;
+			const child = root?.children[1] as HTMLElement | undefined;
+			if (child) {
+				child.style.height = '100%';
+			}
 			textareaRef.current.value = currentState.message;
 		}
 		// eslint-disable-next-line react-hooks/exhaustive-deps
@@ -319,8 +318,8 @@ const _ReviewPane: React.VFC<ReviewPaneProps> = ({ currentState }) => {
 			</vscode-checkbox>
 			{currentState.draftCommentCount > 0 && (
 				<vscode-checkbox
-					checked={editingState?.resolved ? true : undefined}
-					ref={resolvedRef}
+					checked={editingState?.postComments ? true : undefined}
+					ref={postCommentsRef}
 					onClick={onPostCommentsStatusChange}
 				>
 					{'Post draft comment(s)'}

@@ -41,10 +41,11 @@ export const PeoplePicker: React.VFC<PeoplePickerProps> = (props) => {
 	);
 
 	const people = React.useMemo(() => {
-		const suggestedPeople =
-			(props.isCC
+		const suggestedPeople = [
+			...((props.isCC
 				? props.state.suggestedCC
-				: props.state.suggestedReviewers) ?? [];
+				: props.state.suggestedReviewers) ?? []),
+		];
 
 		for (let i = 0; i < value.length; i++) {
 			const selectedPerson = value[i];

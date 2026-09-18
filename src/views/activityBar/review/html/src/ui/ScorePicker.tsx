@@ -29,7 +29,9 @@ interface ScorePickerProps {
 	labelStyle?: React.CSSProperties;
 }
 export const ScorePicker: React.VFC<ScorePickerProps> = (props) => {
-	const [selectedValue, setSelectedValue] = React.useState<number>(0);
+	const [selectedValue, setSelectedValue] = React.useState<number | null>(
+		null
+	);
 
 	const toNum = React.useCallback(
 		(score: string) => parseInt(score.trim(), 10),
@@ -70,7 +72,7 @@ export const ScorePicker: React.VFC<ScorePickerProps> = (props) => {
 
 	React.useEffect(() => {
 		if (props.reset) {
-			setSelectedValue(0);
+			setSelectedValue(null);
 		}
 	}, [props.reset]);
 

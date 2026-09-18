@@ -61,6 +61,7 @@ export enum GerritAPIWith {
 	CURRENT_FILES = 'CURRENT_FILES',
 	ALL_FILES = 'ALL_FILES',
 	ALL_REVISIONS = 'ALL_REVISIONS',
+	ALL_COMMITS = 'ALL_COMMITS',
 }
 
 interface ResponseWithBody<T> extends Response<T> {
@@ -313,8 +314,8 @@ export class GerritAPI {
 			return JSON.stringify(
 				Object.fromEntries(
 					Object.entries(value as Record<string, unknown>).map(
-						(key, value) => {
-							return [key, this._stringify(value)];
+						([entryKey, entryValue]) => {
+							return [entryKey, this._stringify(entryValue)];
 						}
 					)
 				)
@@ -398,11 +399,14 @@ export class GerritAPI {
 					if (Array.isArray(value)) {
 						query.push(
 							...value.map(
-								(v) => `${key}=${encodeURIComponent(v)}`
+								(v) =>
+									`${encodeURIComponent(key)}=${encodeURIComponent(v)}`
 							)
 						);
 					} else {
-						query.push(`${key}=${value}`);
+						query.push(
+							`${encodeURIComponent(key)}=${encodeURIComponent(value)}`
+						);
 					}
 				}
 				url += `?${query.join('&')}`;

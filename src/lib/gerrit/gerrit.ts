@@ -45,30 +45,31 @@ async function getGerritRepos(silent: boolean = true): Promise<Repository[]> {
 	if (!gitAPI) {
 		return [];
 	}
-	return await Promise.all(
-		gitAPI.repositories.filter(async (repo) => {
-			// Get the last X commits and check there's it's a gerrit one
+	const matches = await Promise.all(
+		gitAPI.repositories.map(async (repo) => {
+			// Get the last X commits and check there's a gerrit one
 			const lastCommit = await repo.log({ maxEntries: 50 });
 
 			if (lastCommit.length === 0) {
 				if (!silent) {
 					log('No commits found, skipping repo.');
 				}
-				return false;
+				return null;
 			}
 
-			if (lastCommit.some((c) => !isGerritCommit(c))) {
+			if (!lastCommit.some((c) => isGerritCommit(c))) {
 				if (!silent) {
 					log(
 						'No gerrit commits found in last 50 commits, skipping repo.'
 					);
 				}
-				return false;
+				return null;
 			}
 
-			return true;
+			return repo;
 		})
 	);
+	return matches.filter((repo): repo is Repository => repo !== null);
 }
 
 export async function pickGitRepo(): Promise<Repository | null> {

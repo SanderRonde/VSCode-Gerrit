@@ -21,6 +21,10 @@ export class GerritUser {
 		this.hasMore = response._more_accounts ?? false;
 	}
 
+	public static resetSelf(): void {
+		this._self = null;
+	}
+
 	public static async getSelf(): Promise<GerritUser | null> {
 		if (this._self) {
 			return this._self;

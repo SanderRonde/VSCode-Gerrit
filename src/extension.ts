@@ -112,12 +112,9 @@ export async function activate(context: ExtensionContext): Promise<void> {
 	await showCurrentChangeStatusBarIcon(gerritRepo, statusBar, context);
 	await showQuickCheckoutStatusBarIcons(context);
 
-	// Test stream events
+	// Prompt for stream events even if the setting is off so users can enable it
 	void (async () => {
-		if (
-			getConfiguration().get('gerrit.streamEvents') &&
-			(await testEnableStreamEvents(gerritRepo))
-		) {
+		if (await testEnableStreamEvents(gerritRepo)) {
 			context.subscriptions.push(
 				await startListeningForStreamEvents(gerritRepo)
 			);

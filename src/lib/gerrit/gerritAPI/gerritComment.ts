@@ -117,10 +117,28 @@ export abstract class GerritCommentBase
 		}
 
 		if (options.filePath === PATCHSET_LEVEL_KEY) {
-			return await api.createPatchSetLevelDraftComment(options);
+			const comment = await api.createPatchSetLevelDraftComment(options);
+			if (comment) {
+				await APISubscriptionManager.draftCommentsSubscriptions.invalidate(
+					{
+						changeID: options.changeID,
+						field: null,
+						withValues: [],
+					}
+				);
+			}
+			return comment;
 		}
 
-		return await api.createDraftComment(options);
+		const comment = await api.createDraftComment(options);
+		if (comment) {
+			await APISubscriptionManager.draftCommentsSubscriptions.invalidate({
+				changeID: options.changeID,
+				field: null,
+				withValues: [],
+			});
+		}
+		return comment;
 	}
 
 	public static vsCodeRangeToGerritRange(range: Range): GerritCommentRange {
@@ -225,11 +243,19 @@ export class GerritDraftComment extends GerritCommentBase implements Comment {
 		await getCommentDecorationProvider().refreshFileComments(uri);
 
 		const meta = FileMeta.tryFrom(uri);
-		await APISubscriptionManager.commentsSubscriptions.invalidate({
-			changeID: !meta ? MATCH_ANY : meta.changeID,
-			field: null,
-			withValues: [],
-		});
+		const changeID = !meta ? MATCH_ANY : meta.changeID;
+		await Promise.all([
+			APISubscriptionManager.commentsSubscriptions.invalidate({
+				changeID,
+				field: null,
+				withValues: [],
+			}),
+			APISubscriptionManager.draftCommentsSubscriptions.invalidate({
+				changeID,
+				field: null,
+				withValues: [],
+			}),
+		]);
 	}
 
 	public getContextValues(): string[] {
@@ -243,7 +269,7 @@ export class GerritDraftComment extends GerritCommentBase implements Comment {
 	}
 
 	public async setMessage(message: string): Promise<void> {
-		if (message !== this.message) {
+		if (message === this.message) {
 			return;
 		}
 
@@ -296,7 +322,7 @@ export class GerritDraftComment extends GerritCommentBase implements Comment {
 	): Promise<void> {
 		const draft = this._draftMessage;
 		this._draftMessage = undefined;
-		if (draft !== undefined || resolvedStatus !== undefined) {
+		if (draft !== undefined || resolvedStatus !== null) {
 			await this.updateInThread(async (c) => {
 				const api = await getAPI();
 				if (!api) {

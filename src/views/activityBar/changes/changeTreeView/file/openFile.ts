@@ -63,19 +63,19 @@ export async function openModified(treeView: FileTreeView): Promise<void> {
 export async function openOriginal(treeView: FileTreeView): Promise<void> {
 	if (!treeView) {
 		void window.showErrorMessage(
-			'Modify content command invoked without file'
+			'Original content command invoked without file'
 		);
 		return;
 	}
 
 	const content = await treeView.file.getOldContent();
 	if (!content) {
-		void window.showErrorMessage('Failed to open modified content');
+		void window.showErrorMessage('Failed to open original content');
 		return;
 	}
 
 	const uri = content.toVirtualFile(
-		GerritCommentSide.RIGHT,
+		GerritCommentSide.LEFT,
 		treeView.patchsetBase,
 		[]
 	);

@@ -20,15 +20,14 @@ import {
 	GerritDraftComment,
 } from '../lib/gerrit/gerritAPI/gerritComment';
 import { PATCHSET_LEVEL_KEY } from '../views/activityBar/changes/changeTreeView/patchSetLevelCommentsTreeView';
-import {
-	GerritChangeStatus,
-	GerritCommentSide,
-} from '../lib/gerrit/gerritAPI/types';
 import { FileTreeView } from '../views/activityBar/changes/changeTreeView/fileTreeView';
 import { GerritCommentThread } from '../lib/gerrit/gerritAPI/gerritCommentThread';
+import { commentMatchesFileSide } from '../lib/gerrit/gerritAPI/commentSide';
 import { FileMetaWithSideAndBase, FileProvider } from './fileProvider';
 import { GerritChange } from '../lib/gerrit/gerritAPI/gerritChange';
+import { GerritChangeStatus } from '../lib/gerrit/gerritAPI/types';
 import { DateSortDirection, DateTime } from '../lib/util/dateTime';
+import { changeIdsEqual } from '../lib/gerrit/gerritAPI/changeId';
 import { GerritFile } from '../lib/gerrit/gerritAPI/gerritFile';
 import { getCurrentChangeIDCached } from '../lib/git/commit';
 import { GerritAPIWith } from '../lib/gerrit/gerritAPI/api';
@@ -60,6 +59,10 @@ export class DocumentCommentManager {
 	private _createdThreads = new Set<CommentThread>();
 	private _threadLineCount: Map<number, number> = new Map();
 	private _commentLoader: Promise<void> | null = null;
+	private _subscribedToComments = false;
+	private readonly _onCommentsChanged = (): void => {
+		void this.refreshComments();
+	};
 	public diffData?: {
 		diff: gitDiffParser.File;
 		file: GerritFile;
@@ -83,11 +86,51 @@ export class DocumentCommentManager {
 	): Range {
 		return new Range(
 			new Position(
-				CommentManager.mapOldPositionToNew(diff, range.start.line),
+				Math.max(
+					0,
+					CommentManager.mapOldPositionToNew(
+						diff,
+						range.start.line + 1
+					) - 1
+				),
 				range.start.character
 			),
 			new Position(
-				CommentManager.mapOldPositionToNew(diff, range.end.line),
+				Math.max(
+					0,
+					CommentManager.mapOldPositionToNew(
+						diff,
+						range.end.line + 1
+					) - 1
+				),
+				range.end.character
+			)
+		);
+	}
+
+	public static applyInverseDiffToCommentRange(
+		range: Range,
+		diff: gitDiffParser.File
+	): Range {
+		return new Range(
+			new Position(
+				Math.max(
+					0,
+					CommentManager.mapNewPositionToOld(
+						diff,
+						range.start.line + 1
+					) - 1
+				),
+				range.start.character
+			),
+			new Position(
+				Math.max(
+					0,
+					CommentManager.mapNewPositionToOld(
+						diff,
+						range.end.line + 1
+					) - 1
+				),
 				range.end.character
 			)
 		);
@@ -178,28 +221,29 @@ export class DocumentCommentManager {
 			const commentSubscription = await GerritChange.getAllComments(
 				changeID,
 				{
-					allowFail: changeID === currentChangeID,
+					allowFail: changeIdsEqual(changeID, currentChangeID),
 				}
 			);
 			const comments =
 				(await commentSubscription.getValue(forceUpdate)).get(
 					this.filePath
 				) ?? [];
-			commentSubscription.subscribe(
-				new WeakRef(() => this.refreshComments())
-			);
-			(await GerritChange.getChange(changeID)).subscribe(
-				new WeakRef(() => this.refreshComments())
-			);
+			if (!this._subscribedToComments) {
+				this._subscribedToComments = true;
+				commentSubscription.subscribe(
+					new WeakRef(this._onCommentsChanged)
+				);
+				(await GerritChange.getChange(changeID)).subscribe(
+					new WeakRef(this._onCommentsChanged)
+				);
+			}
 
 			this.dispose();
 			const thisSideComments =
 				isPatchSetLevel || !fileMeta
 					? comments
-					: comments.filter(
-							(c) =>
-								c.side ??
-								GerritCommentSide.RIGHT === fileMeta.side
+					: comments.filter((c) =>
+							commentMatchesFileSide(c.side, fileMeta.side)
 						);
 			let threads = DocumentCommentManager.getThreadRanges(
 				DocumentCommentManager.buildThreadsFromComments(
@@ -317,14 +361,23 @@ export class DocumentManager {
 	}> = new Set();
 
 	public static init(): typeof DocumentManager {
+		for (const doc of workspace.textDocuments) {
+			this._openDocs.add(doc);
+		}
 		this._disposables.push(
 			workspace.onDidCloseTextDocument((doc) => {
 				this._openDocs.delete(doc);
+				for (const listener of this._listeners) {
+					listener.onClose?.(doc);
+				}
 			})
 		);
 		this._disposables.push(
 			workspace.onDidOpenTextDocument((doc) => {
 				this._openDocs.add(doc);
+				for (const listener of this._listeners) {
+					listener.onOpen?.(doc);
+				}
 			})
 		);
 		return DocumentManager;
@@ -587,7 +640,7 @@ export class CommentManager {
 		return line + delta;
 	}
 
-	public static mapNewPositionToOLd(
+	public static mapNewPositionToOld(
 		diff: gitDiffParser.File,
 		line: number
 	): number {
@@ -726,7 +779,7 @@ async function createComment(
 ): Promise<GerritDraftComment | null> {
 	const manager = CommentManager.getFileManagerForUri(thread.thread.uri);
 	const range = manager?.diffData?.diff
-		? DocumentCommentManager.applyDiffToCommentRange(
+		? DocumentCommentManager.applyInverseDiffToCommentRange(
 				thread.thread.range,
 				manager.diffData.diff
 			)

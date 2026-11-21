@@ -1,7 +1,9 @@
 import { findRemoteName, GitExec, parseRemoteURL } from './inferRemote';
 import { Repository } from '../../types/vscode-extension-git';
+import { isLikelyGerritHost } from '../util/gerritHost';
 import { createCacheWrapper } from '../util/cache';
 import { tryExecAsync } from '../git/gitCLI';
+import { shellQuote } from '../util/util';
 import { Uri, workspace } from 'vscode';
 import { log } from '../util/log';
 
@@ -11,6 +13,7 @@ interface OptionalGitReviewProperties {
 	remote?: string;
 	defaultbranch?: string;
 	defaultremote?: string;
+	username?: string;
 }
 
 export interface GitReviewFile extends OptionalGitReviewProperties {
@@ -18,7 +21,9 @@ export interface GitReviewFile extends OptionalGitReviewProperties {
 	project: string;
 }
 
-export const DEFAULT_GIT_REVIEW_FILE: Required<OptionalGitReviewProperties> = {
+export const DEFAULT_GIT_REVIEW_FILE: Required<
+	Omit<OptionalGitReviewProperties, 'username'>
+> = {
 	branch: 'master',
 	defaultbranch: 'master',
 	defaultremote: 'origin',
@@ -49,7 +54,7 @@ async function inferHostAndProject(
 	}
 
 	const { success, stdout } = await tryExecAsync(
-		`git remote get-url ${remote}`,
+		`git remote get-url ${shellQuote(remote)}`,
 		{
 			cwd: gerritRepo.rootUri.fsPath,
 		}
@@ -63,6 +68,12 @@ async function inferHostAndProject(
 	const parsed = parseRemoteURL(remoteURL);
 	if (!parsed) {
 		log(`Failed to parse URL of remote "${remote}": ${remoteURL}`);
+		return null;
+	}
+	if (!isLikelyGerritHost(parsed.host)) {
+		log(
+			`Remote host "${parsed.host}" is not a Gerrit server, skipping inference`
+		);
 		return null;
 	}
 
@@ -88,9 +99,9 @@ function parseGerritFile(fileContent: string): GitReviewFile | null {
 			continue;
 		}
 
-		const [key, value] = line.split('=');
-		const typedKey = key as keyof GitReviewFile;
-		file[typedKey] = value.trim();
+		const [rawKey, ...rest] = line.split('=');
+		const key = rawKey.trim() as keyof GitReviewFile;
+		file[key] = rest.join('=').trim();
 	}
 
 	return file as GitReviewFile;

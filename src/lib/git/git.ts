@@ -12,17 +12,21 @@ import {
 	ProgressLocation,
 } from 'vscode';
 import {
+	PERIODICAL_GIT_FETCH_INTERVAL,
+	GIT_REVIEW_TIMEOUT_MS,
+} from '../util/constants';
+import {
 	execAndMonitor,
 	getLastCommits,
 	GitCommit,
 	tryExecAsync,
 } from './gitCLI';
 import { ChangeTreeView } from '../../views/activityBar/changes/changeTreeView';
+import { changeIdFromCheckoutString } from '../gerrit/gerritAPI/changeId';
 import { APISubscriptionManager } from '../subscriptions/subscriptions';
-import { PERIODICAL_GIT_FETCH_INTERVAL } from '../util/constants';
+import { createAwaitingInterval, shellQuote, wait } from '../util/util';
 import { MATCH_ANY } from '../subscriptions/baseSubscriptions';
 import { Repository } from '../../types/vscode-extension-git';
-import { createAwaitingInterval, wait } from '../util/util';
 import { getConfiguration } from '../vscode/config';
 import { VersionNumber } from '../util/version';
 import { getCurrentChangeID } from './commit';
@@ -66,9 +70,12 @@ export async function createStash(
 ): Promise<boolean> {
 	if (
 		!(
-			await tryExecAsync(`git stash push -u -m "${stashName}"`, {
-				cwd: uri,
-			})
+			await tryExecAsync(
+				`git stash push -u -m ${shellQuote(stashName)}`,
+				{
+					cwd: uri,
+				}
+			)
 		).success
 	) {
 		void window.showErrorMessage(
@@ -238,9 +245,12 @@ export async function ensureMainBranchUpdated(
 		DEFAULT_GIT_REVIEW_FILE.remote;
 
 	{
-		const { success } = await tryExecAsync(`git remote update ${remote}`, {
-			cwd: uri,
-		});
+		const { success } = await tryExecAsync(
+			`git remote update ${shellQuote(remote)}`,
+			{
+				cwd: uri,
+			}
+		);
 		if (!success) {
 			void window.showErrorMessage(
 				'Failed to update remote, please check the log panel for details.'
@@ -311,14 +321,7 @@ async function ensureNoRebaseErrors(gerritRepo: Repository): Promise<boolean> {
 export function getChangeIDFromCheckoutString(
 	changeID: string | number
 ): string {
-	if (typeof changeID === 'number') {
-		return String(changeID);
-	}
-	if (changeID.indexOf('~') === 0) {
-		return changeID;
-	}
-	const [, idFromPair, idFromTriplet] = changeID.split('~');
-	return idFromTriplet ?? idFromPair;
+	return changeIdFromCheckoutString(changeID);
 }
 
 export async function gitCheckoutRemote(
@@ -338,14 +341,17 @@ export async function gitCheckoutRemote(
 	if (patchSet) {
 		changeString += `/${patchSet}`;
 	}
-	const { success } = await tryExecAsync(`git-review -d "${changeString}"`, {
-		cwd: uri,
-		timeout: 10000,
-	});
+	const { success } = await tryExecAsync(
+		`git-review -d ${shellQuote(changeString)}`,
+		{
+			cwd: uri,
+			timeout: GIT_REVIEW_TIMEOUT_MS,
+		}
+	);
 
 	if (!success) {
 		void window.showErrorMessage(
-			'Checkout failed. Please see log for more details'
+			'Checkout failed. Please see the Gerrit output channel for more details'
 		);
 	}
 	return success;
@@ -398,21 +404,23 @@ export async function gitReview(gerritRepo: Repository): Promise<void> {
 					'gerrit.pushForReviewArgs',
 					[]
 				);
+				// Set once we kill git-review to ask about pushing multiple
+				// commits. The process exit is then not the final result.
+				let prompted = false;
 				void execAndMonitor(
 					'git-review',
 					async (stdout, proc) => {
 						if (
+							prompted ||
 							!stdout.includes(
 								'You are about to submit multiple commits.'
 							)
 						) {
-							return resolve({
-								success: true,
-								stdout: stdout,
-								handled: true,
-							});
+							// Wait for the process to exit to know the result
+							return;
 						}
 
+						prompted = true;
 						proc.kill();
 						const YES_OPTION = 'Yes';
 						const CANCEL_OPTION = 'Cancel';
@@ -424,10 +432,12 @@ export async function gitReview(gerritRepo: Repository): Promise<void> {
 
 						if (choice === YES_OPTION) {
 							const result = await tryExecAsync(
-								`git-review -y ${pushForReviewArgs.join(' ')}`,
+								`git-review -y ${pushForReviewArgs
+									.map((arg) => shellQuote(arg))
+									.join(' ')}`,
 								{
 									cwd: uri,
-									timeout: 10000,
+									timeout: GIT_REVIEW_TIMEOUT_MS,
 								}
 							);
 							resolve({
@@ -445,10 +455,13 @@ export async function gitReview(gerritRepo: Repository): Promise<void> {
 					},
 					{
 						cwd: uri,
-						timeout: 10000,
+						timeout: GIT_REVIEW_TIMEOUT_MS,
 						args: pushForReviewArgs,
 					}
 				).then(({ success, stdout }) => {
+					if (prompted) {
+						return;
+					}
 					if (success) {
 						resolve({
 							success: true,

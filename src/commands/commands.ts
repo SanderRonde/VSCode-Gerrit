@@ -58,6 +58,7 @@ import { rebaseOntoParent, recursiveRebase } from '../lib/git/rebase';
 import { CommentThread, ExtensionContext, Uri, window } from 'vscode';
 import { GerritChange } from '../lib/gerrit/gerritAPI/gerritChange';
 import { focusChange } from '../lib/commandHandlers/focusChange';
+import { GIT_REVIEW_TIMEOUT_MS } from '../lib/util/constants';
 import { Repository } from '../types/vscode-extension-git';
 import { checkConnection } from '../lib/gerrit/gerritAPI';
 import { GerritExtensionCommands } from './command-names';
@@ -65,12 +66,14 @@ import { openOnGitiles } from '../lib/gitiles/gitiles';
 import { commands as vscodeCommands } from 'vscode';
 import { commands, GerritCodicons } from './defs';
 import { tryExecAsync } from '../lib/git/gitCLI';
+import { shellQuote } from '../lib/util/util';
 
 async function checkoutChange(uri: string, changeID: string): Promise<boolean> {
 	const { success } = await tryExecAsync(
-		`git-review -d ${getChangeIDFromCheckoutString(changeID)}`,
+		`git-review -d ${shellQuote(getChangeIDFromCheckoutString(changeID))}`,
 		{
 			cwd: uri,
+			timeout: GIT_REVIEW_TIMEOUT_MS,
 		}
 	);
 	if (!success) {
@@ -264,6 +267,11 @@ export function registerCommands(
 						// eslint-disable-next-line @typescript-eslint/no-unsafe-argument
 						...(diffCommand.arguments ?? [])
 					);
+				} else {
+					void window.showErrorMessage(
+						'Failed to open diff for this file'
+					);
+					return;
 				}
 
 				await (async () => {

@@ -231,6 +231,21 @@ export function arrDiff<V>(
 	};
 }
 
+/**
+ * Quote a string for interpolation into `exec` commands. `exec` runs
+ * through `cmd.exe` on Windows, where single quotes are not quoting
+ * characters, so double quotes are used there instead.
+ */
+export function shellQuote(
+	value: string,
+	platform: NodeJS.Platform = process.platform
+): string {
+	if (platform === 'win32') {
+		return `"${value.replace(/(\\*)"/g, '$1$1\\"').replace(/(\\+)$/, '$1$1')}"`;
+	}
+	return `'${value.replace(/'/g, "'\\''")}'`;
+}
+
 export function generateRandomString(length: number = 25): string {
 	const chars =
 		'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';

@@ -10,9 +10,11 @@ import { getGitReviewFileCached } from '../credentials/gitReviewFile';
 import { GerritChange } from '../gerrit/gerritAPI/gerritChange';
 import { GerritChangeStatus } from '../gerrit/gerritAPI/types';
 import { Repository } from '../../types/vscode-extension-git';
+import { GIT_REVIEW_TIMEOUT_MS } from '../util/constants';
 import { getLastCommits, tryExecAsync } from './gitCLI';
 import { ProgressLocation, window } from 'vscode';
 import { getAPI } from '../gerrit/gerritAPI';
+import { shellQuote } from '../util/util';
 
 async function buildDependencyTree(
 	gerritRepo: Repository,
@@ -303,9 +305,14 @@ export async function recursiveRebase(gerritRepo: Repository): Promise<void> {
 				);
 				if (answer === CHECKOUT_ORIGINAL_OPTION) {
 					if (
-						!(await tryExecAsync(`git checkout ${initialBranch}`, {
-							cwd: gerritRepo.rootUri.fsPath,
-						}))
+						!(
+							await tryExecAsync(
+								`git checkout ${shellQuote(initialBranch)}`,
+								{
+									cwd: gerritRepo.rootUri.fsPath,
+								}
+							)
+						).success
 					) {
 						void window.showErrorMessage(
 							'Failed to checkout original branch'
@@ -328,11 +335,12 @@ export async function recursiveRebase(gerritRepo: Repository): Promise<void> {
 
 				// Checkout branch
 				const { success } = await tryExecAsync(
-					`git-review -d "${getChangeIDFromCheckoutString(
-						operation.change.number
-					)}"`,
+					`git-review -d ${shellQuote(
+						getChangeIDFromCheckoutString(operation.change.number)
+					)}`,
 					{
 						cwd: gerritRepo.rootUri.fsPath,
+						timeout: GIT_REVIEW_TIMEOUT_MS,
 					}
 				);
 				if (token.isCancellationRequested) {
@@ -342,6 +350,7 @@ export async function recursiveRebase(gerritRepo: Repository): Promise<void> {
 					await cancel(
 						`Failed to download change ${operation.change.number}, aborting`
 					);
+					return;
 				}
 
 				if (
@@ -349,12 +358,14 @@ export async function recursiveRebase(gerritRepo: Repository): Promise<void> {
 						title: 'Back to original branch',
 						callback: async () => {
 							if (
-								!(await tryExecAsync(
-									`git checkout ${initialBranch}`,
-									{
-										cwd: gerritRepo.rootUri.fsPath,
-									}
-								))
+								!(
+									await tryExecAsync(
+										`git checkout ${shellQuote(initialBranch)}`,
+										{
+											cwd: gerritRepo.rootUri.fsPath,
+										}
+									)
+								).success
 							) {
 								void window.showErrorMessage(
 									'Failed to checkout original branch'
@@ -385,12 +396,14 @@ export async function recursiveRebase(gerritRepo: Repository): Promise<void> {
 					title: 'Back to original branch',
 					callback: async () => {
 						if (
-							!(await tryExecAsync(
-								`git checkout ${initialBranch}`,
-								{
-									cwd: gerritRepo.rootUri.fsPath,
-								}
-							))
+							!(
+								await tryExecAsync(
+									`git checkout ${shellQuote(initialBranch)}`,
+									{
+										cwd: gerritRepo.rootUri.fsPath,
+									}
+								)
+							).success
 						) {
 							void window.showErrorMessage(
 								'Failed to checkout original branch'

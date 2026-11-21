@@ -5,6 +5,7 @@ import {
 	WithMatchAny,
 } from './baseSubscriptions';
 import { PatchsetDescription } from '../../views/activityBar/changes/changeTreeView';
+import { changeIdsEqual } from '../gerrit/gerritAPI/changeId';
 
 interface ChangeSubscriptionsManagerConfig {
 	changeID: string;
@@ -29,7 +30,7 @@ export class FilesSubscriptionsManager<V> extends APISubSubscriptionManagerBase<
 				if (config.changeID === MATCH_ANY) {
 					return true;
 				}
-				return c.changeID === config.changeID;
+				return changeIdsEqual(c.changeID, config.changeID);
 			})
 			.filter(([c]) => {
 				if (config.revision === MATCH_ANY) {

@@ -2,18 +2,10 @@ import {
 	PatchSetLevelCommentsTreeView,
 	PATCHSET_LEVEL_KEY,
 } from '../../views/activityBar/changes/changeTreeView/patchSetLevelCommentsTreeView';
-import {
-	commands,
-	Position,
-	Range,
-	Selection,
-	Uri,
-	window,
-	workspace,
-} from 'vscode';
 import { FileTreeView } from '../../views/activityBar/changes/changeTreeView/fileTreeView';
 import { GerritCommentBase } from '../../lib/gerrit/gerritAPI/gerritComment';
 import { CommentManager, DocumentCommentManager } from '../commentProvider';
+import { commands, Position, Range, Selection, Uri, window } from 'vscode';
 import { GerritChange } from '../../lib/gerrit/gerritAPI/gerritChange';
 import { avg, diff, uniqueComplex } from '../../lib/util/util';
 import { Repository } from '../../types/vscode-extension-git';
@@ -21,6 +13,13 @@ import { FileMeta, FileMetaCreate } from '../fileProvider';
 import { getCurrentChangeID } from '../../lib/git/commit';
 import { CacheContainer } from '../../lib/util/cache';
 import * as gitDiffParser from 'gitdiff-parser';
+import * as path from 'path';
+
+function pathRelativeToGitRoot(gerritRepo: Repository, uri: Uri): string {
+	return path
+		.relative(gerritRepo.rootUri.fsPath, uri.fsPath)
+		.replace(/\\/g, '/');
+}
 
 function getCurrentMeta(): FileMeta | null {
 	// First check currently open editor's URI
@@ -347,7 +346,8 @@ async function getCurrentCommentData(gerritRepo: Repository): Promise<{
 			if (
 				!meta &&
 				!unresolvedThreads.has(
-					workspace.asRelativePath(
+					pathRelativeToGitRoot(
+						gerritRepo,
 						window.activeTextEditor.document.uri
 					)
 				)
@@ -387,7 +387,10 @@ async function getCurrentCommentData(gerritRepo: Repository): Promise<{
 		filePath:
 			window.activeTextEditor &&
 			(meta?.filePath ??
-				workspace.asRelativePath(window.activeTextEditor.document.uri)),
+				pathRelativeToGitRoot(
+					gerritRepo,
+					window.activeTextEditor.document.uri
+				)),
 	};
 }
 

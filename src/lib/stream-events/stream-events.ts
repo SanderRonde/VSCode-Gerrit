@@ -1,8 +1,5 @@
 import {
-	DEFAULT_GIT_REVIEW_FILE,
-	getGitReviewFileCached,
-} from '../credentials/gitReviewFile';
-import {
+	ConfigurationTarget,
 	Disposable,
 	env,
 	StatusBarAlignment,
@@ -10,22 +7,37 @@ import {
 	Uri,
 	window,
 } from 'vscode';
+import {
+	DEFAULT_GIT_REVIEW_FILE,
+	getGitReviewFileCached,
+} from '../credentials/gitReviewFile';
 import { storageGet, StorageScope, storageSet } from '../vscode/storage';
 import { APISubscriptionManager } from '../subscriptions/subscriptions';
 import { GerritExtensionCommands } from '../../commands/command-names';
 import { getContextProp, setContextProp } from '../vscode/context';
 import { MATCH_ANY } from '../subscriptions/baseSubscriptions';
 import { Repository } from '../../types/vscode-extension-git';
+import { GitReviewFile } from '../credentials/gitReviewFile';
+import { getConfiguration } from '../vscode/config';
 import { StreamEvent } from './stream-event-types';
 import { tryExecAsync } from '../git/gitCLI';
 import { spawn } from 'child_process';
 import { log } from '../util/log';
 
+function getStreamEventsSshTarget(gitReviewFile: GitReviewFile): string {
+	const username =
+		gitReviewFile.username ??
+		getConfiguration().get('gerrit.auth.username');
+	return username ? `${username}@${gitReviewFile.host}` : gitReviewFile.host;
+}
+
 export async function testEnableStreamEvents(
 	gerritRepo: Repository
 ): Promise<boolean> {
-	if (getContextProp('gerrit.streamEvents')) {
-		// Test if it works first
+	if (
+		getConfiguration().get('gerrit.streamEvents') ||
+		getContextProp('gerrit.streamEvents')
+	) {
 		return canStreamEvents(gerritRepo);
 	}
 
@@ -46,6 +58,11 @@ export async function testEnableStreamEvents(
 	);
 	if (answer === ENABLE_OPTION) {
 		await setContextProp('gerrit.streamEvents', true);
+		await getConfiguration().update(
+			'gerrit.streamEvents',
+			true,
+			ConfigurationTarget.Global
+		);
 		return await canStreamEvents(gerritRepo);
 	} else if (answer === MORE_INFO_OPTION) {
 		await env.openExternal(
@@ -69,9 +86,9 @@ export async function canStreamEvents(
 		return false;
 	}
 
-	const cmd = `ssh -p ${gitReviewFile.port ?? DEFAULT_GIT_REVIEW_FILE.port} ${
-		gitReviewFile.host
-	} gerrit stream-events`;
+	const cmd = `ssh -p ${gitReviewFile.port ?? DEFAULT_GIT_REVIEW_FILE.port} ${getStreamEventsSshTarget(
+		gitReviewFile
+	)} gerrit stream-events`;
 	const result = await tryExecAsync(cmd, {
 		timeout: 5000,
 		killSignal: 'SIGSEGV',
@@ -97,6 +114,11 @@ export async function canStreamEvents(
 				);
 			} else if (answer === DISABLE_ANSWER) {
 				await setContextProp('gerrit.streamEvents', false);
+				await getConfiguration().update(
+					'gerrit.streamEvents',
+					false,
+					ConfigurationTarget.Global
+				);
 			} else if (answer === RETRY_ANSWER) {
 				return await canStreamEvents(gerritRepo);
 			}
@@ -108,6 +130,11 @@ export async function canStreamEvents(
 			);
 			if (answer === DISABLE_ANSWER) {
 				await setContextProp('gerrit.streamEvents', false);
+				await getConfiguration().update(
+					'gerrit.streamEvents',
+					false,
+					ConfigurationTarget.Global
+				);
 			} else if (answer === RETRY_ANSWER) {
 				return await canStreamEvents(gerritRepo);
 			}
@@ -144,11 +171,18 @@ async function onChangeEvent(event: StreamEvent): Promise<void> {
 			]);
 			return;
 		case 'comment-added':
-			await APISubscriptionManager.commentsSubscriptions.invalidate({
-				changeID: event.change.id,
-				field: MATCH_ANY,
-				withValues: MATCH_ANY,
-			});
+			await Promise.all([
+				APISubscriptionManager.commentsSubscriptions.invalidate({
+					changeID: event.change.id,
+					field: MATCH_ANY,
+					withValues: MATCH_ANY,
+				}),
+				APISubscriptionManager.draftCommentsSubscriptions.invalidate({
+					changeID: event.change.id,
+					field: MATCH_ANY,
+					withValues: MATCH_ANY,
+				}),
+			]);
 			return;
 	}
 }
@@ -213,13 +247,18 @@ export async function listenForStreamEvents(
 	const cmd = spawn('ssh', [
 		'-p',
 		gitReviewFile.port ?? DEFAULT_GIT_REVIEW_FILE.port,
-		gitReviewFile.host,
+		getStreamEventsSshTarget(gitReviewFile),
 		'gerrit',
 		'stream-events',
 	]);
-	cmd.stdout.on('data', (data: string | Buffer) => {
+	let stdoutBuffer = '';
+	const handleEventLine = (line: string): void => {
+		const trimmed = line.trim();
+		if (!trimmed) {
+			return;
+		}
 		try {
-			const parsed = JSON.parse(data.toString()) as StreamEvent;
+			const parsed = JSON.parse(trimmed) as StreamEvent;
 			if (statusBarIconTimeout) {
 				clearTimeout(statusBarIconTimeout);
 			}
@@ -236,7 +275,15 @@ export async function listenForStreamEvents(
 			}
 			void onChangeEvent(parsed);
 		} catch (e) {
-			log('Failure parsing stream-events data', data.toString());
+			log('Failure parsing stream-events data', trimmed);
+		}
+	};
+	cmd.stdout.on('data', (data: string | Buffer) => {
+		stdoutBuffer += data.toString();
+		const lines = stdoutBuffer.split('\n');
+		stdoutBuffer = lines.pop() ?? '';
+		for (const line of lines) {
+			handleEventLine(line);
 		}
 	});
 
@@ -266,6 +313,9 @@ export async function listenForStreamEvents(
 			cmd.off('disconnect', onDisconnect);
 			cmd.off('error', onDisconnect);
 			cmd.off('exit', onDisconnect);
+			if (!cmd.killed) {
+				cmd.kill();
+			}
 			currentListener = null;
 		},
 	};

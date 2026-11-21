@@ -20,9 +20,10 @@ import {
 import { quickCheckoutEntryToKey } from '../../views/statusBar/quickCheckoutStatusBar';
 import { ChangeTreeView } from '../../views/activityBar/changes/changeTreeView';
 import { QuickCheckoutTreeEntry } from '../../views/activityBar/quickCheckout';
+import { generateRandomString, uniqueComplex, shellQuote } from '../util/util';
 import { storageGet, StorageScope, storageSet } from '../vscode/storage';
-import { generateRandomString, uniqueComplex } from '../util/util';
 import { Repository } from '../../types/vscode-extension-git';
+import { GIT_REVIEW_TIMEOUT_MS } from '../util/constants';
 import { getConfiguration } from '../vscode/config';
 import { tryExecAsync } from './gitCLI';
 
@@ -140,11 +141,14 @@ export async function quickCheckout(
 				increment: 5,
 			});
 			const { success } = await tryExecAsync(
-				`git-review -d "${getChangeIDFromCheckoutString(
-					changeTreeView.initialChange.changeID
-				)}"`,
+				`git-review -d ${shellQuote(
+					getChangeIDFromCheckoutString(
+						changeTreeView.initialChange.changeID
+					)
+				)}`,
 				{
 					cwd: gerritRepo.rootUri.fsPath,
+					timeout: GIT_REVIEW_TIMEOUT_MS,
 				}
 			);
 			if (!success) {
@@ -315,9 +319,14 @@ async function applyQuickCheckoutShared(
 	});
 	// First check out branch
 	if (
-		!(await tryExecAsync(`git checkout ${info.originalBranch}`, {
-			cwd: gerritRepo.rootUri.fsPath,
-		}))
+		!(
+			await tryExecAsync(
+				`git checkout ${shellQuote(info.originalBranch)}`,
+				{
+					cwd: gerritRepo.rootUri.fsPath,
+				}
+			)
+		).success
 	) {
 		void window.showErrorMessage('Failed to checkout branch');
 		return false;
@@ -446,7 +455,7 @@ export async function popQuickCheckout(
 			);
 			await storageSet(
 				'quickCheckoutStashes',
-				stashes.filter((s) => s.id === info.id),
+				stashes.filter((s) => s.id !== info.id),
 				StorageScope.WORKSPACE
 			);
 

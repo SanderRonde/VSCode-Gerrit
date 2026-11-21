@@ -7,30 +7,58 @@ import { getGerritURLFromReviewFile } from '../credentials/enterCredentials';
 import { showInvalidSettingsMessage } from '../vscode/messages';
 import { Repository } from '../../types/vscode-extension-git';
 import { GerritSecrets } from '../credentials/secrets';
+import { Disposable, window, workspace } from 'vscode';
+import { GerritUser } from './gerritAPI/gerritUser';
 import { setContextProp } from '../vscode/context';
 import { GerritAPI } from './gerritAPI/api';
-import { window, workspace } from 'vscode';
 import { log } from '../util/log';
 
 let api: GerritAPI | null = null;
 let failAllowedAPI: GerritAPI | null = null;
-let lastConfig: {
+let gitReviewFile: GitReviewFile | null = null;
+// Auth config the "missing settings" warning was last shown for
+let lastWarnedConfigKey: string | null = null;
+// Bumped whenever the cached API instances are dropped
+let apiGeneration = 0;
+
+interface AuthConfig {
 	url: string | undefined;
 	username: string | undefined;
 	password: string | undefined;
-} | null = null;
-let gitReviewFile: GitReviewFile | null = null;
+	cookie: string | undefined;
+	extraCookies: Record<string, string> | undefined;
+}
 
-function hasSameConfig(
-	url: string | undefined,
-	username: string | undefined,
-	password: string | undefined
-): boolean {
-	return (
-		url === lastConfig?.url &&
-		username === lastConfig?.username &&
-		password === lastConfig?.password
+function authConfigKey(config: AuthConfig): string {
+	return JSON.stringify([
+		config.url,
+		config.username,
+		config.password,
+		config.cookie,
+		config.extraCookies ?? null,
+	]);
+}
+
+async function getAuthConfig(): Promise<AuthConfig> {
+	const config = getConfiguration();
+	const url = getGerritURLFromReviewFile(gitReviewFile) ?? undefined;
+	const password = await GerritSecrets.getForUrlOrWorkspace(
+		'password',
+		url,
+		workspace.workspaceFolders?.[0]?.uri
 	);
+	const cookie = await GerritSecrets.getForUrlOrWorkspace(
+		'cookie',
+		url,
+		workspace.workspaceFolders?.[0]?.uri
+	);
+	return {
+		url,
+		username: config.get('gerrit.auth.username'),
+		password: password ?? undefined,
+		cookie: cookie ?? undefined,
+		extraCookies: config.get('gerrit.extraCookies'),
+	};
 }
 
 export async function checkConnection(): Promise<void> {
@@ -102,27 +130,16 @@ export async function checkConnection(): Promise<void> {
 	);
 }
 
-export async function createAPI(
-	allowFail: boolean = false
+async function createAPIFromConfig(
+	authConfig: AuthConfig,
+	allowFail: boolean
 ): Promise<GerritAPI | null> {
-	const config = getConfiguration();
-	const url = getGerritURLFromReviewFile(gitReviewFile);
-	const username = config.get('gerrit.auth.username');
-	const password = await GerritSecrets.getForUrlOrWorkspace(
-		'password',
-		url ?? undefined,
-		workspace.workspaceFolders?.[0]?.uri
-	);
-	const cookie = await GerritSecrets.getForUrlOrWorkspace(
-		'cookie',
-		url ?? undefined,
-		workspace.workspaceFolders?.[0]?.uri
-	);
-	const extraCookies = config.get('gerrit.extraCookies');
+	const { url, username, password, cookie, extraCookies } = authConfig;
+	const key = authConfigKey(authConfig);
 
 	if (!url || ((!username || !password) && !cookie)) {
 		await setContextProp('gerrit:connected', false);
-		if (!hasSameConfig(url ?? undefined, username, password ?? undefined)) {
+		if (key !== lastWarnedConfigKey) {
 			log(
 				'Missing URL, username or password. Please set them in your settings. (gerrit.auth.{url|username|password})'
 			);
@@ -130,14 +147,11 @@ export async function createAPI(
 				'Missing Gerrit API connection settings. Please enter them using the "Gerrit credentials" command or in your settings file'
 			);
 		}
-		lastConfig = {
-			url: url ?? undefined,
-			username,
-			password: password ?? undefined,
-		};
+		lastWarnedConfigKey = key;
 		return null;
 	}
 
+	lastWarnedConfigKey = null;
 	const api = new GerritAPI(
 		url,
 		username ?? null,
@@ -151,17 +165,57 @@ export async function createAPI(
 	return api;
 }
 
+export async function createAPI(
+	allowFail: boolean = false
+): Promise<GerritAPI | null> {
+	return createAPIFromConfig(await getAuthConfig(), allowFail);
+}
+
+/**
+ * Drops the cached API instances so the next `getAPI` call creates one
+ * with the current URL/credentials.
+ */
+function resetAPI(): void {
+	api = null;
+	failAllowedAPI = null;
+	apiGeneration++;
+	// Credentials changed, we may be a different user now
+	GerritUser.resetSelf();
+}
+
+/**
+ * Recreate the API when the auth settings or stored secrets change.
+ * Checking for changes on every `getAPI` call would mean reading the
+ * secret storage on every request.
+ */
+export function initAPIConfigListener(): Disposable {
+	return Disposable.from(
+		workspace.onDidChangeConfiguration((e) => {
+			if (
+				e.affectsConfiguration('gerrit.auth') ||
+				e.affectsConfiguration('gerrit.extraCookies')
+			) {
+				resetAPI();
+			}
+		}),
+		GerritSecrets.secretStorage.onDidChange(() => resetAPI())
+	);
+}
+
 export async function getAPI(
 	allowFail: boolean = false
 ): Promise<GerritAPI | null> {
-	if (allowFail && failAllowedAPI) {
-		return failAllowedAPI;
-	}
-	if (!allowFail && api) {
-		return api;
+	const cached = allowFail ? failAllowedAPI : api;
+	if (cached) {
+		return cached;
 	}
 
+	const generation = apiGeneration;
 	const newAPI = await createAPI(allowFail);
+	if (generation !== apiGeneration) {
+		// Config changed while creating, don't cache an outdated instance
+		return newAPI;
+	}
 	if (allowFail) {
 		failAllowedAPI = newAPI;
 	} else {
@@ -173,31 +227,10 @@ export async function getAPI(
 export async function getAPIForSubscription(
 	allowFail: boolean = false
 ): Promise<GerritAPI> {
-	if (allowFail && failAllowedAPI) {
-		return failAllowedAPI;
-	}
-	if (!allowFail && api) {
-		return api;
-	}
-
-	const newAPI = await createAPI(allowFail);
-	if (!newAPI) {
-		return new GerritAPI(
-			null,
-			null,
-			null,
-			null,
-			null,
-			gitReviewFile,
-			allowFail
-		);
-	}
-	if (allowFail) {
-		failAllowedAPI = newAPI;
-	} else {
-		api = newAPI;
-	}
-	return newAPI;
+	return (
+		(await getAPI(allowFail)) ??
+		new GerritAPI(null, null, null, null, null, gitReviewFile, allowFail)
+	);
 }
 
 // TODO: this is really hacky... Ideally we have explicit dependencies
@@ -206,5 +239,9 @@ export async function getAPIForSubscription(
 export async function setAPIGitReviewFile(
 	gerritRepo: Repository
 ): Promise<void> {
-	gitReviewFile = await getGitReviewFileCached(gerritRepo);
+	const newGitReviewFile = await getGitReviewFileCached(gerritRepo);
+	if (JSON.stringify(newGitReviewFile) !== JSON.stringify(gitReviewFile)) {
+		resetAPI();
+	}
+	gitReviewFile = newGitReviewFile;
 }

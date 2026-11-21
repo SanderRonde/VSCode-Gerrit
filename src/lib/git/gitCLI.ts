@@ -7,6 +7,7 @@ import {
 	SpawnOptionsWithoutStdio,
 } from 'child_process';
 import { Repository } from '../../types/vscode-extension-git';
+import { shellQuote } from '../util/util';
 import { log } from '../util/log';
 
 export interface GitCommit {
@@ -79,6 +80,7 @@ export function execAndMonitor(
 	options?: SpawnOptionsWithoutStdio & {
 		silent?: boolean;
 		args?: string[];
+		timeout?: number;
 	}
 ): Promise<{
 	success: boolean;
@@ -88,7 +90,8 @@ export function execAndMonitor(
 }> {
 	let stdout: string = '';
 	let stderr: string = '';
-	const process = spawn(cmd, options?.args, options);
+	const { timeout, silent, args, ...spawnOptions } = options ?? {};
+	const process = spawn(cmd, args ?? [], spawnOptions);
 	process.stdout.on('data', (chunk: string | Buffer) => {
 		stdout += chunk.toString();
 		void onStdout(stdout, process);
@@ -102,20 +105,73 @@ export function execAndMonitor(
 		stderr: string;
 		err: ExecException | null;
 	}>((resolve) => {
+		let settled = false;
+		const finish = (result: {
+			success: boolean;
+			stdout: string;
+			stderr: string;
+			err: ExecException | null;
+		}): void => {
+			if (settled) {
+				return;
+			}
+			settled = true;
+			if (timeoutHandle) {
+				clearTimeout(timeoutHandle);
+			}
+			resolve(result);
+		};
+		const timeoutHandle =
+			typeof timeout === 'number'
+				? setTimeout(() => {
+						if (!process.killed) {
+							process.kill();
+						}
+						if (!silent) {
+							log(
+								`Tried to run "${cmd}", but timed out after ${timeout}ms`
+							);
+						}
+						finish({
+							success: false,
+							stdout,
+							stderr,
+							err: Object.assign(
+								new Error(
+									`Process timed out after ${timeout}ms`
+								),
+								{
+									killed: true,
+								}
+							),
+						});
+					}, timeout)
+				: undefined;
 		process.on('error', (err) => {
-			resolve({
+			finish({
 				success: false,
 				stdout,
 				stderr,
 				err,
 			});
 		});
-		process.on('exit', () => {
-			resolve({
-				success: true,
+		// 'close' rather than 'exit' so all stdout/stderr has been read
+		process.on('close', (code) => {
+			finish({
+				success: code === 0,
 				stdout,
 				stderr,
-				err: null,
+				err:
+					code === 0
+						? null
+						: Object.assign(
+								new Error(
+									`Process exited with code ${String(code)}`
+								),
+								{
+									code: code ?? undefined,
+								}
+							),
 			});
 		});
 	});
@@ -140,7 +196,7 @@ export async function getLastCommits(
 	// which is quite annoying
 	try {
 		const stdout = await execAsync(
-			`git log --format='${COMMIT_FORMAT}' -z -n ${count}`,
+			`git log --format=${shellQuote(COMMIT_FORMAT)} -z -n ${count}`,
 			{
 				cwd: gerritRepo.rootUri.fsPath,
 			}

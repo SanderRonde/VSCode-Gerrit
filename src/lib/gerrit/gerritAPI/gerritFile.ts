@@ -2,6 +2,7 @@ import {
 	FileMeta,
 	FileMetaWithSideAndBase,
 	GERRIT_FILE_SCHEME,
+	toGerritUriPath,
 } from '../../../providers/fileProvider';
 import {
 	GerritCommentSide,
@@ -42,7 +43,7 @@ export class TextContent {
 	): Uri {
 		return Uri.from({
 			scheme: GERRIT_FILE_SCHEME,
-			path: this.meta.filePath,
+			path: toGerritUriPath(this.meta.filePath),
 			query: FileMetaWithSideAndBase.fromFileMeta(
 				FileMeta.createFileMeta({
 					...this.meta,
@@ -89,20 +90,27 @@ export class GerritFile extends DynamicallyFetchable {
 	}
 
 	public async getOldContent(): Promise<TextContent | null> {
-		const change = await GerritChange.getChangeOnce(this.changeID);
+		const change = await GerritChange.getChangeOnce(this.changeID, [
+			GerritAPIWith.ALL_REVISIONS,
+			GerritAPIWith.ALL_COMMITS,
+		]);
 		if (!change) {
 			return null;
 		}
-		const commit = await change.getCurrentCommit(
-			GerritAPIWith.CURRENT_FILES
+		const revisions = await change.revisions(GerritAPIWith.ALL_COMMITS);
+		const revision = revisions?.[this.currentRevision.id];
+		const commit = await revision?.commit(
+			GerritAPIWith.ALL_REVISIONS,
+			GerritAPIWith.ALL_COMMITS
 		);
-		if (!commit) {
+		const parent = commit?.parents[0];
+		if (!parent) {
 			return null;
 		}
 
 		return this.getContent(
 			{
-				id: commit.parents[commit.parents.length - 1].commit,
+				id: parent.commit,
 				number: 0,
 			},
 			true
@@ -204,7 +212,7 @@ export class GerritFile extends DynamicallyFetchable {
 		});
 		return Uri.from({
 			scheme: GERRIT_FILE_SCHEME,
-			path: this.filePath,
+			path: toGerritUriPath(this.filePath),
 			query: FileMetaWithSideAndBase.fromFileMeta(
 				FileMeta.createFileMeta({
 					...meta,

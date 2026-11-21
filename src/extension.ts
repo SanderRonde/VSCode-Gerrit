@@ -7,6 +7,11 @@ import {
 	testEnableStreamEvents,
 } from './lib/stream-events/stream-events';
 import { getReviewedStatusDecorationProvider } from './providers/reviewedStatusDecorationProvider';
+import {
+	getAPI,
+	initAPIConfigListener,
+	setAPIGitReviewFile,
+} from './lib/gerrit/gerritAPI';
 import { FileModificationStatusProvider } from './providers/fileModificationStatusProvider';
 import { showQuickCheckoutStatusBarIcons } from './views/statusBar/quickCheckoutStatusBar';
 import { getOrCreateQuickCheckoutTreeProvider } from './views/activityBar/quickCheckout';
@@ -26,7 +31,6 @@ import { FileProvider, GERRIT_FILE_SCHEME } from './providers/fileProvider';
 import { getConfiguration, initConfigListener } from './lib/vscode/config';
 import { setContextProp, setDefaultContexts } from './lib/vscode/context';
 import { createAutoRegisterCommand } from 'vscode-generate-package-json';
-import { getAPI, setAPIGitReviewFile } from './lib/gerrit/gerritAPI';
 import { GerritExtensionCommands } from './commands/command-names';
 import { GERRIT_SEARCH_RESULTS_VIEW } from './lib/util/constants';
 import { getGerritRepo, pickGitRepo } from './lib/gerrit/gerrit';
@@ -74,6 +78,7 @@ export async function activate(context: ExtensionContext): Promise<void> {
 
 	GerritSecrets.secretStorage = context.secrets;
 	await setAPIGitReviewFile(gerritRepo);
+	context.subscriptions.push(initAPIConfigListener());
 
 	// Register commands
 	const statusBar = new CurrentChangeStatusBarManager();
@@ -112,12 +117,9 @@ export async function activate(context: ExtensionContext): Promise<void> {
 	await showCurrentChangeStatusBarIcon(gerritRepo, statusBar, context);
 	await showQuickCheckoutStatusBarIcons(context);
 
-	// Test stream events
+	// Prompt for stream events even if the setting is off so users can enable it
 	void (async () => {
-		if (
-			getConfiguration().get('gerrit.streamEvents') &&
-			(await testEnableStreamEvents(gerritRepo))
-		) {
+		if (await testEnableStreamEvents(gerritRepo)) {
 			context.subscriptions.push(
 				await startListeningForStreamEvents(gerritRepo)
 			);

@@ -14,6 +14,7 @@ import {
 } from './gitReviewFile';
 import { MultiStepEntry, MultiStepper } from '../vscode/multiStep';
 import { Repository } from '../../types/vscode-extension-git';
+import { isLikelyGerritHost } from '../util/gerritHost';
 import { GerritAPI } from '../gerrit/gerritAPI/api';
 import { getConfiguration } from '../vscode/config';
 import { GerritSecrets } from './secrets';
@@ -45,7 +46,7 @@ export function getGerritURLFromReviewFile(
 	if (configuredValue) {
 		return sanitizeURL(configuredValue);
 	}
-	if (gitReviewFile) {
+	if (gitReviewFile && isLikelyGerritHost(gitReviewFile.host)) {
 		return sanitizeURL(gitReviewFile.host);
 	}
 	return null;
@@ -60,7 +61,7 @@ export async function getGerritURL(
 		return sanitizeURL(configuredValue);
 	}
 	const gitReviewFile = await getGitReviewFileCached(gerritRepo);
-	if (gitReviewFile) {
+	if (gitReviewFile && isLikelyGerritHost(gitReviewFile.host)) {
 		return sanitizeURL(gitReviewFile.host);
 	}
 	return null;

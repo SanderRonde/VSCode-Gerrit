@@ -8,9 +8,11 @@ import {
 import { fileCache } from '../views/activityBar/changes/changeTreeView/file/fileCache';
 import { PatchsetDescription } from '../views/activityBar/changes/changeTreeView';
 import { GerritCommentSide } from '../lib/gerrit/gerritAPI/types';
+import { toGerritUriPath } from '../lib/util/gerritUri';
 import { getAPI } from '../lib/gerrit/gerritAPI';
 
 export const GERRIT_FILE_SCHEME = 'gerrit-file';
+export { toGerritUriPath };
 
 export interface FileMetaCreate {
 	project: string;

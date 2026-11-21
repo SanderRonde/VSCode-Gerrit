@@ -404,21 +404,23 @@ export async function gitReview(gerritRepo: Repository): Promise<void> {
 					'gerrit.pushForReviewArgs',
 					[]
 				);
+				// Set once we kill git-review to ask about pushing multiple
+				// commits. The process exit is then not the final result.
+				let prompted = false;
 				void execAndMonitor(
 					'git-review',
 					async (stdout, proc) => {
 						if (
+							prompted ||
 							!stdout.includes(
 								'You are about to submit multiple commits.'
 							)
 						) {
-							return resolve({
-								success: true,
-								stdout: stdout,
-								handled: true,
-							});
+							// Wait for the process to exit to know the result
+							return;
 						}
 
+						prompted = true;
 						proc.kill();
 						const YES_OPTION = 'Yes';
 						const CANCEL_OPTION = 'Cancel';
@@ -457,6 +459,9 @@ export async function gitReview(gerritRepo: Repository): Promise<void> {
 						args: pushForReviewArgs,
 					}
 				).then(({ success, stdout }) => {
+					if (prompted) {
+						return;
+					}
 					if (success) {
 						resolve({
 							success: true,

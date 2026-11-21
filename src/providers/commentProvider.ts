@@ -59,7 +59,7 @@ export class DocumentCommentManager {
 	private _createdThreads = new Set<CommentThread>();
 	private _threadLineCount: Map<number, number> = new Map();
 	private _commentLoader: Promise<void> | null = null;
-	private _subscribedToComments = false;
+	private _subscribedChangeID: string | null = null;
 	private readonly _onCommentsChanged = (): void => {
 		void this.refreshComments();
 	};
@@ -228,8 +228,8 @@ export class DocumentCommentManager {
 				(await commentSubscription.getValue(forceUpdate)).get(
 					this.filePath
 				) ?? [];
-			if (!this._subscribedToComments) {
-				this._subscribedToComments = true;
+			if (!changeIdsEqual(this._subscribedChangeID, changeID)) {
+				this._subscribedChangeID = changeID;
 				commentSubscription.subscribe(
 					new WeakRef(this._onCommentsChanged)
 				);

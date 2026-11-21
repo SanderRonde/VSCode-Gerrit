@@ -3,9 +3,9 @@ import {
 	PATCHSET_LEVEL_KEY,
 } from '../../views/activityBar/changes/changeTreeView/patchSetLevelCommentsTreeView';
 import { FileTreeView } from '../../views/activityBar/changes/changeTreeView/fileTreeView';
-import { commands, Position, Range, Selection, Uri, window } from 'vscode';
 import { GerritCommentBase } from '../../lib/gerrit/gerritAPI/gerritComment';
 import { CommentManager, DocumentCommentManager } from '../commentProvider';
+import { commands, Position, Range, Selection, Uri, window } from 'vscode';
 import { GerritChange } from '../../lib/gerrit/gerritAPI/gerritChange';
 import { avg, diff, uniqueComplex } from '../../lib/util/util';
 import { Repository } from '../../types/vscode-extension-git';

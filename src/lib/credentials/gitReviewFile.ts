@@ -1,3 +1,4 @@
+import { findRemoteName, GitExec, parseRemoteURL } from './inferRemote';
 import { Repository } from '../../types/vscode-extension-git';
 import { isLikelyGerritHost } from '../util/gerritHost';
 import { createCacheWrapper } from '../util/cache';
@@ -31,53 +32,59 @@ export const DEFAULT_GIT_REVIEW_FILE: Required<
 };
 
 async function inferHostAndProject(
-	gerritRepo: Repository
+	gerritRepo: Repository,
+	preferredRemote?: string
 ): Promise<GitReviewFile | null> {
 	log('Inferring host and project from remote');
-	const { success, stdout } = await tryExecAsync(
-		'git rev-parse --abbrev-ref --symbolic-full-name @{u}',
-		{
+	const exec: GitExec = (cmd) =>
+		tryExecAsync(cmd, {
 			cwd: gerritRepo.rootUri.fsPath,
-		}
-	);
-	if (!success) {
-		log('Failed to get remote');
+			silent: true,
+		});
+
+	const remote = await findRemoteName(exec, {
+		preferredRemote,
+		defaultRemote: DEFAULT_GIT_REVIEW_FILE.remote,
+	});
+	if (!remote) {
+		log(
+			'Failed to infer host and project: could not determine which git remote points to Gerrit. Add a .gitreview file to the repository to configure it explicitly.'
+		);
 		return null;
 	}
 
-	const remote = stdout.trim().split('/')[0];
-	const { success: success2, stdout: stdout2 } = await tryExecAsync(
+	const { success, stdout } = await tryExecAsync(
 		`git remote get-url ${shellQuote(remote)}`,
 		{
 			cwd: gerritRepo.rootUri.fsPath,
 		}
 	);
-	if (!success2) {
-		log('Failed to get remote URL');
+	if (!success) {
+		log(`Failed to get URL of remote "${remote}"`);
 		return null;
 	}
 
-	const remoteUrl = stdout2.trim();
-	const urlRegex =
-		/(?:ssh|http|https):\/\/(?:[^@]+@)?([^:/]+)(?::(\d+))?\/(.+?)(?:\.git)?$/;
-	const match = urlRegex.exec(remoteUrl);
-	if (match) {
-		const [, host, port, project] = match;
-		if (!isLikelyGerritHost(host)) {
-			log(
-				`Remote host ${host} is not a Gerrit server, skipping inference`
-			);
-			return null;
-		}
-		return {
-			host,
-			port: port || DEFAULT_GIT_REVIEW_FILE.port,
-			project,
-		};
-	} else {
-		log('Failed to parse remote URL');
+	const remoteURL = stdout.trim();
+	const parsed = parseRemoteURL(remoteURL);
+	if (!parsed) {
+		log(`Failed to parse URL of remote "${remote}": ${remoteURL}`);
 		return null;
 	}
+	if (!isLikelyGerritHost(parsed.host)) {
+		log(
+			`Remote host "${parsed.host}" is not a Gerrit server, skipping inference`
+		);
+		return null;
+	}
+
+	log(
+		`Inferred host "${parsed.host}" and project "${parsed.project}" from remote "${remote}"`
+	);
+	return {
+		host: parsed.host,
+		port: parsed.port || DEFAULT_GIT_REVIEW_FILE.port,
+		project: parsed.project,
+	};
 }
 
 function parseGerritFile(fileContent: string): GitReviewFile | null {
@@ -119,7 +126,10 @@ export async function getGitReviewFile(
 	}
 
 	const parsed = parseGerritFile(fileContent);
-	const hostAndProject = await inferHostAndProject(gerritRepo);
+	const hostAndProject = await inferHostAndProject(
+		gerritRepo,
+		parsed?.defaultremote ?? parsed?.remote
+	);
 	if (hostAndProject) {
 		return {
 			...hostAndProject,

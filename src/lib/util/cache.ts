@@ -51,14 +51,20 @@ export function createCacheWrapper<V extends object, A extends unknown[]>(
 			if ('then' in getterResult) {
 				return new Promise((resolve) => {
 					void getterResult.then((newValue) => {
-						value = newValue;
-						hasValue = true;
+						// Don't cache failed lookups so they're retried
+						if (newValue !== null && newValue !== undefined) {
+							value = newValue;
+							hasValue = true;
+						}
 						resolve(newValue);
 					});
 				});
 			} else {
-				hasValue = true;
-				value = getterResult;
+				if (getterResult !== null && getterResult !== undefined) {
+					hasValue = true;
+					value = getterResult;
+				}
+				return getterResult;
 			}
 		}
 

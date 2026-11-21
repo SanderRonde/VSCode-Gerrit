@@ -7,6 +7,7 @@ import {
 	SpawnOptionsWithoutStdio,
 } from 'child_process';
 import { Repository } from '../../types/vscode-extension-git';
+import { shellQuote } from '../util/util';
 import { log } from '../util/log';
 
 export interface GitCommit {
@@ -195,7 +196,7 @@ export async function getLastCommits(
 	// which is quite annoying
 	try {
 		const stdout = await execAsync(
-			`git log --format='${COMMIT_FORMAT}' -z -n ${count}`,
+			`git log --format=${shellQuote(COMMIT_FORMAT)} -z -n ${count}`,
 			{
 				cwd: gerritRepo.rootUri.fsPath,
 			}

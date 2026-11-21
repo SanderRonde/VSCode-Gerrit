@@ -18,6 +18,8 @@ let failAllowedAPI: GerritAPI | null = null;
 let gitReviewFile: GitReviewFile | null = null;
 // Auth config the "missing settings" warning was last shown for
 let lastWarnedConfigKey: string | null = null;
+// Bumped whenever the cached API instances are dropped
+let apiGeneration = 0;
 
 interface AuthConfig {
 	url: string | undefined;
@@ -176,6 +178,7 @@ export async function createAPI(
 function resetAPI(): void {
 	api = null;
 	failAllowedAPI = null;
+	apiGeneration++;
 	// Credentials changed, we may be a different user now
 	GerritUser.resetSelf();
 }
@@ -207,7 +210,12 @@ export async function getAPI(
 		return cached;
 	}
 
+	const generation = apiGeneration;
 	const newAPI = await createAPI(allowFail);
+	if (generation !== apiGeneration) {
+		// Config changed while creating, don't cache an outdated instance
+		return newAPI;
+	}
 	if (allowFail) {
 		failAllowedAPI = newAPI;
 	} else {

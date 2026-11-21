@@ -61,6 +61,12 @@ export class DocumentCommentManager {
 	private _commentLoader: Promise<void> | null = null;
 	private _subscribedChangeID: string | null = null;
 	private readonly _onCommentsChanged = (): void => {
+		// The subscription just fetched new comments. Don't force another
+		// fetch, that would notify every listener of this change again
+		// (including other open files of it), refetching endlessly.
+		void this.loadComments();
+	};
+	private readonly _onChangeChanged = (): void => {
 		void this.refreshComments();
 	};
 	public diffData?: {
@@ -234,7 +240,7 @@ export class DocumentCommentManager {
 					new WeakRef(this._onCommentsChanged)
 				);
 				(await GerritChange.getChange(changeID)).subscribe(
-					new WeakRef(this._onCommentsChanged)
+					new WeakRef(this._onChangeChanged)
 				);
 			}
 

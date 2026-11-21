@@ -154,7 +154,8 @@ export function execAndMonitor(
 				err,
 			});
 		});
-		process.on('exit', (code) => {
+		// 'close' rather than 'exit' so all stdout/stderr has been read
+		process.on('close', (code) => {
 			finish({
 				success: code === 0,
 				stdout,

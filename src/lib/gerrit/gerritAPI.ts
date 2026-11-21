@@ -7,10 +7,10 @@ import { getGerritURLFromReviewFile } from '../credentials/enterCredentials';
 import { showInvalidSettingsMessage } from '../vscode/messages';
 import { Repository } from '../../types/vscode-extension-git';
 import { GerritSecrets } from '../credentials/secrets';
+import { Disposable, window, workspace } from 'vscode';
 import { GerritUser } from './gerritAPI/gerritUser';
 import { setContextProp } from '../vscode/context';
 import { GerritAPI } from './gerritAPI/api';
-import { window, workspace } from 'vscode';
 import { log } from '../util/log';
 
 let api: GerritAPI | null = null;
@@ -18,9 +18,6 @@ let failAllowedAPI: GerritAPI | null = null;
 let gitReviewFile: GitReviewFile | null = null;
 // Auth config the "missing settings" warning was last shown for
 let lastWarnedConfigKey: string | null = null;
-// Auth config each cached API instance was created with
-let apiConfigKey: string | null = null;
-let failAllowedAPIConfigKey: string | null = null;
 
 interface AuthConfig {
 	url: string | undefined;
@@ -173,45 +170,57 @@ export async function createAPI(
 }
 
 /**
- * Returns the cached API instance, recreating it when the auth config
- * (URL, username, password, cookies) changed since it was created.
+ * Drops the cached API instances so the next `getAPI` call creates one
+ * with the current URL/credentials.
  */
-async function getOrCreateAPI(allowFail: boolean): Promise<GerritAPI | null> {
-	const authConfig = await getAuthConfig();
-	const key = authConfigKey(authConfig);
-	const cached = allowFail ? failAllowedAPI : api;
-	const cachedKey = allowFail ? failAllowedAPIConfigKey : apiConfigKey;
-	if (cached && cachedKey === key) {
-		return cached;
-	}
+function resetAPI(): void {
+	api = null;
+	failAllowedAPI = null;
+	// Credentials changed, we may be a different user now
+	GerritUser.resetSelf();
+}
 
-	if (cached) {
-		// Credentials changed, we may be a different user now
-		GerritUser.resetSelf();
-	}
-
-	const newAPI = await createAPIFromConfig(authConfig, allowFail);
-	if (allowFail) {
-		failAllowedAPI = newAPI;
-		failAllowedAPIConfigKey = key;
-	} else {
-		api = newAPI;
-		apiConfigKey = key;
-	}
-	return newAPI;
+/**
+ * Recreate the API when the auth settings or stored secrets change.
+ * Checking for changes on every `getAPI` call would mean reading the
+ * secret storage on every request.
+ */
+export function initAPIConfigListener(): Disposable {
+	return Disposable.from(
+		workspace.onDidChangeConfiguration((e) => {
+			if (
+				e.affectsConfiguration('gerrit.auth') ||
+				e.affectsConfiguration('gerrit.extraCookies')
+			) {
+				resetAPI();
+			}
+		}),
+		GerritSecrets.secretStorage.onDidChange(() => resetAPI())
+	);
 }
 
 export async function getAPI(
 	allowFail: boolean = false
 ): Promise<GerritAPI | null> {
-	return getOrCreateAPI(allowFail);
+	const cached = allowFail ? failAllowedAPI : api;
+	if (cached) {
+		return cached;
+	}
+
+	const newAPI = await createAPI(allowFail);
+	if (allowFail) {
+		failAllowedAPI = newAPI;
+	} else {
+		api = newAPI;
+	}
+	return newAPI;
 }
 
 export async function getAPIForSubscription(
 	allowFail: boolean = false
 ): Promise<GerritAPI> {
 	return (
-		(await getOrCreateAPI(allowFail)) ??
+		(await getAPI(allowFail)) ??
 		new GerritAPI(null, null, null, null, null, gitReviewFile, allowFail)
 	);
 }
@@ -222,5 +231,9 @@ export async function getAPIForSubscription(
 export async function setAPIGitReviewFile(
 	gerritRepo: Repository
 ): Promise<void> {
-	gitReviewFile = await getGitReviewFileCached(gerritRepo);
+	const newGitReviewFile = await getGitReviewFileCached(gerritRepo);
+	if (JSON.stringify(newGitReviewFile) !== JSON.stringify(gitReviewFile)) {
+		resetAPI();
+	}
+	gitReviewFile = newGitReviewFile;
 }

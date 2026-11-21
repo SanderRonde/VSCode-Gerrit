@@ -21,5 +21,10 @@ export function changeIdsEqual(
 	if (!a || !b) {
 		return false;
 	}
+	if (a.includes('~') && b.includes('~')) {
+		// Both fully qualified. Cherry-picks to other branches share the
+		// I{hex} part but are different changes.
+		return a === b;
+	}
 	return normalizeChangeID(a) === normalizeChangeID(b);
 }
